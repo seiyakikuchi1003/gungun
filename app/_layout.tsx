@@ -11,12 +11,12 @@ import { AuthProvider } from '@/store/auth';
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function RootLayout() {
-  // 使用文字だけにサブセット化したローカルフォント（1ウェイト約360KB）。
+  // 角丸ゴシック M PLUS Rounded 1c（使用文字だけにサブセット化）。
   const [loaded] = useFonts({
-    NotoSansJP_400Regular: require('../assets/fonts/NotoSansJP-Regular.ttf'),
-    NotoSansJP_500Medium: require('../assets/fonts/NotoSansJP-Medium.ttf'),
-    NotoSansJP_700Bold: require('../assets/fonts/NotoSansJP-Bold.ttf'),
-    NotoSansJP_900Black: require('../assets/fonts/NotoSansJP-Black.ttf'),
+    MPLUSRounded1c_400Regular: require('../assets/fonts/MPLUSRounded1c-Regular.ttf'),
+    MPLUSRounded1c_500Medium: require('../assets/fonts/MPLUSRounded1c-Medium.ttf'),
+    MPLUSRounded1c_700Bold: require('../assets/fonts/MPLUSRounded1c-Bold.ttf'),
+    MPLUSRounded1c_800ExtraBold: require('../assets/fonts/MPLUSRounded1c-ExtraBold.ttf'),
   });
 
   useEffect(() => {

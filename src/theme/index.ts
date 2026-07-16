@@ -89,11 +89,13 @@ export const radius = {
  * フォント（Noto Sans JP）
  * 見出しは太字。数値強調は Black。
  */
+// 角丸ゴシック M PLUS Rounded 1c で「緩い・親しみやすい」印象に。
+// black は 800(ExtraBold) を採用（900だと重すぎるため、柔らかさを優先）。
 export const fonts = {
-  regular: 'NotoSansJP_400Regular',
-  medium: 'NotoSansJP_500Medium',
-  bold: 'NotoSansJP_700Bold',
-  black: 'NotoSansJP_900Black',
+  regular: 'MPLUSRounded1c_400Regular',
+  medium: 'MPLUSRounded1c_500Medium',
+  bold: 'MPLUSRounded1c_700Bold',
+  black: 'MPLUSRounded1c_800ExtraBold',
 } as const;
 
 /** タイポグラフィ（fontFamily + サイズ + 行間） */

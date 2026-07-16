@@ -9,6 +9,7 @@
     "export:web": "expo export --platform web"
   },
   "dependencies": {
+    "@expo-google-fonts/m-plus-rounded-1c": "^0.4.4",
     "@expo/vector-icons": "^15.0.2",
     "expo": "~57.0.6",
     "expo-blur": "~57.0.2",
