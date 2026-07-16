@@ -45,12 +45,12 @@ export default function HomeScreen() {
       >
         {/* 検索 ＋ 右上アイコン */}
         <View style={styles.topBar}>
-          <PressableScale onPress={() => {}} activeScale={0.98} style={[styles.search, shadows.soft]}>
+          <PressableScale onPress={() => router.push('/search')} activeScale={0.98} style={[styles.search, shadows.soft]}>
             <Ionicons name="search" size={20} color={colors.textSecondary} />
             <Text style={styles.searchPlaceholder}>欲しいものを探してみよう</Text>
           </PressableScale>
-          <HeaderIcon name="notifications" badge onPress={() => {}} />
-          <HeaderIcon name="swap-horizontal" badge onPress={() => {}} />
+          <HeaderIcon name="notifications" badge onPress={() => router.push('/notifications')} />
+          <HeaderIcon name="swap-horizontal" badge onPress={() => router.push('/exchange')} />
         </View>
 
         {/* 肥料残高＋ログインボーナス */}

@@ -12,4 +12,19 @@ export const settings = {
   dailyLoginBonus: 40,
   // 最初の種植えは無料
   firstSeedFree: true,
+
+  // 肥料チャージのプラン（price は円。未確定のため null なら画面に「¥---」を表示）
+  // ★本実装では app_settings / 環境変数から読み込み、管理画面から変更可能にする
+  chargePlans: [
+    { id: 'c1', fertilizer: 400, price: 200 as number | null, badge: '' },
+    { id: 'c2', fertilizer: 1200, price: 500 as number | null, badge: 'お得' },
+    { id: 'c3', fertilizer: 3000, price: 1000 as number | null, badge: '人気' },
+  ],
+  // プレミアム月額（未確定。null の間は「¥---」表示）
+  premiumMonthly: 480 as number | null,
 } as const;
+
+/** 円表示。未設定（null/undefined）は SPEC に従い「¥---」。 */
+export function formatPrice(v: number | null | undefined): string {
+  return v == null ? '¥---' : `¥${v.toLocaleString()}`;
+}

@@ -101,7 +101,7 @@ export default function ItemDetailScreen() {
           </PressableScale>
 
           {/* 元の種 */}
-          <PressableScale activeScale={0.98} style={[styles.rootCard, shadows.soft]}>
+          <PressableScale activeScale={0.98} onPress={() => router.push(`/item/root/${item.id}`)} style={[styles.rootCard, shadows.soft]}>
             <View style={styles.rootTop}>
               <Sprout size={20} />
               <Text style={styles.rootLabel}>元の種（この商品がつながっている種）</Text>

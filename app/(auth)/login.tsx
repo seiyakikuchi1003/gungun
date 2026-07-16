@@ -62,7 +62,7 @@ export default function LoginScreen() {
               }}
               style={{ marginTop: spacing.sm }}
             />
-            <PressableScale onPress={() => {}} style={styles.forgot}>
+            <PressableScale onPress={() => router.push('/(auth)/reset')} style={styles.forgot}>
               <Text style={styles.forgotText}>パスワードをお忘れの方</Text>
             </PressableScale>
           </Animated.View>
