@@ -19,7 +19,7 @@ export default function Premium() {
   const insets = useSafeAreaInsets();
   return (
     <View style={styles.root}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: 130 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: 150 }}>
         <View style={styles.header}><Text style={styles.title}>プレミアム</Text></View>
 
         <LinearGradient colors={['#F6C560', colors.orange, '#E8901C']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.hero, shadows.card]}>

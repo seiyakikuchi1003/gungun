@@ -11,18 +11,35 @@ import { Button } from '@/components/ui/Button';
 import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
 import { Mikan } from '@/components/art/Mikan';
 import { Sprout } from '@/components/art/Sprout';
-import { getItem, getUser, items, MockItem } from '@/data/mock';
+import { Avatar } from '@/components/ui/Avatar';
+import { getItem, getUser, items, currentUser, MockItem } from '@/data/mock';
+
+/** デモ用：候補までの一本道の人数（根の自分＋途中の人数）。深さをそれらしく散らす */
+function ringSizeOf(index: number): number {
+  return 2 + (index % 3); // 2〜4人の輪
+}
+
+/** デモ用：輪に入るユーザー列（自分 → 途中の人たち → 最後は自分に戻る） */
+function ringUsersOf(target: MockItem, size: number) {
+  const others = ['takusan', 'sakura', 'yu', 'haru', 'kenta']
+    .filter((id) => id !== target.ownerId);
+  const mid = [target.ownerId, ...others].slice(0, size - 1);
+  return [currentUser, ...mid.map((id) => getUser(id))];
+}
 
 export default function HarvestDetail() {
   const { rootId } = useLocalSearchParams<{ rootId: string }>();
   const insets = useSafeAreaInsets();
   const seed = getItem(rootId ?? '');
   const [target, setTarget] = useState<MockItem | null>(null);
+  const [targetIndex, setTargetIndex] = useState(0);
   const [done, setDone] = useState(false);
 
   if (!seed) return <View style={styles.root} />;
   // 集まった商品（デモ：seed 以外から数点）
   const gathered = items.filter((i) => i.id !== seed.id).slice(0, 5);
+  const ringSize = ringSizeOf(targetIndex);
+  const ringUsers = target ? ringUsersOf(target, ringSize) : [];
 
   return (
     <View style={styles.root}>
@@ -49,16 +66,22 @@ export default function HarvestDetail() {
         </View>
         <Text style={styles.hint}>収穫すると、選んだ商品までの一本道の全員が輪になって交換します</Text>
 
-        {gathered.map((g) => {
+        {gathered.map((g, i) => {
           const u = getUser(g.ownerId);
           return (
             <View key={g.id} style={[styles.gCard, shadows.soft]}>
               <Thumb source={g.local} uri={g.image} style={styles.gThumb} radius={radius.md} markSize={26} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.gName} numberOfLines={1}>{g.name}</Text>
-                <Text style={styles.gOwner}>{u.nickname}さん</Text>
+                <View style={styles.gMeta}>
+                  <Text style={styles.gOwner}>{u.nickname}さん</Text>
+                  <View style={styles.ringChip}>
+                    <Ionicons name="sync" size={11} color={colors.green} />
+                    <Text style={styles.ringChipText}>{ringSizeOf(i)}人の輪</Text>
+                  </View>
+                </View>
               </View>
-              <PressableScale onPress={() => setTarget(g)} activeScale={0.94} style={styles.harvestBtn}>
+              <PressableScale onPress={() => { setTarget(g); setTargetIndex(i); }} activeScale={0.94} style={styles.harvestBtn}>
                 <Text style={styles.harvestText}>収穫する</Text>
               </PressableScale>
             </View>
@@ -73,6 +96,30 @@ export default function HarvestDetail() {
           <Text style={styles.confirmTitle}>この商品を収穫しますか？</Text>
           <Text style={styles.confirmSub}>{target?.name} まで、一本道の全員で交換します</Text>
         </View>
+
+        {/* 交換の輪プレビュー：あなた → … → あなた */}
+        <View style={styles.ringBox}>
+          <Text style={styles.ringTitle}>{ringUsers.length}人の輪ができます</Text>
+          <View style={styles.ringRow}>
+            {ringUsers.map((u, i) => (
+              <React.Fragment key={`${u.id}-${i}`}>
+                <View style={styles.ringUser}>
+                  <Avatar uri={u.avatar} name={u.nickname} size={40} />
+                  <Text style={styles.ringName} numberOfLines={1}>
+                    {u.id === currentUser.id ? 'あなた' : u.nickname}
+                  </Text>
+                </View>
+                <Ionicons name="arrow-forward" size={14} color={colors.greenSoftBorder} style={styles.ringArrow} />
+              </React.Fragment>
+            ))}
+            <View style={styles.ringUser}>
+              <Avatar uri={currentUser.avatar} name={currentUser.nickname} size={40} />
+              <Text style={styles.ringName}>あなた</Text>
+            </View>
+          </View>
+          <Text style={styles.ringNote}>それぞれ1回送って、1回受け取ります</Text>
+        </View>
+
         <View style={styles.noteBox}>
           <Ionicons name="alert-circle" size={18} color={colors.orangeDeep} />
           <Text style={styles.noteText}>収穫すると取り消せません。輪の全員に発送義務が発生します。</Text>
@@ -113,7 +160,17 @@ const styles = StyleSheet.create({
   gCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.md, marginBottom: spacing.md },
   gThumb: { width: 56, height: 56 },
   gName: { fontFamily: fonts.bold, fontSize: 14.5, color: colors.textPrimary },
-  gOwner: { fontFamily: fonts.regular, fontSize: 12, color: colors.textSecondary, marginTop: 2 },
+  gMeta: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: 3 },
+  gOwner: { fontFamily: fonts.regular, fontSize: 12, color: colors.textSecondary },
+  ringChip: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: colors.greenSoft, paddingHorizontal: 8, paddingVertical: 2.5, borderRadius: radius.pill },
+  ringChipText: { fontFamily: fonts.bold, fontSize: 10.5, color: colors.green },
+  ringBox: { backgroundColor: colors.greenSoft, borderRadius: radius.card, padding: spacing.lg, marginTop: spacing.lg, alignItems: 'center' },
+  ringTitle: { fontFamily: fonts.bold, fontSize: 14, color: colors.greenDeep, marginBottom: spacing.md },
+  ringRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'center' },
+  ringUser: { alignItems: 'center', gap: 4, width: 54 },
+  ringName: { fontFamily: fonts.medium, fontSize: 10, color: colors.textPrimary },
+  ringArrow: { marginTop: 13 },
+  ringNote: { fontFamily: fonts.regular, fontSize: 11.5, color: colors.textSecondary, marginTop: spacing.md },
   harvestBtn: { backgroundColor: colors.orange, paddingHorizontal: 16, paddingVertical: 9, borderRadius: radius.pill },
   harvestText: { fontFamily: fonts.bold, fontSize: 13, color: colors.white },
   confirmCenter: { alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md },

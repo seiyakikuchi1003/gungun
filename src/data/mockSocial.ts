@@ -63,13 +63,14 @@ export type Notif = {
   actorId?: string; // 相手のアバター表示用
 };
 
+// body は「{actor}さん」に続く形で書く（先頭に助詞を含める）
 export const notifications: Notif[] = [
-  { id: 'n1', type: 'watered', body: 'あなたの「香水」に水やりしました', createdAt: '5分前', today: true, actorId: 'takusan' },
-  { id: 'n2', type: 'harvested', body: '「コーヒーメーカー」が収穫されました。発送をお願いします', createdAt: '30分前', today: true, actorId: 'yu' },
-  { id: 'n3', type: 'message', body: 'メッセージが届きました', createdAt: '1時間前', read: true, today: true, actorId: 'sakura' },
-  { id: 'n4', type: 'shipped', body: '商品を発送しました', createdAt: '3時間前', read: true, today: true, actorId: 'yu' },
-  { id: 'n5', type: 'board_comment', body: 'あなたの投稿にコメントがつきました', createdAt: '昨日', read: true, actorId: 'haru' },
-  { id: 'n6', type: 'received', body: '受け取りが完了しました。評価をお願いします', createdAt: '2日前', read: true, actorId: 'sakura' },
+  { id: 'n1', type: 'watered', body: 'があなたの「香水」に水やりしました', createdAt: '5分前', today: true, actorId: 'takusan' },
+  { id: 'n2', type: 'harvested', body: 'が「コーヒーメーカー」の輪を収穫しました。発送をお願いします', createdAt: '30分前', today: true, actorId: 'yu' },
+  { id: 'n3', type: 'message', body: 'からメッセージが届きました', createdAt: '1時間前', read: true, today: true, actorId: 'sakura' },
+  { id: 'n4', type: 'shipped', body: 'が商品を発送しました。到着までお待ちください', createdAt: '3時間前', read: true, today: true, actorId: 'yu' },
+  { id: 'n5', type: 'board_comment', body: 'があなたの投稿にコメントしました', createdAt: '昨日', read: true, actorId: 'haru' },
+  { id: 'n6', type: 'received', body: 'が受け取りを完了しました。評価をお願いします', createdAt: '2日前', read: true, actorId: 'sakura' },
 ];
 
 export const NOTIF_ICON: Record<NotificationType, string> = {

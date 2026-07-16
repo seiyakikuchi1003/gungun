@@ -12,13 +12,29 @@ type AuthState = {
 
 const AuthContext = createContext<AuthState | null>(null);
 
+// Webプレビューではリロードでログアウトに戻ると不便なので保持する。
+// （ネイティブ化の際は Supabase セッションに置き換えるため、この永続化ごと破棄）
+const KEY = 'gungun.mock.authed';
+function loadAuthed(): boolean {
+  try {
+    return globalThis.localStorage?.getItem(KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+function saveAuthed(v: boolean) {
+  try {
+    globalThis.localStorage?.setItem(KEY, v ? '1' : '0');
+  } catch {}
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [authed, setAuthed] = useState(false);
+  const [authed, setAuthed] = useState(loadAuthed);
   const value = useMemo<AuthState>(
     () => ({
       authed,
-      signIn: () => setAuthed(true),
-      signOut: () => setAuthed(false),
+      signIn: () => { saveAuthed(true); setAuthed(true); },
+      signOut: () => { saveAuthed(false); setAuthed(false); },
     }),
     [authed]
   );

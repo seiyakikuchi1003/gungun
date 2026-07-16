@@ -31,7 +31,7 @@ function Row({ n }: { n: Notif }) {
       <View style={{ flex: 1 }}>
         <Text style={styles.body}>
           {actor ? <Text style={styles.actor}>{actor.nickname}さん</Text> : null}
-          {actor ? 'が' : ''}{n.body}
+          {n.body}
         </Text>
         <Text style={styles.time}>{n.createdAt}</Text>
       </View>

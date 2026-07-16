@@ -122,10 +122,11 @@ export const currentUser = {
 };
 
 /** ぐんぐんの楽しみ方 3ステップ */
+// desc の改行は表示幅に合わせた意図的なもの（1文字だけの折り返しを防ぐ）
 export const howToSteps = [
-  { key: 'plant', title: '種を植える', desc: 'いらないものを出品', icon: 'sprout' },
-  { key: 'water', title: '水やりする', desc: '欲しいものに交換希望', icon: 'water' },
-  { key: 'harvest', title: '収穫する', desc: '輪になって交換成立', icon: 'harvest' },
+  { key: 'plant', title: '種を植える', desc: 'いらないものを\n出品', icon: 'sprout' },
+  { key: 'water', title: '水やりする', desc: '欲しいものに\n交換希望', icon: 'water' },
+  { key: 'harvest', title: '収穫する', desc: '輪になって\n交換成立', icon: 'harvest' },
 ] as const;
 
 export const categories = [

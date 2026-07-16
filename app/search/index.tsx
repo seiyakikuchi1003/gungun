@@ -9,6 +9,7 @@ import { ItemCard } from '@/components/ui/ItemCard';
 import { items, categories } from '@/data/mock';
 
 const RECENT = ['Nintendo Switch', 'iPhone', 'バッグ', 'カメラ'];
+const TRENDING = ['ゲーム機', 'ワイヤレスイヤホン', 'ブランド財布', 'ギフト券', 'スニーカー', '本まとめ売り'];
 type Sort = 'new' | 'water';
 
 export default function SearchScreen() {
@@ -73,6 +74,30 @@ export default function SearchScreen() {
               </PressableScale>
             ))}
           </View>
+
+          <Text style={[styles.sectionTitle, { marginTop: 28 }]}>人気のキーワード</Text>
+          <View style={styles.recentWrap}>
+            {TRENDING.map((r, i) => (
+              <PressableScale key={r} onPress={() => setQ(r)} activeScale={0.96} style={styles.trendChip}>
+                <Text style={styles.trendRank}>{i + 1}</Text>
+                <Text style={styles.trendText}>{r}</Text>
+              </PressableScale>
+            ))}
+          </View>
+
+          <View style={[styles.resultHead, { marginTop: 28 }]}>
+            <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>注目の種</Text>
+            <Text style={styles.hotNote}>水やりが多い順</Text>
+          </View>
+          <View style={styles.grid}>
+            {[...items]
+              .filter((i) => i.status === 'growing')
+              .sort((a, b) => b.waterCount - a.waterCount)
+              .slice(0, 4)
+              .map((i) => (
+                <ItemCard key={i.id} item={i} width={cardW} onPress={() => router.push(`/item/${i.id}`)} />
+              ))}
+          </View>
         </ScrollView>
       ) : (
         <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
@@ -127,6 +152,10 @@ const styles = StyleSheet.create({
   recentWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   recentChip: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: colors.card, paddingHorizontal: 14, paddingVertical: 9, borderRadius: radius.pill, ...shadows.soft },
   recentText: { fontFamily: fonts.medium, fontSize: 13.5, color: colors.textPrimary },
+  trendChip: { flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: colors.greenSoft, paddingHorizontal: 14, paddingVertical: 9, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.greenSoftBorder },
+  trendRank: { fontFamily: fonts.black, fontSize: 12, color: colors.green },
+  trendText: { fontFamily: fonts.medium, fontSize: 13.5, color: colors.textPrimary },
+  hotNote: { fontFamily: fonts.medium, fontSize: 12, color: colors.textSecondary },
   resultHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md },
   resultCount: { fontFamily: fonts.bold, fontSize: 14, color: colors.textPrimary },
   sortRow: { flexDirection: 'row', gap: spacing.lg },

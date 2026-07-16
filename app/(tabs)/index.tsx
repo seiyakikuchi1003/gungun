@@ -41,7 +41,7 @@ export default function HomeScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: 110 }}
+        contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: 170 }}
       >
         {/* 検索 ＋ 右上アイコン */}
         <View style={styles.topBar}>
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
   step: { alignItems: 'center', gap: 4, width: 84 },
   stepArt: { height: 40, justifyContent: 'center', alignItems: 'center' },
   stepTitle: { fontFamily: fonts.bold, fontSize: 13, color: colors.textPrimary, marginTop: 2 },
-  stepDesc: { fontFamily: fonts.regular, fontSize: 10.5, color: colors.textSecondary, textAlign: 'center' },
+  stepDesc: { fontFamily: fonts.regular, fontSize: 11, lineHeight: 16, color: colors.textSecondary, textAlign: 'center' },
   fab: {
     position: 'absolute',
     right: 20,
