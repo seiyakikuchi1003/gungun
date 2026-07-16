@@ -35,6 +35,7 @@ export type MockItem = {
  * ★実写真を同じファイル名で差し替えれば、ここを変えずにアプリ全体へ反映される。
  */
 const P = {
+  switch: require('../../assets/products/switch.jpg') as number,
   books: require('../../assets/products/books.jpg') as number,
   airpods: require('../../assets/products/airpods.jpg') as number,
   controller: require('../../assets/products/controller.jpg') as number,
@@ -62,6 +63,8 @@ export const items: MockItem[] = [
     description: '2年ほど使用しました。動作は良好で、付属品はすべて揃っています。箱も保管してあります。喫煙者・ペットはいません。',
     image: img('switch1'),
     images: [img('switch1'), img('switch2'), img('switch3')],
+    local: P.switch,
+    localImages: [P.switch],
     ownerId: 'takusan',
     waterCount: 12,
     likeCount: 23,

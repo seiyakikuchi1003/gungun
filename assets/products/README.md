@@ -5,6 +5,7 @@
 
 | ファイル名 | 割り当て商品 | カテゴリー |
 |---|---|---|
+| `switch.jpg` | Nintendo Switch | ゲーム・おもちゃ |
 | `iphone.jpg` | iPhone 15 | スマホ・家電 |
 | `airpods.jpg` | AirPods Pro | スマホ・家電 |
 | `bag.jpg` | ルイヴィトン バッグ | レディース |
