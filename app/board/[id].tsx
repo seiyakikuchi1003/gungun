@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { colors, spacing, fonts, shadows } from '@/theme';
+import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { Avatar } from '@/components/ui/Avatar';
-import { boardPosts, boardComments } from '@/data/mockSocial';
+import { HeartButton } from '@/components/ui/HeartButton';
+import { boardPosts, boardComments, TAG_META } from '@/data/mockSocial';
 import { getUser } from '@/data/mock';
 
 export default function BoardDetail() {
@@ -18,6 +20,7 @@ export default function BoardDetail() {
 
   if (!post) return <View style={styles.root} />;
   const u = getUser(post.userId);
+  const tag = TAG_META[post.tag];
 
   return (
     <View style={styles.root}>
@@ -32,22 +35,32 @@ export default function BoardDetail() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
-        <View style={styles.postWrap}>
+        {/* 投稿カード */}
+        <View style={[styles.postCard, shadows.card]}>
           <View style={styles.postHead}>
-            <Avatar uri={u.avatar} name={u.nickname} size={46} />
-            <View>
-              <Text style={styles.name}>{u.nickname}</Text>
+            <Avatar uri={u.avatar} name={u.nickname} size={48} />
+            <View style={{ flex: 1 }}>
+              <View style={styles.nameRow}>
+                <Text style={styles.name}>{u.nickname}</Text>
+                <View style={[styles.tag, { backgroundColor: tag.bg }]}>
+                  <Text style={[styles.tagText, { color: tag.color }]}>{tag.label}</Text>
+                </View>
+              </View>
               <Text style={styles.time}>{post.createdAt}</Text>
             </View>
           </View>
           <Text style={styles.body}>{post.body}</Text>
+          {post.image != null && <Image source={post.image} style={styles.image} contentFit="cover" transition={200} />}
           <View style={styles.stats}>
-            <Text style={styles.stat}><Text style={styles.statNum}>{post.likeCount}</Text> いいね</Text>
-            <Text style={styles.stat}><Text style={styles.statNum}>{comments.length}</Text> コメント</Text>
+            <HeartButton count={post.likeCount} initial={post.liked} size={20} />
+            <View style={styles.stat}>
+              <Ionicons name="chatbubble-outline" size={18} color={colors.textSecondary} />
+              <Text style={styles.statText}>{comments.length}</Text>
+            </View>
           </View>
         </View>
 
-        <Text style={styles.commentsTitle}>コメント</Text>
+        <Text style={styles.commentsTitle}>コメント {comments.length}</Text>
         {comments.map((c) => {
           const cu = getUser(c.userId);
           return (
@@ -97,22 +110,26 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingBottom: spacing.sm },
   hBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
   hTitle: { fontFamily: fonts.bold, fontSize: 17, color: colors.textPrimary },
-  postWrap: { paddingHorizontal: 20, paddingVertical: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.divider },
+  postCard: { backgroundColor: colors.card, borderRadius: radius.lg, padding: spacing.lg, margin: 20, gap: spacing.md },
   postHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  name: { fontFamily: fonts.bold, fontSize: 15, color: colors.textPrimary },
-  time: { fontFamily: fonts.regular, fontSize: 12, color: colors.textSecondary },
-  body: { fontFamily: fonts.regular, fontSize: 16, lineHeight: 26, color: colors.textPrimary, marginTop: spacing.md },
-  stats: { flexDirection: 'row', gap: spacing.xl, marginTop: spacing.lg },
-  stat: { fontFamily: fonts.regular, fontSize: 13, color: colors.textSecondary },
-  statNum: { fontFamily: fonts.bold, color: colors.textPrimary },
-  commentsTitle: { fontFamily: fonts.bold, fontSize: 15, color: colors.textPrimary, paddingHorizontal: 20, paddingTop: spacing.lg, paddingBottom: spacing.sm },
-  comment: { flexDirection: 'row', gap: spacing.md, paddingHorizontal: 20, paddingVertical: spacing.md },
-  bubble: { flex: 1, backgroundColor: colors.card, borderRadius: 14, padding: spacing.md, ...shadows.soft },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  name: { fontFamily: fonts.bold, fontSize: 15.5, color: colors.textPrimary },
+  tag: { paddingHorizontal: 9, paddingVertical: 2, borderRadius: radius.pill },
+  tagText: { fontFamily: fonts.bold, fontSize: 10.5 },
+  time: { fontFamily: fonts.regular, fontSize: 12, color: colors.textSecondary, marginTop: 2 },
+  body: { fontFamily: fonts.regular, fontSize: 15.5, lineHeight: 25, color: colors.textPrimary },
+  image: { width: '100%', aspectRatio: 16 / 10, borderRadius: radius.md, backgroundColor: colors.cardMuted },
+  stats: { flexDirection: 'row', alignItems: 'center', gap: spacing.xl, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: colors.divider },
+  stat: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  statText: { fontFamily: fonts.medium, fontSize: 13, color: colors.textSecondary },
+  commentsTitle: { fontFamily: fonts.bold, fontSize: 15, color: colors.textPrimary, paddingHorizontal: 20, paddingBottom: spacing.sm },
+  comment: { flexDirection: 'row', gap: spacing.md, paddingHorizontal: 20, paddingVertical: spacing.sm },
+  bubble: { flex: 1, backgroundColor: colors.card, borderRadius: 16, padding: spacing.md, ...shadows.soft },
   cHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   cName: { fontFamily: fonts.bold, fontSize: 13, color: colors.textPrimary },
   cBody: { fontFamily: fonts.regular, fontSize: 14, lineHeight: 21, color: colors.textPrimary, marginTop: 3 },
   empty: { fontFamily: fonts.regular, fontSize: 13.5, color: colors.textSecondary, textAlign: 'center', marginTop: 20 },
-  inputBar: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.card, paddingHorizontal: spacing.lg, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: colors.divider },
+  inputBar: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.card, paddingHorizontal: spacing.lg, paddingTop: spacing.md, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
   input: { flex: 1, backgroundColor: colors.cardMuted, borderRadius: 999, paddingHorizontal: spacing.lg, paddingVertical: 10, fontFamily: fonts.regular, fontSize: 14.5, color: colors.textPrimary },
   send: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.green, justifyContent: 'center', alignItems: 'center' },
 });
