@@ -4,24 +4,19 @@ import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
-import {
-  useFonts,
-  NotoSansJP_400Regular,
-  NotoSansJP_500Medium,
-  NotoSansJP_700Bold,
-  NotoSansJP_900Black,
-} from '@expo-google-fonts/noto-sans-jp';
+import { useFonts } from 'expo-font';
 import { colors } from '@/theme';
 import { AuthProvider } from '@/store/auth';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function RootLayout() {
+  // 使用文字だけにサブセット化したローカルフォント（1ウェイト約360KB）。
   const [loaded] = useFonts({
-    NotoSansJP_400Regular,
-    NotoSansJP_500Medium,
-    NotoSansJP_700Bold,
-    NotoSansJP_900Black,
+    NotoSansJP_400Regular: require('../assets/fonts/NotoSansJP-Regular.ttf'),
+    NotoSansJP_500Medium: require('../assets/fonts/NotoSansJP-Medium.ttf'),
+    NotoSansJP_700Bold: require('../assets/fonts/NotoSansJP-Bold.ttf'),
+    NotoSansJP_900Black: require('../assets/fonts/NotoSansJP-Black.ttf'),
   });
 
   useEffect(() => {
