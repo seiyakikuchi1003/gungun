@@ -23,7 +23,7 @@ export function ItemCard({ item, onPress, width = 168 }: Props) {
   return (
     <PressableScale onPress={onPress} activeScale={0.97} style={[styles.card, { width }, shadows.card]}>
       <View style={styles.thumbWrap}>
-        <Thumb uri={item.image} style={styles.thumb} markSize={40} />
+        <Thumb source={item.local} uri={item.image} style={styles.thumb} markSize={40} />
         <View style={styles.waterPill}>
           <Sprout size={13} color={colors.white} />
           <Text style={styles.waterText}>{item.waterCount}</Text>

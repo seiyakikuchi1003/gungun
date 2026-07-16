@@ -1,12 +1,14 @@
 import React from 'react';
 import { View, StyleSheet, ViewStyle, StyleProp, DimensionValue } from 'react-native';
-import { Image } from 'expo-image';
+import { Image, ImageSource } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Mikan } from '@/components/art/Mikan';
-import { colors } from '@/theme';
 
 type Props = {
+  /** リモート画像URL */
   uri?: string;
+  /** ローカル画像（require の戻り値など）。指定時は uri より優先。 */
+  source?: number | ImageSource;
   style?: StyleProp<ViewStyle>;
   radius?: number;
   /** プレースホルダーのマスコットサイズ */
@@ -16,9 +18,10 @@ type Props = {
 /**
  * 商品画像サムネイル。
  * 画像読込前／失敗時はブランドカラーのグラデ＋みかん透かしを表示するので、
- * 空白にならず「意図されたプレースホルダー」に見える。実機では実写真が上に載る。
+ * 空白にならず「意図されたプレースホルダー」に見える。実写真が用意されれば上に載る。
  */
-export function Thumb({ uri, style, radius = 0, markSize = 44 }: Props) {
+export function Thumb({ uri, source, style, radius = 0, markSize = 44 }: Props) {
+  const imgSource = source ?? (uri ? { uri } : undefined);
   return (
     <View style={[styles.wrap, { borderRadius: radius }, style]}>
       <LinearGradient
@@ -32,8 +35,8 @@ export function Thumb({ uri, style, radius = 0, markSize = 44 }: Props) {
           <Mikan size={markSize} face={false} />
         </View>
       </View>
-      {uri ? (
-        <Image source={{ uri }} style={styles.img} contentFit="cover" transition={250} />
+      {imgSource ? (
+        <Image source={imgSource} style={styles.img} contentFit="cover" transition={250} />
       ) : null}
     </View>
   );

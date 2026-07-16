@@ -36,7 +36,7 @@ export function WaterConfirmSheet({ visible, item, ownerName, currentFertilizer,
 
       {/* 対象商品 */}
       <View style={styles.itemCard}>
-        <Thumb uri={item.image} style={styles.thumb} radius={radius.md} markSize={28} />
+        <Thumb source={item.local} uri={item.image} style={styles.thumb} radius={radius.md} markSize={28} />
         <View style={{ flex: 1 }}>
           <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
           <Text style={styles.itemOwner}>{ownerName}さんのタネ</Text>

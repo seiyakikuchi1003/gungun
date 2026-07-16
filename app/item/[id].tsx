@@ -11,7 +11,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { Thumb } from '@/components/ui/Thumb';
 import { Sprout } from '@/components/art/Sprout';
 import { WaterConfirmSheet } from '@/components/feature/WaterConfirmSheet';
-import { getItem, getUser, currentUser } from '@/data/mock';
+import { getItem, getUser, currentUser, itemImageSources } from '@/data/mock';
 
 export default function ItemDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -61,13 +61,13 @@ export default function ItemDetailScreen() {
         {/* 画像カルーセル */}
         <View>
           <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} onScroll={onScroll} scrollEventThrottle={16}>
-            {item.images.map((uri) => (
-              <Thumb key={uri} uri={uri} style={{ width, height: width * 0.82 }} markSize={90} />
+            {itemImageSources(item).map((src, i) => (
+              <Thumb key={i} source={src} style={{ width, height: width * 0.82 }} markSize={90} />
             ))}
           </ScrollView>
-          {item.images.length > 1 && (
+          {itemImageSources(item).length > 1 && (
             <View style={styles.dots}>
-              {item.images.map((_, i) => (
+              {itemImageSources(item).map((_, i) => (
                 <View key={i} style={[styles.dot, i === page && styles.dotActive]} />
               ))}
             </View>
