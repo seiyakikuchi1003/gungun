@@ -128,16 +128,16 @@ export default function HomeScreen() {
         </Animated.View>
       </ScrollView>
 
-      {/* 「タネを植える」FAB（右下・丸型） */}
+      {/* 「タネを植える」FAB（右下・ラベル付き拡張FAB） */}
       <PressableScale
         onPress={() => router.push('/plant/seed')}
-        accessibilityLabel="タネを植える"
+        accessibilityLabel="タネを植える（出品する）"
         style={[styles.fab, shadows.button]}
       >
-        <Sprout size={30} color={colors.white} />
-        <View style={styles.fabPlus}>
-          <Ionicons name="add" size={14} color={colors.greenDeep} />
+        <View style={styles.fabIcon}>
+          <Sprout size={20} color={colors.white} />
         </View>
+        <Text style={styles.fabText}>タネを植える</Text>
       </PressableScale>
     </View>
   );
@@ -214,22 +214,22 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 20,
     bottom: 24,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    height: 54,
+    paddingLeft: 8,
+    paddingRight: 22,
+    borderRadius: 27,
     backgroundColor: colors.greenDeep,
+  },
+  fabIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255,255,255,0.18)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  fabPlus: {
-    position: 'absolute',
-    top: 6,
-    right: 6,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: colors.white,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  fabText: { fontFamily: fonts.bold, fontSize: 15, color: colors.white },
 });
