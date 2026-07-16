@@ -41,7 +41,7 @@ export default function HomeScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: 140 }}
+        contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: 110 }}
       >
         {/* 検索 ＋ 右上アイコン */}
         <View style={styles.topBar}>
@@ -128,24 +128,17 @@ export default function HomeScreen() {
         </Animated.View>
       </ScrollView>
 
-      {/* 常駐「タネを植える」ボタン（下部に固定。背景スクリムで下の内容をなじませる） */}
-      <LinearGradient
-        colors={['rgba(247,241,224,0)', colors.bg]}
-        style={styles.bottomScrim}
-        pointerEvents="none"
-      />
-      <View style={styles.plantBtnWrap} pointerEvents="box-none">
-        <PressableScale onPress={() => router.push('/plant/seed')} style={[styles.plantBtn, shadows.button]}>
-          <LinearGradient
-            colors={[colors.green, colors.greenDeep]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 0, y: 1 }}
-            style={StyleSheet.absoluteFill}
-          />
-          <Sprout size={22} color={colors.white} />
-          <Text style={styles.plantBtnText}>タネを植える</Text>
-        </PressableScale>
-      </View>
+      {/* 「タネを植える」FAB（右下・丸型） */}
+      <PressableScale
+        onPress={() => router.push('/plant/seed')}
+        accessibilityLabel="タネを植える"
+        style={[styles.fab, shadows.button]}
+      >
+        <Sprout size={30} color={colors.white} />
+        <View style={styles.fabPlus}>
+          <Ionicons name="add" size={14} color={colors.greenDeep} />
+        </View>
+      </PressableScale>
     </View>
   );
 }
@@ -217,17 +210,26 @@ const styles = StyleSheet.create({
   stepArt: { height: 40, justifyContent: 'center', alignItems: 'center' },
   stepTitle: { fontFamily: fonts.bold, fontSize: 13, color: colors.textPrimary, marginTop: 2 },
   stepDesc: { fontFamily: fonts.regular, fontSize: 10.5, color: colors.textSecondary, textAlign: 'center' },
-  bottomScrim: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 120 },
-  plantBtnWrap: { position: 'absolute', left: 20, right: 20, bottom: 14, alignItems: 'center' },
-  plantBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  fab: {
+    position: 'absolute',
+    right: 20,
+    bottom: 24,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: colors.greenDeep,
     justifyContent: 'center',
-    gap: spacing.sm,
-    height: 56,
-    borderRadius: radius.pill,
-    overflow: 'hidden',
-    alignSelf: 'stretch',
+    alignItems: 'center',
   },
-  plantBtnText: { fontFamily: fonts.bold, fontSize: 16, color: colors.white },
+  fabPlus: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: colors.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });
