@@ -1,10 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { Image } from 'expo-image';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, radius, spacing, fonts, shadows } from '@/theme';
 import { PressableScale } from './PressableScale';
 import { Thumb } from './Thumb';
+import { Avatar } from './Avatar';
 import { Sprout } from '@/components/art/Sprout';
 import { MockItem, getUser } from '@/data/mock';
 
@@ -33,7 +33,7 @@ export function ItemCard({ item, onPress, width = 168 }: Props) {
         <Text numberOfLines={1} style={styles.name}>{item.name}</Text>
         <Text numberOfLines={1} style={styles.category}>{item.category}</Text>
         <View style={styles.ownerRow}>
-          <Image source={{ uri: owner.avatar }} style={styles.avatar} contentFit="cover" />
+          <Avatar uri={owner.avatar} name={owner.nickname} size={18} />
           <Text numberOfLines={1} style={styles.owner}>{owner.nickname}さん</Text>
           <Ionicons name="heart" size={12} color={colors.heart} style={{ marginLeft: 'auto' }} />
           <Text style={styles.like}>{item.likeCount}</Text>

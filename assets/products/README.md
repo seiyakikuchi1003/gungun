@@ -11,6 +11,16 @@
 | `bag.jpg` | ルイヴィトン バッグ | レディース |
 | `controller.jpg` | ワイヤレスコントローラー | ゲーム・おもちゃ |
 | `books.jpg` | 文庫本 まとめ売り | 本・音楽 |
+| `wallet.jpg` | ブランド財布 | メンズ |
+| `watch.jpg` | 腕時計 | メンズ |
+| `perfume.jpg` | 香水 | コスメ・美容 |
+| `sneaker.jpg` | スニーカー | メンズ |
+| `coffee.jpg` | コーヒーメーカー | 家電 |
+| `camera.jpg` | ミラーレスカメラ | スマホ・家電 |
+| `speaker.jpg` | ワイヤレススピーカー | 家電 |
+| `giftcard.jpg` | ギフト券 | チケット |
+
+> `switch/iphone/airpods/bag/controller/books` は実写真済み。上の8つは現在「写真をここに差し替え」の仮画像です。
 
 ## 差し替え方法
 

@@ -7,10 +7,14 @@
 export type MockUser = {
   id: string;
   nickname: string;
-  avatar: string;
+  avatar: string | number; // number = ローカル画像（require）
   ratingCount: number;
   itemCount: number;
 };
+
+// ユーザーアバター。data URI 文字列で埋め込み（プレビュー/実機で確実に表示）。
+// 画像は assets/avatars/*.png が元。差し替え時は同PNGを更新して avatarData を再生成。
+import { avatarData as A } from './avatarData';
 
 export type MockItem = {
   id: string;
@@ -41,15 +45,23 @@ const P = {
   controller: require('../../assets/products/controller.jpg') as number,
   iphone: require('../../assets/products/iphone.jpg') as number,
   bag: require('../../assets/products/bag.jpg') as number,
+  wallet: require('../../assets/products/wallet.jpg') as number,
+  watch: require('../../assets/products/watch.jpg') as number,
+  perfume: require('../../assets/products/perfume.jpg') as number,
+  sneaker: require('../../assets/products/sneaker.jpg') as number,
+  coffee: require('../../assets/products/coffee.jpg') as number,
+  camera: require('../../assets/products/camera.jpg') as number,
+  speaker: require('../../assets/products/speaker.jpg') as number,
+  giftcard: require('../../assets/products/giftcard.jpg') as number,
 };
 
 export const users: Record<string, MockUser> = {
-  takusan: { id: 'takusan', nickname: 'たくさん', avatar: 'https://i.pravatar.cc/150?img=12', ratingCount: 230, itemCount: 35 },
-  sakura: { id: 'sakura', nickname: 'さくら', avatar: 'https://i.pravatar.cc/150?img=45', ratingCount: 188, itemCount: 22 },
-  yu: { id: 'yu', nickname: 'ゆう', avatar: 'https://i.pravatar.cc/150?img=33', ratingCount: 96, itemCount: 14 },
-  haru: { id: 'haru', nickname: 'はる', avatar: 'https://i.pravatar.cc/150?img=5', ratingCount: 54, itemCount: 9 },
-  metan: { id: 'metan', nickname: 'めたん', avatar: 'https://i.pravatar.cc/150?img=20', ratingCount: 41, itemCount: 6 },
-  kenta: { id: 'kenta', nickname: 'けんた', avatar: 'https://i.pravatar.cc/150?img=15', ratingCount: 12, itemCount: 3 },
+  takusan: { id: 'takusan', nickname: 'たくさん', avatar: A.takusan, ratingCount: 230, itemCount: 35 },
+  sakura: { id: 'sakura', nickname: 'さくら', avatar: A.sakura, ratingCount: 188, itemCount: 22 },
+  yu: { id: 'yu', nickname: 'ゆう', avatar: A.yu, ratingCount: 96, itemCount: 14 },
+  haru: { id: 'haru', nickname: 'はる', avatar: A.haru, ratingCount: 54, itemCount: 9 },
+  metan: { id: 'metan', nickname: 'めたん', avatar: A.metan, ratingCount: 41, itemCount: 6 },
+  kenta: { id: 'kenta', nickname: 'けんた', avatar: A.kenta, ratingCount: 12, itemCount: 3 },
 };
 
 const img = (seed: string) => `https://picsum.photos/seed/${seed}/800/800`;
@@ -76,14 +88,14 @@ export const items: MockItem[] = [
   { id: 'airpods', name: 'AirPods Pro', category: 'スマホ・家電', condition: '目立った傷や汚れなし', description: '第2世代。ケース・イヤーチップ揃っています。', image: img('airpods1'), images: [img('airpods1')], local: P.airpods, localImages: [P.airpods], ownerId: 'haru', waterCount: 3, likeCount: 18, treeCount: 3, status: 'growing' },
   { id: 'controller', name: 'ワイヤレスコントローラー', category: 'ゲーム・おもちゃ', condition: '目立った傷や汚れなし', description: '数回使用のみ。動作確認済み、箱・ケーブル付き。', image: img('controller1'), images: [img('controller1')], local: P.controller, localImages: [P.controller], ownerId: 'kenta', waterCount: 5, likeCount: 22, treeCount: 5, status: 'growing' },
   { id: 'books', name: '文庫本 まとめ売り', category: '本・音楽', condition: '目立った傷や汚れなし', description: '小説を中心に6冊セット。書き込みなし、状態良好です。', image: img('books1'), images: [img('books1')], local: P.books, localImages: [P.books], ownerId: 'sakura', waterCount: 3, likeCount: 16, treeCount: 3, status: 'growing' },
-  { id: 'wallet', name: 'ブランド財布', category: 'メンズ', condition: '未使用に近い', description: 'いただきものですが使わないため出品します。', image: img('wallet1'), images: [img('wallet1')], ownerId: 'takusan', waterCount: 2, likeCount: 9, treeCount: 2, status: 'growing' },
-  { id: 'watch', name: '腕時計', category: 'メンズ', condition: '目立った傷や汚れなし', description: 'シンプルなアナログ時計。電池交換済み。', image: img('watch1'), images: [img('watch1')], ownerId: 'sakura', waterCount: 4, likeCount: 14, treeCount: 4, status: 'growing' },
-  { id: 'perfume', name: '香水', category: 'コスメ・美容', condition: '未使用に近い', description: '数回使用のみ。残量9割ほど。', image: img('perfume1'), images: [img('perfume1')], ownerId: 'metan', waterCount: 1, likeCount: 7, treeCount: 1, status: 'growing' },
-  { id: 'sneaker', name: 'スニーカー', category: 'メンズ', condition: 'やや傷や汚れあり', description: '27cm。数回着用。', image: img('sneaker1'), images: [img('sneaker1')], ownerId: 'kenta', waterCount: 2, likeCount: 11, treeCount: 2, status: 'growing' },
-  { id: 'coffee', name: 'コーヒーメーカー', category: '家電', condition: '目立った傷や汚れなし', description: '全自動タイプ。動作確認済み。', image: img('coffee1'), images: [img('coffee1')], ownerId: 'metan', waterCount: 3, likeCount: 15, treeCount: 3, status: 'growing' },
-  { id: 'camera', name: 'ミラーレスカメラ', category: 'スマホ・家電', condition: '目立った傷や汚れなし', description: 'レンズキット付き。シャッター回数少なめ。', image: img('camera1'), images: [img('camera1')], ownerId: 'yu', waterCount: 6, likeCount: 28, treeCount: 6, status: 'growing' },
-  { id: 'speaker', name: 'ワイヤレススピーカー', category: '家電', condition: '未使用に近い', description: '防水対応。箱付き。', image: img('speaker1'), images: [img('speaker1')], ownerId: 'haru', waterCount: 2, likeCount: 10, treeCount: 2, status: 'growing' },
-  { id: 'giftcard', name: 'ギフト券', category: 'チケット', condition: '新品・未使用', description: '5,000円分。有効期限まだあります。', image: img('gift1'), images: [img('gift1')], ownerId: 'metan', waterCount: 4, likeCount: 19, treeCount: 4, status: 'growing' },
+  { id: 'wallet', name: 'ブランド財布', category: 'メンズ', condition: '未使用に近い', description: 'いただきものですが使わないため出品します。', image: img('wallet1'), images: [img('wallet1')], local: P.wallet, localImages: [P.wallet], ownerId: 'takusan', waterCount: 2, likeCount: 9, treeCount: 2, status: 'growing' },
+  { id: 'watch', name: '腕時計', category: 'メンズ', condition: '目立った傷や汚れなし', description: 'シンプルなアナログ時計。電池交換済み。', image: img('watch1'), images: [img('watch1')], local: P.watch, localImages: [P.watch], ownerId: 'sakura', waterCount: 4, likeCount: 14, treeCount: 4, status: 'growing' },
+  { id: 'perfume', name: '香水', category: 'コスメ・美容', condition: '未使用に近い', description: '数回使用のみ。残量9割ほど。', image: img('perfume1'), images: [img('perfume1')], local: P.perfume, localImages: [P.perfume], ownerId: 'metan', waterCount: 1, likeCount: 7, treeCount: 1, status: 'growing' },
+  { id: 'sneaker', name: 'スニーカー', category: 'メンズ', condition: 'やや傷や汚れあり', description: '27cm。数回着用。', image: img('sneaker1'), images: [img('sneaker1')], local: P.sneaker, localImages: [P.sneaker], ownerId: 'kenta', waterCount: 2, likeCount: 11, treeCount: 2, status: 'growing' },
+  { id: 'coffee', name: 'コーヒーメーカー', category: '家電', condition: '目立った傷や汚れなし', description: '全自動タイプ。動作確認済み。', image: img('coffee1'), images: [img('coffee1')], local: P.coffee, localImages: [P.coffee], ownerId: 'metan', waterCount: 3, likeCount: 15, treeCount: 3, status: 'growing' },
+  { id: 'camera', name: 'ミラーレスカメラ', category: 'スマホ・家電', condition: '目立った傷や汚れなし', description: 'レンズキット付き。シャッター回数少なめ。', image: img('camera1'), images: [img('camera1')], local: P.camera, localImages: [P.camera], ownerId: 'yu', waterCount: 6, likeCount: 28, treeCount: 6, status: 'growing' },
+  { id: 'speaker', name: 'ワイヤレススピーカー', category: '家電', condition: '未使用に近い', description: '防水対応。箱付き。', image: img('speaker1'), images: [img('speaker1')], local: P.speaker, localImages: [P.speaker], ownerId: 'haru', waterCount: 2, likeCount: 10, treeCount: 2, status: 'growing' },
+  { id: 'giftcard', name: 'ギフト券', category: 'チケット', condition: '新品・未使用', description: '5,000円分。有効期限まだあります。', image: img('gift1'), images: [img('gift1')], local: P.giftcard, localImages: [P.giftcard], ownerId: 'metan', waterCount: 4, likeCount: 19, treeCount: 4, status: 'growing' },
 ];
 
 /** ホーム「みんなの種」＝ parent_id is null かつ growing 相当 */
