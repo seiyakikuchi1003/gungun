@@ -44,7 +44,7 @@ export function TextField({ label, leftIcon, password, error, style, ...rest }: 
           secureTextEntry={hidden}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
-          style={[styles.input, style]}
+          style={[styles.input, { outlineStyle: 'none' } as object, style]}
           {...rest}
         />
         {password ? (

@@ -43,7 +43,7 @@ export default function SearchScreen() {
             onChangeText={setQ}
             placeholder="欲しいものを探してみよう"
             placeholderTextColor={colors.textPlaceholder}
-            style={styles.input}
+            style={[styles.input, { outlineStyle: 'none' } as object]}
             returnKeyType="search"
           />
           {q ? (
