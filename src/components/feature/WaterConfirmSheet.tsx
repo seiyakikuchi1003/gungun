@@ -30,7 +30,7 @@ export function WaterConfirmSheet({ visible, item, ownerName, currentFertilizer,
   return (
     <BottomSheetModal visible={visible} onClose={onClose}>
       <View style={styles.center}>
-        <WateringCan size={110} />
+        <WateringCan size={150} />
         <Text style={styles.title}>水やりしますか？</Text>
       </View>
 

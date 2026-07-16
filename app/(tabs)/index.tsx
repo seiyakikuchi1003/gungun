@@ -25,7 +25,7 @@ function HeaderIcon({ name, badge, onPress }: { name: keyof typeof Ionicons.glyp
 
 const STEP_ART: Record<string, React.ReactNode> = {
   sprout: <Sprout size={30} base />,
-  water: <WateringCan size={34} />,
+  water: <WateringCan size={44} />,
   harvest: <Mikan size={30} />,
 };
 
