@@ -59,14 +59,17 @@ export type Notif = {
   body: string;
   createdAt: string;
   read?: boolean;
+  today?: boolean;
+  actorId?: string; // 相手のアバター表示用
 };
 
 export const notifications: Notif[] = [
-  { id: 'n1', type: 'watered', body: 'たくさんさんがあなたの「香水」に水やりしました', createdAt: '5分前' },
-  { id: 'n2', type: 'harvested', body: '「コーヒーメーカー」が収穫されました。発送をお願いします', createdAt: '30分前' },
-  { id: 'n3', type: 'message', body: 'さくらさんからメッセージが届きました', createdAt: '1時間前', read: true },
-  { id: 'n4', type: 'shipped', body: 'ゆうさんが商品を発送しました', createdAt: '3時間前', read: true },
-  { id: 'n5', type: 'board_comment', body: 'あなたの投稿にコメントがつきました', createdAt: '昨日', read: true },
+  { id: 'n1', type: 'watered', body: 'あなたの「香水」に水やりしました', createdAt: '5分前', today: true, actorId: 'takusan' },
+  { id: 'n2', type: 'harvested', body: '「コーヒーメーカー」が収穫されました。発送をお願いします', createdAt: '30分前', today: true, actorId: 'yu' },
+  { id: 'n3', type: 'message', body: 'メッセージが届きました', createdAt: '1時間前', read: true, today: true, actorId: 'sakura' },
+  { id: 'n4', type: 'shipped', body: '商品を発送しました', createdAt: '3時間前', read: true, today: true, actorId: 'yu' },
+  { id: 'n5', type: 'board_comment', body: 'あなたの投稿にコメントがつきました', createdAt: '昨日', read: true, actorId: 'haru' },
+  { id: 'n6', type: 'received', body: '受け取りが完了しました。評価をお願いします', createdAt: '2日前', read: true, actorId: 'sakura' },
 ];
 
 export const NOTIF_ICON: Record<NotificationType, string> = {
@@ -104,6 +107,19 @@ export const chatByTrade: Record<string, ChatMsg[]> = {
     { id: 'm3', mine: false, body: 'よろしくお願いします！', time: '9:33' },
   ],
 };
+
+/** 商品詳細のコメント（SPEC：商品詳細にコメント機能）。 */
+export type ItemComment = { id: string; userId: string; body: string; createdAt: string };
+export const itemComments: Record<string, ItemComment[]> = {
+  switch: [
+    { id: 'ic1', userId: 'yu', body: '付属品は全部そろっていますか？ジョイコンの状態も知りたいです！', createdAt: '30分前' },
+    { id: 'ic2', userId: 'takusan', body: 'はい、付属品すべて揃っています。ジョイコンのドリフトもありません😊', createdAt: '20分前' },
+    { id: 'ic3', userId: 'haru', body: '水やりしました！交換できたら嬉しいです🌱', createdAt: '5分前' },
+  ],
+};
+export function getItemComments(id: string): ItemComment[] {
+  return itemComments[id] ?? [];
+}
 
 export function tradeItem(t: Trade): MockItem | undefined {
   return getItem(t.itemId);
