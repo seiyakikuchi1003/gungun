@@ -102,7 +102,7 @@ export default function HomeScreen() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.hScroll}
           >
-            {seedItems.map((item) => (
+            {[...seedItems].reverse().map((item) => (
               <ItemCard key={item.id} item={item} onPress={() => router.push(`/item/${item.id}`)} />
             ))}
           </ScrollView>
