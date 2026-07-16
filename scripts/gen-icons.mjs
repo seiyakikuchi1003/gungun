@@ -5,30 +5,21 @@ import { chromium } from 'playwright-core';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ASSETS = path.join(__dirname, '..', 'assets');
+const SRC = path.join(ASSETS, 'brand', 'mikan.png');
 
-// アプリ内 Mikan.tsx と同一のベクター（提供画像の忠実再現）
-const mikanSvg = (size, showFace = true) => `
-<svg width="${size}" height="${size}" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-  <path d="M104 62 C112 30 150 12 178 18 C182 46 168 82 132 86 C116 88 106 78 104 62 Z" fill="#82BF4B"/>
-  <path d="M120 74 C132 58 150 44 166 38" stroke="#FFFFFF" stroke-width="7" stroke-linecap="round" fill="none" opacity="0.9"/>
-  <ellipse cx="98" cy="122" rx="94" ry="72" fill="#EF8E2A"/>
-  ${showFace ? `
-  <circle cx="72" cy="120" r="9" fill="#fff"/>
-  <circle cx="112" cy="120" r="9" fill="#fff"/>
-  <path d="M68 142 C78 158 104 158 114 142" stroke="#fff" stroke-width="8" stroke-linecap="round" fill="none"/>
-  <circle cx="140" cy="132" r="4.5" fill="#fff"/>
-  <circle cx="132" cy="146" r="4.5" fill="#fff"/>
-  <circle cx="148" cy="148" r="4.5" fill="#fff"/>` : ''}
-</svg>`;
+// ★元画像は assets/brand/mikan.png。これを差し替えるとアイコン一式が実画像ベースになる。
+const dataUri = 'data:image/png;base64,' + fs.readFileSync(SRC).toString('base64');
 
+// mikan を中央に、指定padの余白＋任意の背景色で 1024x1024 に配置
 const page = (bg, pad, transparent) => `<!doctype html><html><head><meta charset="utf8">
-<style>html,body{margin:0;padding:0}#c{width:1024px;height:1024px;display:flex;align-items:center;justify-content:center;
-background:${transparent ? 'transparent' : bg}}</style></head>
-<body><div id="c">${mikanSvg(1024 - pad * 2)}</div></body></html>`;
+<style>html,body{margin:0}
+#c{width:1024px;height:1024px;display:flex;align-items:center;justify-content:center;background:${transparent ? 'transparent' : bg}}
+img{width:${1024 - pad * 2}px;height:${1024 - pad * 2}px;object-fit:contain}
+</style></head><body><div id="c"><img src="${dataUri}"/></div></body></html>`;
 
 const browser = await chromium.launch({
   executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
-  args: ['--no-sandbox', '--disable-setuid-sandbox', '--force-device-scale-factor=1'],
+  args: ['--no-sandbox', '--force-device-scale-factor=1'],
 });
 
 async function shoot(htmlContent, outName, transparent) {
@@ -46,8 +37,6 @@ await shoot(page('#F7F1E0', 150, false), 'icon.png', false);
 await shoot(page('transparent', 300, true), 'splash-icon.png', true);
 // ファビコン（web）：透過
 await shoot(page('transparent', 120, true), 'favicon.png', true);
-// マスコット素材（透過）：将来 Image で使う用
-await shoot(page('transparent', 40, true), 'mikan.png', true);
 
 await browser.close();
-console.log('done');
+console.log('done — 元画像: assets/brand/mikan.png');
