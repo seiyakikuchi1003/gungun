@@ -1,7 +1,18 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, Modal, ScrollView, useWindowDimensions } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import Animated, { FadeIn, ZoomIn, BounceIn } from 'react-native-reanimated';
+import Animated, {
+  FadeIn,
+  ZoomIn,
+  BounceIn,
+  useSharedValue,
+  useAnimatedStyle,
+  withDelay,
+  withTiming,
+  withSequence,
+  withSpring,
+  Easing,
+} from 'react-native-reanimated';
 import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { Mikan } from '@/components/art/Mikan';
@@ -29,6 +40,68 @@ const BONUS: number[] = [
 ];
 const TODAY = 8; // デモ：連続8日目
 const WEEK = ['月', '火', '水', '木', '金', '土', '日'];
+
+// スタンプ演出のタイミング（ポップアップ表示後）
+const STAMP_DELAY = 650; // 大きなスタンプが降り始めるまで
+const RING_DELAY = STAMP_DELAY + 330; // 着地の瞬間に波紋
+const FLOAT_DELAY = RING_DELAY + 120; // 「+40」がふわっと浮かぶ
+
+/**
+ * 今日のマスの「スタンプが押される」演出。
+ * 大きなじょうろが上から降ってきて縮みながらガシャンと着地 →
+ * 緑の波紋が広がる → 「+◯◯」が浮かび上がる。
+ */
+function TodayStamp({ size, bonus, active }: { size: number; bonus: number; active: boolean }) {
+  const scale = useSharedValue(2.6);
+  const opacity = useSharedValue(0);
+  const ringScale = useSharedValue(0.5);
+  const ringOpacity = useSharedValue(0);
+  const floatY = useSharedValue(0);
+  const floatOpacity = useSharedValue(0);
+
+  useEffect(() => {
+    if (!active) {
+      scale.value = 2.6; opacity.value = 0;
+      ringScale.value = 0.5; ringOpacity.value = 0;
+      floatY.value = 0; floatOpacity.value = 0;
+      return;
+    }
+    // 1) スタンプ：大きく現れて押し込まれ、スプリングで定位置に
+    opacity.value = withDelay(STAMP_DELAY, withTiming(1, { duration: 90 }));
+    scale.value = withDelay(
+      STAMP_DELAY,
+      withSequence(
+        withTiming(0.78, { duration: 300, easing: Easing.in(Easing.cubic) }),
+        withSpring(1, { damping: 8, stiffness: 210 })
+      )
+    );
+    // 2) 波紋：着地の瞬間に広がって消える
+    ringOpacity.value = withDelay(RING_DELAY, withSequence(withTiming(0.75, { duration: 60 }), withTiming(0, { duration: 480 })));
+    ringScale.value = withDelay(RING_DELAY, withTiming(2.0, { duration: 540, easing: Easing.out(Easing.quad) }));
+    // 3) +40 がふわっと浮かんで消える
+    floatOpacity.value = withDelay(FLOAT_DELAY, withSequence(withTiming(1, { duration: 160 }), withDelay(650, withTiming(0, { duration: 260 }))));
+    floatY.value = withDelay(FLOAT_DELAY, withTiming(-size * 0.62, { duration: 950, easing: Easing.out(Easing.quad) }));
+  }, [active]);
+
+  const stampStyle = useAnimatedStyle(() => ({ opacity: opacity.value, transform: [{ scale: scale.value }] }));
+  const ringStyle = useAnimatedStyle(() => ({ opacity: ringOpacity.value, transform: [{ scale: ringScale.value }] }));
+  const floatStyle = useAnimatedStyle(() => ({ opacity: floatOpacity.value, transform: [{ translateY: floatY.value }] }));
+
+  return (
+    <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+      {/* 波紋 */}
+      <Animated.View pointerEvents="none" style={[{ position: 'absolute', width: size, height: size, borderRadius: size / 2, borderWidth: 3, borderColor: colors.green }, ringStyle]} />
+      {/* スタンプ本体 */}
+      <Animated.View style={stampStyle}>
+        <WateringCan size={size * 0.62} />
+      </Animated.View>
+      {/* 浮かぶ +◯◯ */}
+      <Animated.View pointerEvents="none" style={[{ position: 'absolute' }, floatStyle]}>
+        <Text style={{ fontFamily: fonts.black, fontSize: 15, color: colors.orangeDeep }}>+{bonus}</Text>
+      </Animated.View>
+    </View>
+  );
+}
 
 export function LoginBonusSheet({ visible, claimedToday, onClose }: Props) {
   const { width, height } = useWindowDimensions();
@@ -75,7 +148,7 @@ export function LoginBonusSheet({ visible, claimedToday, onClose }: Props) {
                 {claimedToday ? (
                   <>
                     <Text style={styles.claimedText}>受け取りました！</Text>
-                    <Animated.View entering={BounceIn.delay(250).duration(500)} style={styles.checkCircle}>
+                    <Animated.View entering={BounceIn.delay(RING_DELAY + 320).duration(500)} style={styles.checkCircle}>
                       <Ionicons name="checkmark" size={20} color={colors.white} />
                     </Animated.View>
                   </>
@@ -108,13 +181,11 @@ export function LoginBonusSheet({ visible, claimedToday, onClose }: Props) {
                 const isMax = day === BONUS.length;
                 return (
                   <View key={day} style={[styles.cellWrap, { width: cell }]}>
-                    <View style={[styles.cell, { width: cell, height: cell }, stamped ? styles.cellStamped : styles.cellFuture]}>
+                    <View style={[styles.cell, { width: cell, height: cell }, stamped ? styles.cellStamped : styles.cellFuture, isToday && styles.cellToday]}>
                       <Text style={[styles.cellDay, stamped && styles.cellDayStamped]}>{day}</Text>
                       {stamped ? (
                         isToday ? (
-                          <Animated.View entering={BounceIn.delay(350).duration(550)}>
-                            <WateringCan size={cell * 0.62} />
-                          </Animated.View>
+                          <TodayStamp size={cell} bonus={amount} active={visible && claimedToday} />
                         ) : (
                           <WateringCan size={cell * 0.62} />
                         )
@@ -179,6 +250,7 @@ const styles = StyleSheet.create({
   cell: { borderRadius: 999, justifyContent: 'center', alignItems: 'center', paddingTop: 2 },
   cellStamped: { borderWidth: 1.5, borderColor: colors.green, backgroundColor: '#F2F8EC' },
   cellFuture: { borderWidth: 1.5, borderColor: colors.border, borderStyle: 'dashed', backgroundColor: 'rgba(255,255,255,0.6)' },
+  cellToday: { borderWidth: 2.5, borderColor: colors.orange, backgroundColor: '#FDF3E0' },
   cellDay: { position: 'absolute', top: 3, fontFamily: fonts.bold, fontSize: 9, color: colors.textSecondary },
   cellDayStamped: { color: colors.green },
   cellBonus: { fontFamily: fonts.bold, fontSize: 10.5, color: colors.textSecondary, marginTop: 3 },
