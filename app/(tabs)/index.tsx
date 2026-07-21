@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, useWindowDimensions } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -12,7 +12,8 @@ import { Sprout } from '@/components/art/Sprout';
 import { Mikan } from '@/components/art/Mikan';
 import { WateringCan } from '@/components/art/WateringCan';
 import { LeafDecor } from '@/components/art/LeafDecor';
-import { seedItems, currentUser, howToSteps } from '@/data/mock';
+import { currentUser, howToSteps } from '@/data/mock';
+import { useTree } from '@/store/tree';
 
 function HeaderIcon({ name, badge, onPress }: { name: keyof typeof Ionicons.glyphMap; badge?: boolean; onPress?: () => void }) {
   return (
@@ -31,7 +32,13 @@ const STEP_ART: Record<string, React.ReactNode> = {
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const { items } = useTree();
   const [claimed, setClaimed] = useState(false);
+  // 「みんなの種」＝木の根（parentId=null）を新着順（後ろから）に3列グリッド表示
+  const seeds = items.filter((i) => i.parentId === null).reverse();
+  const GRID_GAP = 8;
+  const cardW = (width - 40 - GRID_GAP * 2) / 3;
 
   return (
     <View style={styles.root}>
@@ -93,23 +100,19 @@ export default function HomeScreen() {
               <Sprout size={20} />
               <Text style={styles.sectionTitle}>みんなの種</Text>
             </View>
-            <PressableScale onPress={() => {}}>
+            <PressableScale onPress={() => router.push('/search')}>
               <Text style={styles.seeAll}>すべて見る ›</Text>
             </PressableScale>
           </View>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.hScroll}
-          >
-            {[...seedItems].reverse().map((item) => (
-              <ItemCard key={item.id} item={item} onPress={() => router.push(`/item/${item.id}`)} />
+          <View style={styles.grid}>
+            {seeds.map((item) => (
+              <ItemCard key={item.id} item={item} width={cardW} compact onPress={() => router.push(`/item/${item.id}`)} />
             ))}
-          </ScrollView>
+          </View>
         </Animated.View>
 
         {/* ぐんぐんの楽しみ方 */}
-        <Animated.View entering={FadeInDown.delay(160).duration(400)} style={styles.section}>
+        <Animated.View entering={FadeInDown.delay(160).duration(400)} style={[styles.section, { marginTop: spacing.xl }]}>
           <Text style={styles.sectionTitle}>ぐんぐんの楽しみ方</Text>
           <View style={[styles.howCard, shadows.card]}>
             {howToSteps.map((step, i) => (
@@ -196,7 +199,7 @@ const styles = StyleSheet.create({
   sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   sectionTitle: { fontFamily: fonts.bold, fontSize: 18, color: colors.textPrimary },
   seeAll: { fontFamily: fonts.bold, fontSize: 13, color: colors.green },
-  hScroll: { paddingHorizontal: 20, gap: spacing.md, paddingBottom: spacing.sm },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 20, gap: 8 },
   howCard: {
     marginTop: spacing.md,
     backgroundColor: colors.card,
