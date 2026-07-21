@@ -8,6 +8,7 @@ import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { Avatar } from '@/components/ui/Avatar';
 import { Thumb } from '@/components/ui/Thumb';
+import { PhotoSourceSheet } from '@/components/feature/PhotoSourceSheet';
 import { currentUser } from '@/data/mock';
 import { TAG_META, BoardTag } from '@/data/mockSocial';
 
@@ -42,6 +43,7 @@ export default function NewPost() {
   const [text, setText] = useState('');
   const [tag, setTag] = useState<BoardTag>('chat');
   const [photos, setPhotos] = useState<string[]>([]);
+  const [photoSheet, setPhotoSheet] = useState(false);
   const can = text.trim().length > 0;
 
   return (
@@ -109,8 +111,8 @@ export default function NewPost() {
                 </View>
               ))}
               {photos.length < 4 && (
-                <PressableScale onPress={() => setPhotos((p) => [...p, `https://picsum.photos/seed/np${p.length}/400/400`])} activeScale={0.96} style={styles.addPhoto}>
-                  <Ionicons name="image-outline" size={24} color={colors.green} />
+                <PressableScale onPress={() => setPhotoSheet(true)} activeScale={0.96} style={styles.addPhoto}>
+                  <Ionicons name="camera" size={24} color={colors.green} />
                   <Text style={styles.addPhotoText}>写真</Text>
                 </PressableScale>
               )}
@@ -125,7 +127,7 @@ export default function NewPost() {
 
         {/* ツールバー */}
         <View style={[styles.toolbar, { paddingBottom: Math.max(insets.bottom, 10) }, shadows.sheet]}>
-          <PressableScale activeScale={0.9} style={styles.tool} onPress={() => setPhotos((p) => (p.length < 4 ? [...p, `https://picsum.photos/seed/t${p.length}/400/400`] : p))}>
+          <PressableScale activeScale={0.9} style={styles.tool} onPress={() => photos.length < 4 && setPhotoSheet(true)}>
             <Ionicons name="image-outline" size={24} color={colors.green} />
           </PressableScale>
           <PressableScale activeScale={0.9} style={styles.tool}>
@@ -135,6 +137,13 @@ export default function NewPost() {
           <CountRing used={text.length} />
         </View>
       </KeyboardAvoidingView>
+
+      {/* 写真の追加方法（カメラ / ライブラリ） */}
+      <PhotoSourceSheet
+        visible={photoSheet}
+        onClose={() => setPhotoSheet(false)}
+        onPicked={(uris) => setPhotos((p) => [...p, ...uris].slice(0, 4))}
+      />
     </View>
   );
 }

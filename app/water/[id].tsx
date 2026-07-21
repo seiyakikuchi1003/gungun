@@ -10,6 +10,7 @@ import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
 import { Thumb } from '@/components/ui/Thumb';
 import { Avatar } from '@/components/ui/Avatar';
 import { StarRating } from '@/components/ui/StarRating';
+import { PhotoSourceSheet } from '@/components/feature/PhotoSourceSheet';
 import { getUser, categories, conditions } from '@/data/mock';
 import { useTree } from '@/store/tree';
 import { settings } from '@/config/settings';
@@ -30,6 +31,7 @@ export default function WaterScreen() {
   const [category, setCategory] = useState('バッグ・小物');
   const [condition, setCondition] = useState('');
   const [picker, setPicker] = useState<PickerKey>(null);
+  const [photoSheet, setPhotoSheet] = useState(false);
 
   if (!target) {
     return (
@@ -93,8 +95,8 @@ export default function WaterScreen() {
               </PressableScale>
             </View>
           ))}
-          <PressableScale onPress={() => setPhotos((p) => [...p, `https://picsum.photos/seed/mine${p.length}${Date.now() % 1000}/600/600`])} activeScale={0.96} style={styles.addPhoto}>
-            <Ionicons name="add" size={28} color={colors.waterBlue} />
+          <PressableScale onPress={() => setPhotoSheet(true)} activeScale={0.96} style={styles.addPhoto}>
+            <Ionicons name="camera" size={26} color={colors.waterBlue} />
             <Text style={styles.addPhotoText}>写真を追加</Text>
           </PressableScale>
         </ScrollView>
@@ -170,6 +172,13 @@ export default function WaterScreen() {
         </PressableScale>
         <Text style={styles.footerHint}>水やりすると、あなたの商品がこの木の子として出品されます</Text>
       </View>
+
+      {/* 写真の追加方法（カメラ / ライブラリ） */}
+      <PhotoSourceSheet
+        visible={photoSheet}
+        onClose={() => setPhotoSheet(false)}
+        onPicked={(uris) => setPhotos((p) => [...p, ...uris].slice(0, 10))}
+      />
 
       {/* ピッカー */}
       <BottomSheetModal visible={picker !== null} onClose={() => setPicker(null)}>

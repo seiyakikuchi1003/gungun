@@ -32,6 +32,13 @@
           "resizeMode": "contain",
           "backgroundColor": "#FDF8F0"
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "商品の写真を選ぶために写真ライブラリへのアクセスを許可してください。",
+          "cameraPermission": "商品の写真を撮影するためにカメラへのアクセスを許可してください。"
+        }
       ]
     ],
     "experiments": {

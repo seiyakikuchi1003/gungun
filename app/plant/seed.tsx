@@ -11,20 +11,20 @@ import { NoticeBox } from '@/components/ui/NoticeBox';
 import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
 import { Thumb } from '@/components/ui/Thumb';
 import { Sprout } from '@/components/art/Sprout';
+import { PhotoSourceSheet } from '@/components/feature/PhotoSourceSheet';
 import { categories, conditions } from '@/data/mock';
-
-const PRESET_PHOTO = 'https://picsum.photos/seed/switchbox/600/600';
 
 type PickerKey = 'category' | 'condition' | null;
 
 export default function PlantSeedScreen() {
   const insets = useSafeAreaInsets();
-  const [photos, setPhotos] = useState<string[]>([PRESET_PHOTO]);
+  const [photos, setPhotos] = useState<string[]>([]);
   const [name, setName] = useState('');
   const [desc, setDesc] = useState('');
   const [category, setCategory] = useState('ゲーム・おもちゃ');
   const [condition, setCondition] = useState('目立った傷や汚れなし');
   const [picker, setPicker] = useState<PickerKey>(null);
+  const [photoSheet, setPhotoSheet] = useState(false);
 
   return (
     <View style={styles.root}>
@@ -64,17 +64,12 @@ export default function PlantSeedScreen() {
                   </PressableScale>
                 </View>
               ))}
-              <PressableScale
-                onPress={() => setPhotos((p) => [...p, `https://picsum.photos/seed/add${p.length}/600/600`])}
-                activeScale={0.96}
-                style={styles.addPhoto}
-              >
-                <Ionicons name="camera" size={30} color={colors.green} />
-                <Text style={styles.addPhotoText}>＋写真を追加</Text>
-              </PressableScale>
-              <View style={[styles.addPhoto, styles.addPhotoFaded]}>
-                <Ionicons name="camera" size={30} color={colors.greenSoftBorder} />
-              </View>
+              {photos.length < 10 && (
+                <PressableScale onPress={() => setPhotoSheet(true)} activeScale={0.96} style={styles.addPhoto}>
+                  <Ionicons name="camera" size={30} color={colors.green} />
+                  <Text style={styles.addPhotoText}>＋写真を追加</Text>
+                </PressableScale>
+              )}
             </ScrollView>
             <Text style={styles.photoHint}>最大10枚・1枚目がサムネイルになります</Text>
           </View>
@@ -118,6 +113,13 @@ export default function PlantSeedScreen() {
           onPress={() => router.back()}
         />
       </View>
+
+      {/* 写真の追加方法（カメラ / ライブラリ） */}
+      <PhotoSourceSheet
+        visible={photoSheet}
+        onClose={() => setPhotoSheet(false)}
+        onPicked={(uris) => setPhotos((p) => [...p, ...uris].slice(0, 10))}
+      />
 
       {/* ピッカー */}
       <BottomSheetModal visible={picker !== null} onClose={() => setPicker(null)}>
