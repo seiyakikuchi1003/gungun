@@ -154,6 +154,18 @@ export function treeItems(pool: MockItem[], rootId: string): MockItem[] {
   return pool.filter((i) => i.rootId === rootId);
 }
 
+/**
+ * 木の成長段階。木に属する商品数（root＋子孫）が増えるほど育つ。
+ * TreeCanvas の見た目と、マイツリーの成長メーターで共用。
+ */
+export type TreeGrowth = { stage: 0 | 1 | 2 | 3; label: string; emoji: string; min: number; next: number | null };
+export function treeGrowth(size: number): TreeGrowth {
+  if (size >= 6) return { stage: 3, label: 'おおきな木', emoji: '🌳', min: 6, next: null };
+  if (size >= 4) return { stage: 2, label: '成長中の木', emoji: '🌿', min: 4, next: 6 };
+  if (size >= 2) return { stage: 1, label: 'わか木', emoji: '🌱', min: 2, next: 4 };
+  return { stage: 0, label: 'めばえ', emoji: '🌰', min: 1, next: 2 };
+}
+
 /** target 自身から root までの祖先ライン（target を含む）。 */
 export function ancestorsOf(pool: MockItem[], id: string): MockItem[] {
   const line: MockItem[] = [];

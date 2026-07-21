@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/Badge';
 import { StarRating } from '@/components/ui/StarRating';
 import { Sprout } from '@/components/art/Sprout';
 import { TreeCanvas } from '@/components/feature/TreeCanvas';
-import { getUser, currentUser } from '@/data/mock';
+import { getUser, currentUser, treeGrowth } from '@/data/mock';
 import { useTree } from '@/store/tree';
 
 export default function TreeScreen() {
@@ -34,6 +34,9 @@ export default function TreeScreen() {
   const harvestable = mine && waterings > 0 ? 1 : 0;
   const justWatered = !!newId;
   const cardW = width - 40;
+  // 成長段階（木に属する総数で決まる）と、次の段階までの進捗
+  const growth = treeGrowth(all.length);
+  const progress = growth.next ? Math.min((all.length - growth.min) / (growth.next - growth.min), 1) : 1;
 
   return (
     <View style={styles.root}>
@@ -78,15 +81,31 @@ export default function TreeScreen() {
           </View>
         </View>
 
-        {/* 木のイラスト */}
+        {/* 木のイラスト（成長段階で見た目が変わる） */}
         <View style={[styles.canvasCard, shadows.card]}>
           <TreeCanvas
             width={cardW - 4}
             children={rootChildren}
+            treeSize={all.length}
             highlightId={newId}
             onPressNode={(it) => router.push(`/item/${it.id}`)}
-            mascotText="すくすく育ってるよ！"
           />
+        </View>
+
+        {/* 成長メーター */}
+        <View style={[styles.growthCard, shadows.soft]}>
+          <View style={styles.growthHead}>
+            <Text style={styles.growthLabel}>{growth.emoji} {growth.label}</Text>
+            {growth.next ? (
+              <Text style={styles.growthNext}>次の成長まであと {growth.next - all.length}</Text>
+            ) : (
+              <Text style={styles.growthMax}>MAX まで育ちました！</Text>
+            )}
+          </View>
+          <View style={styles.growthTrack}>
+            <View style={[styles.growthFill, { width: `${Math.round(progress * 100)}%` }]} />
+          </View>
+          <Text style={styles.growthHint}>商品がぶら下がるほど、木はぐんぐん育ちます</Text>
         </View>
 
         {/* 統計 */}
@@ -180,7 +199,15 @@ const styles = StyleSheet.create({
   rootMeta: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 },
   rootOwner: { fontFamily: fonts.medium, fontSize: 12, color: colors.textSecondary },
   rootSub: { fontFamily: fonts.medium, fontSize: 11.5, color: colors.textSecondary, marginTop: 3 },
-  canvasCard: { backgroundColor: colors.bgWarm, borderRadius: radius.lg, marginTop: spacing.lg, paddingVertical: spacing.sm, overflow: 'hidden', borderWidth: 1, borderColor: colors.border },
+  canvasCard: { backgroundColor: colors.bgWarm, borderRadius: radius.lg, marginTop: spacing.lg, overflow: 'hidden', borderWidth: 1, borderColor: colors.border },
+  growthCard: { backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.lg, marginTop: spacing.lg, gap: spacing.sm },
+  growthHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  growthLabel: { fontFamily: fonts.black, fontSize: 15, color: colors.greenDeep },
+  growthNext: { fontFamily: fonts.bold, fontSize: 12, color: colors.textSecondary },
+  growthMax: { fontFamily: fonts.bold, fontSize: 12, color: colors.orange },
+  growthTrack: { height: 10, borderRadius: 5, backgroundColor: colors.greenSoft, overflow: 'hidden' },
+  growthFill: { height: '100%', borderRadius: 5, backgroundColor: colors.green },
+  growthHint: { fontFamily: fonts.medium, fontSize: 11.5, color: colors.textSecondary },
   statRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: radius.card, paddingVertical: spacing.lg, marginTop: spacing.lg, ...shadows.soft },
   stat: { flex: 1, alignItems: 'center', gap: 3 },
   statNum: { fontFamily: fonts.black, fontSize: 24, color: colors.green },
