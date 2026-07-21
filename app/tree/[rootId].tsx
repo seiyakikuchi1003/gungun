@@ -21,7 +21,7 @@ export default function TreeScreen() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const { getItem, childrenOf, treeItems, canWater } = useTree();
-  const [showAll, setShowAll] = useState(false);
+  const [showAll, setShowAll] = useState(true);
   const [pickWater, setPickWater] = useState(false);
 
   const root = getItem(rootId ?? '');
@@ -147,7 +147,7 @@ export default function TreeScreen() {
         {/* この木の全商品 */}
         <PressableScale onPress={() => setShowAll((v) => !v)} activeScale={0.98} style={styles.allToggle}>
           <Sprout size={16} />
-          <Text style={styles.allToggleText}>この木の全商品（{all.length}）</Text>
+          <Text style={styles.allToggleText}>水やりの連鎖（{all.length}）</Text>
           <Ionicons name={showAll ? 'chevron-up' : 'chevron-down'} size={18} color={colors.textSecondary} />
         </PressableScale>
 
@@ -155,24 +155,33 @@ export default function TreeScreen() {
           <Animated.View entering={FadeIn.duration(250)} style={{ gap: spacing.sm }}>
             {all.map((it) => {
               const u = getUser(it.ownerId);
+              const parent = it.parentId ? getItem(it.parentId) : null;
               const isNew = it.id === newId;
+              const indent = Math.min(it.depth, 3) * 18;
               return (
-                <PressableScale key={it.id} activeScale={0.98} onPress={() => router.push(`/item/${it.id}`)} style={[styles.allRow, shadows.soft, isNew && styles.allRowNew, { marginLeft: Math.min(it.depth, 3) * 16 }]}>
-                  {it.depth > 0 && <View style={styles.branchMark} />}
-                  <Thumb source={it.local} uri={it.image} style={styles.allThumb} radius={10} markSize={18} />
-                  <View style={{ flex: 1 }}>
-                    <View style={styles.allTop}>
-                      <Text style={styles.allName} numberOfLines={1}>{it.name}</Text>
-                      {isNew && <View style={styles.newTag}><Text style={styles.newTagText}>NEW</Text></View>}
+                <View key={it.id} style={{ marginLeft: indent }}>
+                  {it.depth > 0 && (
+                    <Text style={styles.chainHint} numberOfLines={1}>
+                      ↳ {parent ? `${parent.name}に水やり` : '水やり'}
+                    </Text>
+                  )}
+                  <PressableScale activeScale={0.98} onPress={() => router.push(`/item/${it.id}`)} style={[styles.allRow, shadows.soft, isNew && styles.allRowNew]}>
+                    {it.depth > 0 && <View style={styles.branchMark} />}
+                    <Thumb source={it.local} uri={it.image} style={styles.allThumb} radius={10} markSize={18} />
+                    <View style={{ flex: 1 }}>
+                      <View style={styles.allTop}>
+                        <Text style={styles.allName} numberOfLines={1}>{it.name}</Text>
+                        {isNew && <View style={styles.newTag}><Text style={styles.newTagText}>NEW</Text></View>}
+                      </View>
+                      <View style={styles.allMeta}>
+                        <Avatar uri={u.avatar} name={u.nickname} size={15} />
+                        <Text style={styles.allOwner}>{u.nickname}さん</Text>
+                        <Text style={styles.allSub}>水やり{it.waterCount}</Text>
+                      </View>
                     </View>
-                    <View style={styles.allMeta}>
-                      <Avatar uri={u.avatar} name={u.nickname} size={15} />
-                      <Text style={styles.allOwner}>{u.nickname}さん</Text>
-                      <Text style={styles.allSub}>水やり数：{it.waterCount}</Text>
-                    </View>
-                  </View>
-                  <Badge label={it.depth === 0 ? '元の種' : '成長中'} tone="green" />
-                </PressableScale>
+                    <Badge label={it.depth === 0 ? '元の種' : `${it.depth}段目`} tone={it.depth === 0 ? 'green' : 'orange'} />
+                  </PressableScale>
+                </View>
               );
             })}
           </Animated.View>
@@ -276,7 +285,8 @@ const styles = StyleSheet.create({
   allToggleText: { flex: 1, fontFamily: fonts.bold, fontSize: 15, color: colors.textPrimary },
   allRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.md },
   allRowNew: { borderWidth: 1.5, borderColor: colors.orange },
-  branchMark: { position: 'absolute', left: -10, width: 10, height: 2, backgroundColor: colors.greenSoftBorder },
+  branchMark: { position: 'absolute', left: -12, top: '50%', width: 12, height: 2, backgroundColor: colors.greenSoftBorder },
+  chainHint: { fontFamily: fonts.medium, fontSize: 11, color: colors.textSecondary, marginBottom: 3, marginLeft: 2 },
   allThumb: { width: 46, height: 46 },
   allTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   allName: { fontFamily: fonts.bold, fontSize: 14, color: colors.textPrimary, flexShrink: 1 },

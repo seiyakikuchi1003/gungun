@@ -105,15 +105,25 @@ const rawItems: RawItem[] = [
   { id: 'sneaker', name: 'スニーカー', category: 'メンズ', condition: 'やや傷や汚れあり', description: '27cm。数回着用。', image: img('sneaker1'), images: [img('sneaker1')], local: P.sneaker, localImages: [P.sneaker], ownerId: 'kenta', waterCount: 2, likeCount: 11, treeCount: 2, status: 'growing' },
   { id: 'coffee', name: 'コーヒーメーカー', category: '家電', condition: '目立った傷や汚れなし', description: '全自動タイプ。動作確認済み。', image: img('coffee1'), images: [img('coffee1')], local: P.coffee, localImages: [P.coffee], ownerId: 'metan', waterCount: 3, likeCount: 15, treeCount: 3, status: 'growing' },
   { id: 'camera', name: 'ミラーレスカメラ', category: 'スマホ・家電', condition: '目立った傷や汚れなし', description: 'レンズキット付き。シャッター回数少なめ。', image: img('camera1'), images: [img('camera1')], local: P.camera, localImages: [P.camera], ownerId: 'yu', waterCount: 6, likeCount: 28, treeCount: 6, status: 'growing' },
-  { id: 'speaker', name: 'ワイヤレススピーカー', category: '家電', condition: '未使用に近い', description: '防水対応。箱付き。', image: img('speaker1'), images: [img('speaker1')], local: P.speaker, localImages: [P.speaker], ownerId: 'haru', waterCount: 2, likeCount: 10, treeCount: 2, status: 'growing' },
+  { id: 'speaker', name: 'ワイヤレススピーカー', category: '家電', condition: '未使用に近い', description: '防水対応。箱付き。', image: img('speaker1'), images: [img('speaker1')], local: P.speaker, localImages: [P.speaker], ownerId: 'haru', waterCount: 3, likeCount: 10, treeCount: 7, status: 'growing' },
   { id: 'giftcard', name: 'ギフト券', category: 'チケット', condition: '新品・未使用', description: '5,000円分。有効期限まだあります。', image: img('gift1'), images: [img('gift1')], local: P.giftcard, localImages: [P.giftcard], ownerId: 'metan', waterCount: 4, likeCount: 19, treeCount: 4, status: 'growing' },
 
-  // ── デモ用の「育った木」──────────────────────────────────
-  // ワイヤレススピーカー（はる）の種に、3人が水やり（＝自分の商品を出品して子ノードに）。
-  // これで「水やり＝出品」の結果（木が枝分かれ）を最初から見せられる。
+  // ── デモ用の「育った木」＝水やりの連鎖（わらしべの鎖）──────────────
+  // ワイヤレススピーカー（はる）を起点に、水やり＝出品が連鎖してつながっている。
+  //   speaker(はる)
+  //   ├─ キャンバストートバッグ(めたん)          … 深さ1
+  //   ├─ マグカップ(さくら)                       … 深さ1
+  //   │   └─ ミラーレスカメラ(ゆう)               … 深さ2
+  //   │       └─ 腕時計(たくさん)                 … 深さ3
+  //   └─ ギフト券(けんた)                          … 深さ1
+  //       └─ 文庫本セット(さくら)                 … 深さ2
+  // これで「A→B→C→D と交換の輪がつながっていく」連鎖が一目で分かる。
   { id: 'w-tote', name: 'キャンバストートバッグ', category: 'レディース', condition: '目立った傷や汚れなし', description: '無地のキャンバストート。数回使用のみで、大きな汚れもありません。', image: img('tote1'), images: [img('tote1')], local: P.bag, localImages: [P.bag], ownerId: 'metan', waterCount: 0, likeCount: 4, treeCount: 0, status: 'growing', parentId: 'speaker', rootId: 'speaker', depth: 1 },
   { id: 'w-mug', name: 'マグカップ', category: 'インテリア', condition: '未使用に近い', description: 'いただきもののマグカップ。使わないのでお譲りします。', image: img('mug1'), images: [img('mug1')], local: P.coffee, localImages: [P.coffee], ownerId: 'sakura', waterCount: 1, likeCount: 3, treeCount: 0, status: 'growing', parentId: 'speaker', rootId: 'speaker', depth: 1 },
-  { id: 'w-gift', name: 'ギフト券 5,000円分', category: 'チケット', condition: '新品・未使用', description: '有効期限まだあります。', image: img('gift2'), images: [img('gift2')], local: P.giftcard, localImages: [P.giftcard], ownerId: 'kenta', waterCount: 0, likeCount: 2, treeCount: 0, status: 'growing', parentId: 'speaker', rootId: 'speaker', depth: 1 },
+  { id: 'w-cam', name: 'ミラーレスカメラ', category: 'スマホ・家電', condition: '目立った傷や汚れなし', description: 'マグカップと交換希望で水やりしました。レンズキット付き。', image: img('cam2'), images: [img('cam2')], local: P.camera, localImages: [P.camera], ownerId: 'yu', waterCount: 1, likeCount: 6, treeCount: 0, status: 'growing', parentId: 'w-mug', rootId: 'speaker', depth: 2 },
+  { id: 'w-watch2', name: '腕時計', category: 'メンズ', condition: '未使用に近い', description: 'カメラが欲しくて水やり。電池交換済みです。', image: img('watch2'), images: [img('watch2')], local: P.watch, localImages: [P.watch], ownerId: 'takusan', waterCount: 0, likeCount: 5, treeCount: 0, status: 'growing', parentId: 'w-cam', rootId: 'speaker', depth: 3 },
+  { id: 'w-gift', name: 'ギフト券 5,000円分', category: 'チケット', condition: '新品・未使用', description: '有効期限まだあります。', image: img('gift2'), images: [img('gift2')], local: P.giftcard, localImages: [P.giftcard], ownerId: 'kenta', waterCount: 1, likeCount: 2, treeCount: 0, status: 'growing', parentId: 'speaker', rootId: 'speaker', depth: 1 },
+  { id: 'w-books2', name: '文庫本セット', category: '本・音楽', condition: '目立った傷や汚れなし', description: '人気作家の文庫本8冊セット。', image: img('books2'), images: [img('books2')], local: P.books, localImages: [P.books], ownerId: 'sakura', waterCount: 0, likeCount: 3, treeCount: 0, status: 'growing', parentId: 'w-gift', rootId: 'speaker', depth: 2 },
 ];
 
 /**
