@@ -13,7 +13,7 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 type Props = PressableProps & {
   /** 押下時の縮小率 */
   activeScale?: number;
-  /** 押下時の軽い振動（既定ON。リスト内の頻発要素などはfalseに） */
+  /** 押下時の軽い振動（既定OFF。特別に効かせたいボタンだけtrueに） */
   haptic?: boolean;
   style?: StyleProp<ViewStyle>;
   children?: React.ReactNode;
@@ -21,9 +21,9 @@ type Props = PressableProps & {
 
 /**
  * 押すとふわっと縮むボタン土台。全タップ要素の触感を統一する。
- * 押下の瞬間に Taptic Engine の軽い振動（iOS実機のみ／Webは無効）。
+ * バイブは既定OFF（成功時などの決め所は各画面側で success() を呼ぶ）。
  */
-export function PressableScale({ activeScale = 0.96, haptic = true, style, children, ...rest }: Props) {
+export function PressableScale({ activeScale = 0.96, haptic = false, style, children, ...rest }: Props) {
   const scale = useSharedValue(1);
   const opacity = useSharedValue(1);
 
