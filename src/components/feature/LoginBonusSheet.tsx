@@ -19,6 +19,7 @@ import { Mikan } from '@/components/art/Mikan';
 import { WateringCan } from '@/components/art/WateringCan';
 import { Sprout } from '@/components/art/Sprout';
 import { settings } from '@/config/settings';
+import { success } from '@/lib/haptics';
 
 type Props = {
   visible: boolean;
@@ -75,12 +76,14 @@ function TodayStamp({ size, bonus, active }: { size: number; bonus: number; acti
         withSpring(1, { damping: 8, stiffness: 210 })
       )
     );
-    // 2) 波紋：着地の瞬間に広がって消える
+    // 2) 波紋：着地の瞬間に広がって消える（同時に成功バイブ）
+    const buzz = setTimeout(() => success(), RING_DELAY);
     ringOpacity.value = withDelay(RING_DELAY, withSequence(withTiming(0.75, { duration: 60 }), withTiming(0, { duration: 480 })));
     ringScale.value = withDelay(RING_DELAY, withTiming(2.0, { duration: 540, easing: Easing.out(Easing.quad) }));
     // 3) +40 がふわっと浮かんで消える
     floatOpacity.value = withDelay(FLOAT_DELAY, withSequence(withTiming(1, { duration: 160 }), withDelay(650, withTiming(0, { duration: 260 }))));
     floatY.value = withDelay(FLOAT_DELAY, withTiming(-size * 0.62, { duration: 950, easing: Easing.out(Easing.quad) }));
+    return () => clearTimeout(buzz);
   }, [active]);
 
   const stampStyle = useAnimatedStyle(() => ({ opacity: opacity.value, transform: [{ scale: scale.value }] }));

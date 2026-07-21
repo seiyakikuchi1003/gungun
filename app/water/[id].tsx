@@ -12,6 +12,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { StarRating } from '@/components/ui/StarRating';
 import { PhotoSourceSheet } from '@/components/feature/PhotoSourceSheet';
 import { getUser, categories, conditions } from '@/data/mock';
+import { success } from '@/lib/haptics';
 import { useTree } from '@/store/tree';
 import { settings } from '@/config/settings';
 
@@ -49,6 +50,7 @@ export default function WaterScreen() {
     if (!canSubmit) return;
     const created = water(target.id, { name, category, condition, description: desc, photos });
     if (created) {
+      success(); // 水やり成立の「タタン♪」
       router.replace({ pathname: '/tree/[rootId]', params: { rootId: target.rootId, new: created.id } });
     }
   };

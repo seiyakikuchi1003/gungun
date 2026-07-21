@@ -13,6 +13,7 @@ import { Mikan } from '@/components/art/Mikan';
 import { Sprout } from '@/components/art/Sprout';
 import { Avatar } from '@/components/ui/Avatar';
 import { getItem, getUser, items, currentUser, MockItem } from '@/data/mock';
+import { success } from '@/lib/haptics';
 
 /** デモ用：候補までの一本道の人数（根の自分＋途中の人数）。深さをそれらしく散らす */
 function ringSizeOf(index: number): number {
@@ -124,7 +125,7 @@ export default function HarvestDetail() {
           <Ionicons name="alert-circle" size={18} color={colors.orangeDeep} />
           <Text style={styles.noteText}>収穫すると取り消せません。輪の全員に発送義務が発生します。</Text>
         </View>
-        <Button title="収穫する（交換開始）" variant="accent" onPress={() => setDone(true)} style={{ marginTop: spacing.xl }} />
+        <Button title="収穫する（交換開始）" variant="accent" onPress={() => { success(); setDone(true); }} style={{ marginTop: spacing.xl }} />
         <PressableScale onPress={() => setTarget(null)} style={styles.cancel}>
           <Text style={styles.cancelText}>キャンセル</Text>
         </PressableScale>

@@ -13,6 +13,7 @@ import { Thumb } from '@/components/ui/Thumb';
 import { Sprout } from '@/components/art/Sprout';
 import { PhotoSourceSheet } from '@/components/feature/PhotoSourceSheet';
 import { categories, conditions } from '@/data/mock';
+import { success } from '@/lib/haptics';
 
 type PickerKey = 'category' | 'condition' | null;
 
@@ -110,7 +111,7 @@ export default function PlantSeedScreen() {
         <Button
           title="タネを植える"
           leftIcon={<Sprout size={22} color={colors.white} />}
-          onPress={() => router.back()}
+          onPress={() => { success(); router.back(); }}
         />
       </View>
 
