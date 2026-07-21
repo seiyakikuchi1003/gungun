@@ -54,6 +54,11 @@ export const colors = {
   statusTrading: '#F5A623',
   statusCompleted: '#A9A498',
 
+  // 水やり（青系）＝「水やりする」ボタン・自分が出す子商品の強調
+  waterBlue: '#2E7CF6',
+  waterBlueSoft: '#AEC9F7',
+  waterBlueBg: '#EAF2FE',
+
   // その他
   heart: '#E8637A',
   premium: '#C9922E',

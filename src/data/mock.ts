@@ -25,13 +25,24 @@ export type MockItem = {
   image: string;
   images: string[];
   ownerId: string;
-  waterCount: number; // 水やり数（＝子ノード数）
+  waterCount: number; // 水やり数（＝直接の子ノード数）
   likeCount: number;
   treeCount: number; // 木全体の商品数（同じ root_id）
   status: 'growing' | 'trading' | 'completed';
+  /** ツリー構造（SPEC 第2章）。種は parentId=null / rootId=自分 / depth=0。 */
+  parentId: string | null; // 水やり先（親商品）。NULL なら種（root）
+  rootId: string; // 所属する木の根。種なら自分自身
+  depth: number; // 根からの深さ（種=0）
   /** ローカル商品画像（assets/products/）。あれば remote より優先。 */
   local?: number;
   localImages?: number[];
+};
+
+/** 商品の生データ（ツリー項目は省略可能。未指定なら「種」として正規化）。 */
+type RawItem = Omit<MockItem, 'parentId' | 'rootId' | 'depth'> & {
+  parentId?: string | null;
+  rootId?: string;
+  depth?: number;
 };
 
 /**
@@ -66,7 +77,7 @@ export const users: Record<string, MockUser> = {
 
 const img = (seed: string) => `https://picsum.photos/seed/${seed}/800/800`;
 
-export const items: MockItem[] = [
+const rawItems: RawItem[] = [
   {
     id: 'switch',
     name: 'Nintendo Switch',
@@ -96,10 +107,28 @@ export const items: MockItem[] = [
   { id: 'camera', name: 'ミラーレスカメラ', category: 'スマホ・家電', condition: '目立った傷や汚れなし', description: 'レンズキット付き。シャッター回数少なめ。', image: img('camera1'), images: [img('camera1')], local: P.camera, localImages: [P.camera], ownerId: 'yu', waterCount: 6, likeCount: 28, treeCount: 6, status: 'growing' },
   { id: 'speaker', name: 'ワイヤレススピーカー', category: '家電', condition: '未使用に近い', description: '防水対応。箱付き。', image: img('speaker1'), images: [img('speaker1')], local: P.speaker, localImages: [P.speaker], ownerId: 'haru', waterCount: 2, likeCount: 10, treeCount: 2, status: 'growing' },
   { id: 'giftcard', name: 'ギフト券', category: 'チケット', condition: '新品・未使用', description: '5,000円分。有効期限まだあります。', image: img('gift1'), images: [img('gift1')], local: P.giftcard, localImages: [P.giftcard], ownerId: 'metan', waterCount: 4, likeCount: 19, treeCount: 4, status: 'growing' },
+
+  // ── デモ用の「育った木」──────────────────────────────────
+  // ワイヤレススピーカー（はる）の種に、3人が水やり（＝自分の商品を出品して子ノードに）。
+  // これで「水やり＝出品」の結果（木が枝分かれ）を最初から見せられる。
+  { id: 'w-tote', name: 'キャンバストートバッグ', category: 'レディース', condition: '目立った傷や汚れなし', description: '無地のキャンバストート。数回使用のみで、大きな汚れもありません。', image: img('tote1'), images: [img('tote1')], local: P.bag, localImages: [P.bag], ownerId: 'metan', waterCount: 0, likeCount: 4, treeCount: 0, status: 'growing', parentId: 'speaker', rootId: 'speaker', depth: 1 },
+  { id: 'w-mug', name: 'マグカップ', category: 'インテリア', condition: '未使用に近い', description: 'いただきもののマグカップ。使わないのでお譲りします。', image: img('mug1'), images: [img('mug1')], local: P.coffee, localImages: [P.coffee], ownerId: 'sakura', waterCount: 1, likeCount: 3, treeCount: 0, status: 'growing', parentId: 'speaker', rootId: 'speaker', depth: 1 },
+  { id: 'w-gift', name: 'ギフト券 5,000円分', category: 'チケット', condition: '新品・未使用', description: '有効期限まだあります。', image: img('gift2'), images: [img('gift2')], local: P.giftcard, localImages: [P.giftcard], ownerId: 'kenta', waterCount: 0, likeCount: 2, treeCount: 0, status: 'growing', parentId: 'speaker', rootId: 'speaker', depth: 1 },
 ];
 
-/** ホーム「みんなの種」＝ parent_id is null かつ growing 相当 */
-export const seedItems = items;
+/**
+ * ツリー項目を正規化：省略された商品は「種（root）」として parentId=null / rootId=自分 / depth=0。
+ * ここが SPEC 第2章「items 1本で森を表現」の土台。
+ */
+export const items: MockItem[] = rawItems.map((it) => ({
+  ...it,
+  parentId: it.parentId ?? null,
+  rootId: it.rootId ?? it.id,
+  depth: it.depth ?? 0,
+}));
+
+/** ホーム「みんなの種」＝ parentId is null（＝木の根）だけ */
+export const seedItems = items.filter((i) => i.parentId === null);
 
 /** 商品カルーセル用の画像ソース配列（ローカルがあれば優先）。 */
 export function itemImageSources(item: MockItem): (number | { uri: string })[] {
@@ -109,6 +138,34 @@ export function itemImageSources(item: MockItem): (number | { uri: string })[] {
 
 export function getItem(id: string): MockItem | undefined {
   return items.find((i) => i.id === id);
+}
+
+// ── ツリー操作（純粋関数）──────────────────────────────────
+// 与えられた items 配列に対して親子関係を辿る。ストア・画面から共用。
+// ネイティブ化時は SPEC 第3章の Postgres 関数（get_ancestors 等）に対応。
+
+/** 直接の子ノード（＝この商品に水やりした商品たち）。 */
+export function childrenOf(pool: MockItem[], id: string): MockItem[] {
+  return pool.filter((i) => i.parentId === id);
+}
+
+/** 同じ木（root_id）に属する全商品。 */
+export function treeItems(pool: MockItem[], rootId: string): MockItem[] {
+  return pool.filter((i) => i.rootId === rootId);
+}
+
+/** target 自身から root までの祖先ライン（target を含む）。 */
+export function ancestorsOf(pool: MockItem[], id: string): MockItem[] {
+  const line: MockItem[] = [];
+  let cur = pool.find((i) => i.id === id);
+  const guard = new Set<string>();
+  while (cur && !guard.has(cur.id)) {
+    line.push(cur);
+    guard.add(cur.id);
+    if (cur.parentId == null) break;
+    cur = pool.find((i) => i.id === cur!.parentId);
+  }
+  return line; // [target, ..., root]
 }
 export function getUser(id: string): MockUser {
   return users[id] ?? { id, nickname: '名無し', avatar: '', ratingCount: 0, itemCount: 0 };

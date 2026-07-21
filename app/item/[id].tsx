@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, ScrollView, useWindowDimensions, NativeSyntheti
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import Animated, { FadeIn } from 'react-native-reanimated';
 import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { Avatar } from '@/components/ui/Avatar';
@@ -11,10 +10,10 @@ import { Thumb } from '@/components/ui/Thumb';
 import { HeartButton } from '@/components/ui/HeartButton';
 import { StarRating } from '@/components/ui/StarRating';
 import { Sprout } from '@/components/art/Sprout';
-import { WaterConfirmSheet } from '@/components/feature/WaterConfirmSheet';
-import { getItem, getUser, currentUser, itemImageSources, items } from '@/data/mock';
+import { getUser, currentUser, itemImageSources } from '@/data/mock';
 import { getItemComments } from '@/data/mockSocial';
 import { settings } from '@/config/settings';
+import { useTree } from '@/store/tree';
 
 function RoundBtn({ icon, onPress }: { icon: keyof typeof Ionicons.glyphMap; onPress?: () => void }) {
   return (
@@ -28,10 +27,9 @@ export default function ItemDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
+  const { getItem, canWater, childrenOf, treeItems } = useTree();
   const item = getItem(id ?? '');
   const [page, setPage] = useState(0);
-  const [showWater, setShowWater] = useState(false);
-  const [watered, setWatered] = useState(false);
 
   if (!item) {
     return (
@@ -43,7 +41,12 @@ export default function ItemDetailScreen() {
   const owner = getUser(item.ownerId);
   const imgs = itemImageSources(item);
   const comments = getItemComments(item.id);
-  const connected = items.filter((i) => i.id !== item.id).slice(0, 4);
+  const connected = childrenOf(item.id); // この商品に水やりした商品（＝子ノード）
+  const treeCount = treeItems(item.rootId).length;
+  const treeThumbs = treeItems(item.rootId).filter((i) => i.id !== item.id);
+  const gate = canWater(item.id);
+  // すでにこの商品へ水やり済みか（自分の商品が子にいる）
+  const alreadyWatered = connected.some((c) => c.ownerId === currentUser.id);
   const imgH = width * 0.94;
 
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -103,24 +106,26 @@ export default function ItemDetailScreen() {
             <Ionicons name="chevron-forward" size={20} color={colors.textPlaceholder} />
           </PressableScale>
 
-          {/* 元の種（木の可視化） */}
-          <PressableScale activeScale={0.98} onPress={() => router.push(`/item/root/${item.id}`)} style={[styles.rootCard, shadows.soft]}>
+          {/* つながっている木（マイツリーへ） */}
+          <PressableScale activeScale={0.98} onPress={() => router.push(`/tree/${item.rootId}`)} style={[styles.rootCard, shadows.soft]}>
             <View style={styles.rootTop}>
               <View style={styles.rootBadge}><Sprout size={15} color={colors.white} /></View>
-              <Text style={styles.rootLabel}>元の種（つながっている木）</Text>
+              <Text style={styles.rootLabel}>{item.parentId === null ? '元の種（つながっている木）' : 'この商品が属する木'}</Text>
               <Ionicons name="chevron-forward" size={18} color={colors.green} />
             </View>
             <View style={styles.treeRow}>
               <View style={styles.treeThumbs}>
-                {connected.slice(0, 3).map((c, i) => (
+                {treeThumbs.slice(0, 3).map((c, i) => (
                   <Thumb key={c.id} source={c.local} uri={c.image} style={[styles.treeThumb, { marginLeft: i === 0 ? 0 : -14 }]} radius={10} markSize={18} />
                 ))}
-                <View style={[styles.treeMore, { marginLeft: -14 }]}>
-                  <Text style={styles.treeMoreText}>+{Math.max(item.treeCount - 3, 0)}</Text>
-                </View>
+                {treeCount > 4 && (
+                  <View style={[styles.treeMore, { marginLeft: -14 }]}>
+                    <Text style={styles.treeMoreText}>+{treeCount - 4}</Text>
+                  </View>
+                )}
               </View>
               <View style={styles.treeCountBox}>
-                <Text style={styles.treeCount}>{item.treeCount}</Text>
+                <Text style={styles.treeCount}>{treeCount}</Text>
                 <Text style={styles.treeCountUnit}>件</Text>
               </View>
             </View>
@@ -162,33 +167,26 @@ export default function ItemDetailScreen() {
         </View>
       </ScrollView>
 
-      {/* 下部：お気に入り＋水やりCTA */}
+      {/* 下部：水やりCTA（＝自分の商品を出品して子ノードに） */}
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
-        {watered ? (
-          <Animated.View entering={FadeIn} style={styles.wateredPill}>
+        {alreadyWatered ? (
+          <PressableScale onPress={() => router.push(`/tree/${item.rootId}`)} activeScale={0.98} style={styles.wateredPill}>
             <Ionicons name="checkmark-circle" size={22} color={colors.green} />
-            <Text style={styles.wateredText}>水やり済み — 交換の輪に参加中</Text>
-          </Animated.View>
-        ) : (
-          <PressableScale onPress={() => setShowWater(true)} style={[styles.waterBtn, shadows.button]}>
+            <Text style={styles.wateredText}>水やり済み — 木の様子を見る</Text>
+          </PressableScale>
+        ) : gate.ok ? (
+          <PressableScale onPress={() => router.push(`/water/${item.id}`)} style={[styles.waterBtn, shadows.button]}>
             <Ionicons name="water" size={20} color={colors.white} />
             <Text style={styles.waterText}>この商品に水やりする</Text>
             <View style={styles.waterCost}><Text style={styles.waterCostText}>{settings.waterCost}肥料</Text></View>
           </PressableScale>
+        ) : (
+          <View style={styles.disabledBox}>
+            <Ionicons name="information-circle" size={18} color={colors.textSecondary} />
+            <Text style={styles.disabledText}>{gate.reason}</Text>
+          </View>
         )}
       </View>
-
-      <WaterConfirmSheet
-        visible={showWater}
-        item={item}
-        ownerName={owner.nickname}
-        currentFertilizer={currentUser.fertilizer}
-        onClose={() => setShowWater(false)}
-        onConfirm={() => {
-          setShowWater(false);
-          setWatered(true);
-        }}
-      />
     </View>
   );
 }
@@ -248,4 +246,6 @@ const styles = StyleSheet.create({
   waterCostText: { fontFamily: fonts.bold, fontSize: 12, color: colors.white },
   wateredPill: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, height: 56, borderRadius: radius.pill, backgroundColor: colors.greenSoft },
   wateredText: { fontFamily: fonts.bold, fontSize: 15, color: colors.green },
+  disabledBox: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, height: 56, borderRadius: radius.pill, backgroundColor: colors.cardMuted, paddingHorizontal: spacing.lg },
+  disabledText: { fontFamily: fonts.medium, fontSize: 13.5, color: colors.textSecondary, textAlign: 'center' },
 });

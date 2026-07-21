@@ -8,13 +8,16 @@ import { PressableScale } from '@/components/ui/PressableScale';
 import { TopTabs } from '@/components/ui/TopTabs';
 import { Thumb } from '@/components/ui/Thumb';
 import { Badge } from '@/components/ui/Badge';
-import { items } from '@/data/mock';
+import { currentUser } from '@/data/mock';
+import { useTree } from '@/store/tree';
 
 export default function MyItems() {
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState('seed');
-  // デモ：種植え＝先頭数件、水やり＝別の数件
-  const list = tab === 'seed' ? items.slice(0, 4) : items.slice(4, 8);
+  const { items } = useTree();
+  // 種植え＝自分の root（parentId=null）／水やり＝自分が水やりで出した子（parentId!=null）
+  const mine = items.filter((i) => i.ownerId === currentUser.id);
+  const list = tab === 'seed' ? mine.filter((i) => i.parentId === null) : mine.filter((i) => i.parentId !== null);
 
   return (
     <View style={styles.root}>
@@ -42,6 +45,11 @@ export default function MyItems() {
             <Ionicons name="chevron-forward" size={20} color={colors.textPlaceholder} />
           </PressableScale>
         ))}
+        {list.length === 0 && (
+          <Text style={styles.empty}>
+            {tab === 'seed' ? 'まだタネを植えていません' : 'まだ水やりしていません\n欲しい商品に水やりすると、あなたの商品がここに出ます'}
+          </Text>
+        )}
       </ScrollView>
     </View>
   );
@@ -58,4 +66,5 @@ const styles = StyleSheet.create({
   category: { fontFamily: fonts.regular, fontSize: 12, color: colors.textSecondary, marginTop: 2 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: 6 },
   meta: { fontFamily: fonts.medium, fontSize: 11.5, color: colors.textSecondary },
+  empty: { fontFamily: fonts.medium, fontSize: 13.5, color: colors.textSecondary, textAlign: 'center', lineHeight: 21, marginTop: 60 },
 });

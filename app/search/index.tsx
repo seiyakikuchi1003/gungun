@@ -6,7 +6,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { ItemCard } from '@/components/ui/ItemCard';
-import { items, categories } from '@/data/mock';
+import { categories } from '@/data/mock';
+import { useTree } from '@/store/tree';
 
 const RECENT = ['Nintendo Switch', 'iPhone', 'バッグ', 'カメラ'];
 const TRENDING = ['ゲーム機', 'ワイヤレスイヤホン', 'ブランド財布', 'ギフト券', 'スニーカー', '本まとめ売り'];
@@ -15,6 +16,7 @@ type Sort = 'new' | 'water';
 export default function SearchScreen() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
+  const { items } = useTree();
   const [q, setQ] = useState('');
   const [cat, setCat] = useState<string | null>(null);
   const [sort, setSort] = useState<Sort>('new');
@@ -26,7 +28,7 @@ export default function SearchScreen() {
     if (cat) r = r.filter((i) => i.category === cat);
     r = [...r].sort((a, b) => (sort === 'water' ? b.waterCount - a.waterCount : 0));
     return r;
-  }, [q, cat, sort]);
+  }, [q, cat, sort, items]);
 
   const searching = q.length > 0 || cat !== null;
 

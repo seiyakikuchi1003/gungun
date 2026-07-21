@@ -7,6 +7,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
 import { colors } from '@/theme';
 import { AuthProvider } from '@/store/auth';
+import { TreeProvider } from '@/store/tree';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -29,19 +30,24 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <AuthProvider>
-          <StatusBar style="dark" />
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: colors.bg },
-              animation: 'slide_from_right',
-            }}
-          >
-            <Stack.Screen name="(auth)" />
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="item/[id]" />
-            <Stack.Screen name="plant/seed" options={{ animation: 'slide_from_bottom', presentation: 'modal' }} />
-          </Stack>
+          <TreeProvider>
+            <StatusBar style="dark" />
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: colors.bg },
+                animation: 'slide_from_right',
+              }}
+            >
+              <Stack.Screen name="(auth)" />
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="item/[id]" />
+              <Stack.Screen name="plant/seed" options={{ animation: 'slide_from_bottom', presentation: 'modal' }} />
+              <Stack.Screen name="water/[id]" options={{ animation: 'slide_from_bottom', presentation: 'modal' }} />
+              <Stack.Screen name="tree/[rootId]" />
+              <Stack.Screen name="water/about" options={{ animation: 'slide_from_bottom', presentation: 'modal' }} />
+            </Stack>
+          </TreeProvider>
         </AuthProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
