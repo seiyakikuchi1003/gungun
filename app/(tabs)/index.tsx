@@ -8,6 +8,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { MosaicGroup } from '@/components/feature/MosaicGroup';
+import { LoginBonusSheet } from '@/components/feature/LoginBonusSheet';
 import { Sprout } from '@/components/art/Sprout';
 import { Mikan } from '@/components/art/Mikan';
 import { WateringCan } from '@/components/art/WateringCan';
@@ -35,6 +36,7 @@ export default function HomeScreen() {
   const { width } = useWindowDimensions();
   const { items } = useTree();
   const [claimed, setClaimed] = useState(false);
+  const [showBonus, setShowBonus] = useState(false);
   // 「みんなの種」＝木の根（parentId=null）をテーマ別のモザイクで表示
   const seeds = items.filter((i) => i.parentId === null).reverse();
   const COLLECTIONS: { title: string; subtitle: string; match: (c: string) => boolean }[] = [
@@ -91,7 +93,7 @@ export default function HomeScreen() {
                 <Text style={styles.bonusValue}>毎日 +40肥料</Text>
               </View>
               <PressableScale
-                onPress={() => setClaimed(true)}
+                onPress={() => { setClaimed(true); setShowBonus(true); }}
                 activeScale={0.94}
                 style={[styles.claimBtn, claimed && styles.claimBtnDone]}
               >
@@ -157,6 +159,9 @@ export default function HomeScreen() {
         </View>
         <Text style={styles.fabText}>タネを植える</Text>
       </PressableScale>
+
+      {/* ログインボーナスのスタンプカレンダー */}
+      <LoginBonusSheet visible={showBonus} claimedToday={claimed} onClose={() => setShowBonus(false)} />
     </View>
   );
 }
