@@ -7,7 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
-import { ItemCard } from '@/components/ui/ItemCard';
+import { MosaicGroup } from '@/components/feature/MosaicGroup';
 import { Sprout } from '@/components/art/Sprout';
 import { Mikan } from '@/components/art/Mikan';
 import { WateringCan } from '@/components/art/WateringCan';
@@ -35,10 +35,20 @@ export default function HomeScreen() {
   const { width } = useWindowDimensions();
   const { items } = useTree();
   const [claimed, setClaimed] = useState(false);
-  // 「みんなの種」＝木の根（parentId=null）を新着順（後ろから）に3列グリッド表示
+  // 「みんなの種」＝木の根（parentId=null）をテーマ別のモザイクで表示
   const seeds = items.filter((i) => i.parentId === null).reverse();
-  const GRID_GAP = 8;
-  const cardW = (width - 40 - GRID_GAP * 2) / 3;
+  const COLLECTIONS: { title: string; subtitle: string; match: (c: string) => boolean }[] = [
+    { title: 'スマホ・ガジェット', subtitle: '人気の家電・ゲーム', match: (c) => ['スマホ・家電', '家電', 'ゲーム・おもちゃ'].includes(c) },
+    { title: 'ファッション・小物', subtitle: 'バッグ・時計・コスメ', match: (c) => ['レディース', 'メンズ', 'コスメ・美容', 'バッグ・小物'].includes(c) },
+    { title: 'ホビー・その他', subtitle: '本・チケット・雑貨', match: (c) => true },
+  ];
+  // 各種を最初にマッチしたコレクションへ割り当て（最後のグループが受け皿）
+  const assigned = new Set<string>();
+  const visibleGroups = COLLECTIONS.map((col) => {
+    const list = seeds.filter((s) => !assigned.has(s.id) && col.match(s.category));
+    list.forEach((s) => assigned.add(s.id));
+    return { ...col, items: list };
+  }).filter((g) => g.items.length > 0);
 
   return (
     <View style={styles.root}>
@@ -93,7 +103,7 @@ export default function HomeScreen() {
           </LinearGradient>
         </Animated.View>
 
-        {/* みんなの種 */}
+        {/* みんなの種（テーマ別モザイク） */}
         <Animated.View entering={FadeInDown.delay(80).duration(400)}>
           <View style={styles.sectionHead}>
             <View style={styles.sectionTitleRow}>
@@ -104,11 +114,16 @@ export default function HomeScreen() {
               <Text style={styles.seeAll}>すべて見る ›</Text>
             </PressableScale>
           </View>
-          <View style={styles.grid}>
-            {seeds.map((item) => (
-              <ItemCard key={item.id} item={item} width={cardW} compact onPress={() => router.push(`/item/${item.id}`)} />
-            ))}
-          </View>
+          {visibleGroups.map((g) => (
+            <MosaicGroup
+              key={g.title}
+              title={g.title}
+              subtitle={g.subtitle}
+              items={g.items}
+              width={width}
+              onPressItem={(item) => router.push(`/item/${item.id}`)}
+            />
+          ))}
         </Animated.View>
 
         {/* ぐんぐんの楽しみ方 */}
