@@ -14,6 +14,7 @@ type Props = {
   treeSize?: number; // 木に属する総数（root＋子孫）。未指定なら children+1
   highlightId?: string | null; // 直近に追加された商品（NEW 表示）
   onPressNode?: (item: MockItem) => void;
+  onPressEmpty?: () => void; // 空きスロット「水やり待ち」をタップ
   showEmptySlot?: boolean;
   mascotText?: string;
 };
@@ -43,7 +44,7 @@ const BLOOMS = [
 
 const MASCOT_BY_STAGE = ['たねを植えたよ🌰', 'めが出たよ！', 'すくすく育ってるよ！', 'りっぱな木になった！'];
 
-export function TreeCanvas({ width, children, treeSize, highlightId, onPressNode, showEmptySlot = true, mascotText }: Props) {
+export function TreeCanvas({ width, children, treeSize, highlightId, onPressNode, onPressEmpty, showEmptySlot = true, mascotText }: Props) {
   const cx = width / 2;
   const size = treeSize ?? children.length + 1;
   const g = treeGrowth(size);
@@ -208,8 +209,10 @@ export function TreeCanvas({ width, children, treeSize, highlightId, onPressNode
         return (
           <View style={[styles.node, { left: p.x - NODE / 2, top: p.y - NODE / 2, width: NODE }]}>
             <View style={styles.stem} />
-            <View style={styles.emptyBubble}><Text style={styles.emptyPlus}>＋</Text></View>
-            <Text style={styles.emptyLabel} numberOfLines={1}>水やり待ち</Text>
+            <PressableScale activeScale={0.9} onPress={onPressEmpty} style={styles.emptyBubble}>
+              <Text style={styles.emptyPlus}>＋</Text>
+            </PressableScale>
+            <Text style={styles.emptyLabel} numberOfLines={1}>水やりする</Text>
           </View>
         );
       })()}

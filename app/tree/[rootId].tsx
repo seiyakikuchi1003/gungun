@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/Badge';
 import { StarRating } from '@/components/ui/StarRating';
 import { Sprout } from '@/components/art/Sprout';
 import { TreeCanvas } from '@/components/feature/TreeCanvas';
+import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
 import { getUser, currentUser, treeGrowth } from '@/data/mock';
 import { useTree } from '@/store/tree';
 
@@ -19,8 +20,9 @@ export default function TreeScreen() {
   const { rootId, new: newId } = useLocalSearchParams<{ rootId: string; new?: string }>();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-  const { getItem, childrenOf, treeItems } = useTree();
+  const { getItem, childrenOf, treeItems, canWater } = useTree();
   const [showAll, setShowAll] = useState(false);
+  const [pickWater, setPickWater] = useState(false);
 
   const root = getItem(rootId ?? '');
   if (!root) return <View style={styles.root} />;
@@ -89,6 +91,7 @@ export default function TreeScreen() {
             treeSize={all.length}
             highlightId={newId}
             onPressNode={(it) => router.push(`/item/${it.id}`)}
+            onPressEmpty={() => setPickWater(true)}
           />
         </View>
 
@@ -120,19 +123,25 @@ export default function TreeScreen() {
         {/* アクション */}
         {justWatered ? (
           <View style={{ gap: spacing.md, marginTop: spacing.xl }}>
-            <PressableScale onPress={() => setShowAll(true)} activeScale={0.97} style={[styles.shareBtn, shadows.button]}>
-              <Sprout size={18} color={colors.white} />
-              <Text style={styles.shareText}>木の様子をくわしく見る</Text>
+            <PressableScale onPress={() => setPickWater(true)} activeScale={0.97} style={[styles.waterBtn, shadows.button]}>
+              <Ionicons name="water" size={18} color={colors.white} />
+              <Text style={styles.shareText}>この木にもっと水やりする</Text>
             </PressableScale>
             <PressableScale onPress={() => router.replace('/(tabs)')} activeScale={0.97} style={styles.ghostBtn}>
               <Text style={styles.ghostText}>ホームに戻る</Text>
             </PressableScale>
           </View>
         ) : (
-          <PressableScale onPress={() => {}} activeScale={0.97} style={[styles.shareBtn, shadows.button, { marginTop: spacing.xl }]}>
-            <Ionicons name="share-social" size={18} color={colors.white} />
-            <Text style={styles.shareText}>あなたのツリーをシェア</Text>
-          </PressableScale>
+          <View style={{ gap: spacing.md, marginTop: spacing.xl }}>
+            <PressableScale onPress={() => setPickWater(true)} activeScale={0.97} style={[styles.waterBtn, shadows.button]}>
+              <Ionicons name="water" size={18} color={colors.white} />
+              <Text style={styles.shareText}>この木に水やりする</Text>
+            </PressableScale>
+            <PressableScale onPress={() => {}} activeScale={0.97} style={styles.ghostBtn}>
+              <Ionicons name="share-social" size={16} color={colors.textSecondary} />
+              <Text style={styles.ghostText}>あなたのツリーをシェア</Text>
+            </PressableScale>
+          </View>
         )}
 
         {/* この木の全商品 */}
@@ -169,6 +178,41 @@ export default function TreeScreen() {
           </Animated.View>
         )}
       </ScrollView>
+
+      {/* 水やり対象（親）を選ぶ */}
+      <BottomSheetModal visible={pickWater} onClose={() => setPickWater(false)}>
+        <Text style={styles.pickTitle}>水やりする商品を選ぶ</Text>
+        <Text style={styles.pickSub}>成長中の商品に水やり＝あなたの商品を子として出品します</Text>
+        <ScrollView style={{ maxHeight: 380 }} showsVerticalScrollIndicator={false}>
+          {all.filter((i) => i.status === 'growing').map((it) => {
+            const u = getUser(it.ownerId);
+            const gate = canWater(it.id);
+            return (
+              <PressableScale
+                key={it.id}
+                activeScale={gate.ok ? 0.98 : 1}
+                onPress={() => { if (gate.ok) { setPickWater(false); router.push(`/water/${it.id}`); } }}
+                style={[styles.pickRow, !gate.ok && styles.pickRowOff]}
+              >
+                <Thumb source={it.local} uri={it.image} style={styles.pickThumb} radius={10} markSize={18} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.pickName} numberOfLines={1}>{it.name}</Text>
+                  <View style={styles.pickMeta}>
+                    <Avatar uri={u.avatar} name={u.nickname} size={15} />
+                    <Text style={styles.pickOwner}>{u.nickname}さん・水やり{it.waterCount}</Text>
+                  </View>
+                  {!gate.ok && <Text style={styles.pickReason}>{gate.reason}</Text>}
+                </View>
+                {gate.ok ? (
+                  <View style={styles.pickCta}><Ionicons name="water" size={14} color={colors.white} /><Text style={styles.pickCtaText}>水やり</Text></View>
+                ) : (
+                  <Ionicons name="lock-closed" size={16} color={colors.textPlaceholder} />
+                )}
+              </PressableScale>
+            );
+          })}
+        </ScrollView>
+      </BottomSheetModal>
     </View>
   );
 }
@@ -213,10 +257,21 @@ const styles = StyleSheet.create({
   statNum: { fontFamily: fonts.black, fontSize: 24, color: colors.green },
   statLabel: { fontFamily: fonts.medium, fontSize: 11.5, color: colors.textSecondary },
   statDivider: { width: 1, height: 32, backgroundColor: colors.divider },
-  shareBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, height: 54, borderRadius: radius.pill, backgroundColor: colors.green },
+  waterBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, height: 54, borderRadius: radius.pill, backgroundColor: colors.waterBlue },
   shareText: { fontFamily: fonts.bold, fontSize: 16, color: colors.white },
-  ghostBtn: { alignItems: 'center', justifyContent: 'center', height: 50, borderRadius: radius.pill, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
+  ghostBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, height: 50, borderRadius: radius.pill, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
   ghostText: { fontFamily: fonts.bold, fontSize: 15, color: colors.textSecondary },
+  pickTitle: { fontFamily: fonts.bold, fontSize: 17, color: colors.textPrimary, textAlign: 'center' },
+  pickSub: { fontFamily: fonts.medium, fontSize: 12.5, color: colors.textSecondary, textAlign: 'center', marginTop: 4, marginBottom: spacing.md, lineHeight: 18 },
+  pickRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.md, marginBottom: spacing.sm, borderWidth: 1, borderColor: colors.border },
+  pickRowOff: { opacity: 0.55 },
+  pickThumb: { width: 48, height: 48 },
+  pickName: { fontFamily: fonts.bold, fontSize: 14, color: colors.textPrimary },
+  pickMeta: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 },
+  pickOwner: { fontFamily: fonts.medium, fontSize: 11.5, color: colors.textSecondary },
+  pickReason: { fontFamily: fonts.medium, fontSize: 11, color: colors.orangeDeep, marginTop: 3 },
+  pickCta: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: colors.waterBlue, paddingHorizontal: 12, paddingVertical: 7, borderRadius: radius.pill },
+  pickCtaText: { fontFamily: fonts.bold, fontSize: 12.5, color: colors.white },
   allToggle: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing['2xl'], marginBottom: spacing.md, paddingVertical: spacing.sm },
   allToggleText: { flex: 1, fontFamily: fonts.bold, fontSize: 15, color: colors.textPrimary },
   allRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.md },
