@@ -3,6 +3,7 @@ import { Text, StyleSheet, Pressable } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 import { colors, fonts } from '@/theme';
+import { like } from '@/lib/haptics';
 
 /** いいねボタン（タップでハートがポップするマイクロインタラクション）。 */
 export function HeartButton({ count, initial = false, size = 18 }: { count: number; initial?: boolean; size?: number }) {
@@ -19,6 +20,7 @@ export function HeartButton({ count, initial = false, size = 18 }: { count: numb
   const toggle = () => {
     const next = !liked;
     setLiked(next);
+    if (next) like(); // インスタ風：いいねの瞬間にしっかりした振動
     scale.value = withSequence(withSpring(next ? 1.4 : 0.85, { damping: 6, stiffness: 300 }), withSpring(1, { damping: 10 }));
     if (next) {
       burst.value = 0;

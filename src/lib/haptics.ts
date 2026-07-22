@@ -25,6 +25,12 @@ export function medium() {
   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
 }
 
+/** いいね・水やりなどリアクション用。インスタ/X風のしっかりした「ドッ」。 */
+export function like() {
+  if (!isNative) return;
+  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy).catch(() => {});
+}
+
 export function success() {
   if (!isNative) return;
   Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});

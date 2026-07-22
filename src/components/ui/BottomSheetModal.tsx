@@ -1,7 +1,7 @@
 import React from 'react';
 import { Modal, View, Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown, Easing } from 'react-native-reanimated';
 import { colors, radius, spacing, shadows } from '@/theme';
 
 type Props = {
@@ -20,8 +20,8 @@ export function BottomSheetModal({ visible, onClose, children }: Props) {
           <Pressable style={styles.backdrop} onPress={onClose} />
         </Animated.View>
         <Animated.View
-          entering={SlideInDown.springify().damping(18).stiffness(180)}
-          exiting={SlideOutDown.duration(200)}
+          entering={SlideInDown.duration(280).easing(Easing.out(Easing.cubic))}
+          exiting={SlideOutDown.duration(180)}
           style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) + 8 }, shadows.sheet]}
         >
           <View style={styles.handle} />
