@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Modal, ScrollView, useWindowDimensions } from '
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Animated, {
   FadeIn,
-  ZoomIn,
+  FadeInDown,
   BounceIn,
   useSharedValue,
   useAnimatedStyle,
@@ -114,7 +114,7 @@ export function LoginBonusSheet({ visible, claimedToday, onClose }: Props) {
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
       <Animated.View entering={FadeIn.duration(180)} style={styles.backdrop}>
-        <Animated.View entering={ZoomIn.springify().damping(14).duration(350)} style={[styles.card, { width: cardW, maxHeight: height * 0.88 }]}>
+        <Animated.View entering={FadeInDown.duration(260).easing(Easing.out(Easing.cubic))} style={[styles.card, { width: cardW, maxHeight: height * 0.88 }]}>
           {/* 閉じる */}
           <PressableScale onPress={onClose} activeScale={0.85} style={styles.close}>
             <Ionicons name="close" size={20} color={colors.textSecondary} />
