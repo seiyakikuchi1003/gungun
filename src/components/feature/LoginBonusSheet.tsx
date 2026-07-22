@@ -20,6 +20,7 @@ import { WateringCan } from '@/components/art/WateringCan';
 import { Sprout } from '@/components/art/Sprout';
 import { settings } from '@/config/settings';
 import { success } from '@/lib/haptics';
+import { playSfx } from '@/lib/sound';
 
 type Props = {
   visible: boolean;
@@ -76,8 +77,8 @@ function TodayStamp({ size, bonus, active }: { size: number; bonus: number; acti
         withSpring(1, { damping: 8, stiffness: 210 })
       )
     );
-    // 2) 波紋：着地の瞬間に広がって消える（同時に成功バイブ）
-    const buzz = setTimeout(() => success(), RING_DELAY);
+    // 2) 波紋：着地の瞬間に広がって消える（同時に成功バイブ＋「ポンッ」）
+    const buzz = setTimeout(() => { success(); playSfx('stamp'); }, RING_DELAY);
     ringOpacity.value = withDelay(RING_DELAY, withSequence(withTiming(0.75, { duration: 60 }), withTiming(0, { duration: 480 })));
     ringScale.value = withDelay(RING_DELAY, withTiming(2.0, { duration: 540, easing: Easing.out(Easing.quad) }));
     // 3) +40 がふわっと浮かんで消える
