@@ -62,7 +62,7 @@ function Card({ item, w, h, onPress }: { item: MockItem; w: number; h: number; o
 
 /**
  * メルカリ風のモザイク・グループ。
- * 見出し（テーマ）＋ 大１枚＋小２枚のヒーロー行 ＋ 3列の続き。
+ * 見出し（テーマ）＋ 大1枚＋小2枚のヒーロー行 ＋ 3列の続き。
  */
 export function MosaicGroup({ title, subtitle, items, width, onPressItem }: Props) {
   const contentW = width - PAD * 2;
@@ -93,7 +93,7 @@ export function MosaicGroup({ title, subtitle, items, width, onPressItem }: Prop
         </PressableScale>
       </View>
 
-      {/* ヒーロー行：大１枚 ＋ 小１〜２枚（縦積み） */}
+      {/* ヒーロー行：大1枚 ＋ 小1〜2枚（縦積み） */}
       <View style={styles.heroRow}>
         <Card item={hero} w={heroW} h={heroH} onPress={() => onPressItem(hero)} />
         {rightItems.length > 0 && (
