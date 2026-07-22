@@ -7,6 +7,7 @@ import { Thumb } from '@/components/ui/Thumb';
 import { Ribbon } from '@/components/ui/Ribbon';
 import { Sprout } from '@/components/art/Sprout';
 import { MockItem } from '@/data/mock';
+import { like } from '@/lib/haptics';
 
 type Props = {
   title: string;
@@ -25,6 +26,21 @@ function ribbonOf(item: MockItem): 'NEW' | 'HOT' | null {
   return null;
 }
 
+/** カード右上のいいねボタン（タップで塗り＋振動）。 */
+function LikeDot() {
+  const [on, setOn] = React.useState(false);
+  return (
+    <PressableScale
+      activeScale={0.8}
+      onPress={() => { if (!on) like(); setOn(!on); }}
+      style={styles.heart}
+      hitSlop={6}
+    >
+      <Ionicons name={on ? 'heart' : 'heart-outline'} size={15} color={on ? colors.heart : colors.textPrimary} />
+    </PressableScale>
+  );
+}
+
 /**
  * 画像主役の1枚カード。数値チップ・ハートはモノトーンで控えめ、
  * コーナーの NEW/HOT リボンだけ色でアクセント。
@@ -35,9 +51,7 @@ function Card({ item, w, h, onPress }: { item: MockItem; w: number; h: number; o
     <PressableScale onPress={onPress} activeScale={0.97} style={[styles.card, { width: w, height: h }, shadows.card]}>
       <Thumb source={item.local} uri={item.image} style={styles.img} markSize={Math.min(w, h) * 0.4} />
       {rb && <Ribbon label={rb} />}
-      <View style={styles.heart}>
-        <Ionicons name="heart-outline" size={15} color={colors.textPrimary} />
-      </View>
+      <LikeDot />
       <View style={styles.waterPill}>
         <Sprout size={11} color="#fff" />
         <Text style={styles.waterText}>{item.waterCount}</Text>
@@ -48,7 +62,7 @@ function Card({ item, w, h, onPress }: { item: MockItem; w: number; h: number; o
 
 /**
  * メルカリ風のモザイク・グループ。
- * 見出し（テーマ）＋ 大1枚＋小2枚のヒーロー行 ＋ 3列の続き。
+ * 見出し（テーマ）＋ 大１枚＋小２枚のヒーロー行 ＋ 3列の続き。
  */
 export function MosaicGroup({ title, subtitle, items, width, onPressItem }: Props) {
   const contentW = width - PAD * 2;
@@ -79,7 +93,7 @@ export function MosaicGroup({ title, subtitle, items, width, onPressItem }: Prop
         </PressableScale>
       </View>
 
-      {/* ヒーロー行：大1枚 ＋ 小1〜2枚（縦積み） */}
+      {/* ヒーロー行：大１枚 ＋ 小１〜２枚（縦積み） */}
       <View style={styles.heroRow}>
         <Card item={hero} w={heroW} h={heroH} onPress={() => onPressItem(hero)} />
         {rightItems.length > 0 && (
