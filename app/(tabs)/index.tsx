@@ -49,7 +49,7 @@ export default function HomeScreen() {
   const [showBonus, setShowBonus] = useState(false);
   React.useEffect(() => { preloadSfx(); }, []); // 初回再生の遅延を減らす
 
-  // ── 引っ張って更新（X/インスタ風の pull-to-refresh）──────
+  // ── 引っ張って更新（X/インスタ風の pull-to-refresh）──────────
   // モックでは並びを回転させて「新しい内容が届いた」感を出す
   const [refreshing, setRefreshing] = useState(false);
   const [refreshTick, setRefreshTick] = useState(0);
