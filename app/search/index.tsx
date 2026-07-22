@@ -6,9 +6,7 @@ import {
   TextInput,
   ScrollView,
   useWindowDimensions,
-  ActivityIndicator,
-  NativeSyntheticEvent,
-  NativeScrollEvent,
+  RefreshControl,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,6 +16,8 @@ import { PressableScale } from '@/components/ui/PressableScale';
 import { ItemCard } from '@/components/ui/ItemCard';
 import { categories } from '@/data/mock';
 import { useTree } from '@/store/tree';
+import { medium } from '@/lib/haptics';
+import { playSfx } from '@/lib/sound';
 
 const RECENT = ['Nintendo Switch', 'iPhone', 'バッグ', 'カメラ'];
 const TRENDING = ['ゲーム機', 'ワイヤレスイヤホン', 'ブランド財布', 'ギフト券', 'スニーカー', '本まとめ売り'];
@@ -42,24 +42,25 @@ export default function SearchScreen() {
 
   const searching = q.length > 0 || cat !== null;
 
-  // 注目の種：スクロールで追い読み（インスタ/X風）。モックなので回転して流用
+  // 注目の種：引っ張って更新で並びが入れ替わる（X/インスタ風）
   const hot = useMemo(
     () => [...items].filter((i) => i.status === 'growing').sort((a, b) => b.waterCount - a.waterCount),
     [items]
   );
-  const [hotPages, setHotPages] = useState(1);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const hotList = Array.from({ length: hotPages }, (_, p) =>
-    hot.slice((p * 4) % hot.length).concat(hot.slice(0, (p * 4) % hot.length)).slice(0, 4)
-  ).flat();
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshTick, setRefreshTick] = useState(0);
+  const shift = (refreshTick * 3) % Math.max(hot.length, 1);
+  const hotList = hot.slice(shift).concat(hot.slice(0, shift)).slice(0, 8);
 
-  const onScrollHot = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
-    if (contentOffset.y + layoutMeasurement.height > contentSize.height - 600 && !loadingMore && hotPages < 12) {
-      setLoadingMore(true);
-      setTimeout(() => { setHotPages((p) => p + 1); setLoadingMore(false); }, 550);
-    }
-  }, [loadingMore, hotPages]);
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    medium();
+    setTimeout(() => {
+      setRefreshTick((t) => t + 1);
+      setRefreshing(false);
+      playSfx('pop');
+    }, 900);
+  }, []);
 
   return (
     <View style={styles.root}>
@@ -95,7 +96,13 @@ export default function SearchScreen() {
       </ScrollView>
 
       {!searching ? (
-        <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false} onScroll={onScrollHot} scrollEventThrottle={80}>
+        <ScrollView
+          contentContainerStyle={styles.body}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.green} colors={[colors.green]} />
+          }
+        >
           <Text style={styles.sectionTitle}>最近の検索</Text>
           <View style={styles.recentWrap}>
             {RECENT.map((r) => (
@@ -124,14 +131,6 @@ export default function SearchScreen() {
             {hotList.map((i, idx) => (
               <ItemCard key={`${i.id}-${idx}`} item={i} width={cardW} onPress={() => router.push(`/item/${i.id}`)} />
             ))}
-          </View>
-          <View style={styles.feedFooter}>
-            {loadingMore ? (
-              <>
-                <ActivityIndicator size="small" color={colors.green} />
-                <Text style={styles.feedFooterText}>読み込み中…</Text>
-              </>
-            ) : null}
           </View>
         </ScrollView>
       ) : (
@@ -198,6 +197,4 @@ const styles = StyleSheet.create({
   sortOn: { color: colors.green, fontFamily: fonts.bold },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   empty: { fontFamily: fonts.medium, fontSize: 14, color: colors.textSecondary, textAlign: 'center', marginTop: 40 },
-  feedFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, paddingVertical: spacing.lg },
-  feedFooterText: { fontFamily: fonts.medium, fontSize: 12.5, color: colors.textSecondary },
 });

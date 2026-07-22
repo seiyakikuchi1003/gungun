@@ -6,9 +6,7 @@ import {
   ScrollView,
   Pressable,
   useWindowDimensions,
-  ActivityIndicator,
-  NativeSyntheticEvent,
-  NativeScrollEvent,
+  RefreshControl,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -25,6 +23,8 @@ import { WateringCan } from '@/components/art/WateringCan';
 import { LeafDecor } from '@/components/art/LeafDecor';
 import { currentUser, howToSteps } from '@/data/mock';
 import { useTree } from '@/store/tree';
+import { medium } from '@/lib/haptics';
+import { playSfx, preloadSfx } from '@/lib/sound';
 
 function HeaderIcon({ name, badge, onPress }: { name: keyof typeof Ionicons.glyphMap; badge?: boolean; onPress?: () => void }) {
   return (
@@ -47,8 +47,27 @@ export default function HomeScreen() {
   const { items } = useTree();
   const [claimed, setClaimed] = useState(false);
   const [showBonus, setShowBonus] = useState(false);
+  React.useEffect(() => { preloadSfx(); }, []); // 初回再生の遅延を減らす
+
+  // ── 引っ張って更新（X/インスタ風の pull-to-refresh）──────
+  // モックでは並びを回転させて「新しい内容が届いた」感を出す
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshTick, setRefreshTick] = useState(0);
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    medium(); // 引っ張った瞬間の「トン」
+    preloadSfx();
+    setTimeout(() => {
+      setRefreshTick((t) => t + 1);
+      setRefreshing(false);
+      playSfx('pop'); // 更新完了の「プチッ」
+    }, 900);
+  }, []);
+
   // 「みんなの種」＝木の根（parentId=null）をテーマ別のモザイクで表示
-  const seeds = items.filter((i) => i.parentId === null).reverse();
+  const seedsBase = items.filter((i) => i.parentId === null).reverse();
+  const shift = refreshTick % Math.max(seedsBase.length, 1);
+  const seeds = seedsBase.slice(shift).concat(seedsBase.slice(0, shift));
   const COLLECTIONS: { title: string; subtitle: string; match: (c: string) => boolean }[] = [
     { title: 'スマホ・ガジェット', subtitle: '人気の家電・ゲーム', match: (c) => ['スマホ・家電', '家電', 'ゲーム・おもちゃ'].includes(c) },
     { title: 'ファッション・小物', subtitle: 'バッグ・時計・コスメ', match: (c) => ['レディース', 'メンズ', 'コスメ・美容', 'バッグ・小物'].includes(c) },
@@ -62,36 +81,6 @@ export default function HomeScreen() {
     return { ...col, items: list };
   }).filter((g) => g.items.length > 0);
 
-  // ── 無限スクロール（インスタ/X風の追い読み）─────────────────
-  // 下端に近づくと「おすすめ」グループを追加読み込み（モックなので既存の種を回転して流用）
-  const [feedPages, setFeedPages] = useState(0);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const FEED_TITLES = [
-    { title: 'あなたへのおすすめ', subtitle: '水やりの傾向から' },
-    { title: 'いま人気の種', subtitle: 'みんなが注目しています' },
-    { title: '最近植えられた種', subtitle: '新着をチェック' },
-    { title: 'もうすぐ収穫の木', subtitle: '交換の輪が育っています' },
-  ];
-  const rotate = (n: number) => seeds.slice(n % seeds.length).concat(seeds.slice(0, n % seeds.length));
-  const feedGroups = Array.from({ length: feedPages }, (_, i) => ({
-    key: `feed-${i}`,
-    ...FEED_TITLES[i % FEED_TITLES.length],
-    items: rotate(3 + i * 5).slice(0, 5),
-  }));
-
-  const onScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
-    const nearEnd = contentOffset.y + layoutMeasurement.height > contentSize.height - 700;
-    if (nearEnd && !loadingMore && feedPages < 12) {
-      setLoadingMore(true);
-      // 読み込み感を出すための擬似ディレイ（本実装ではAPIページング）
-      setTimeout(() => {
-        setFeedPages((p) => p + 1);
-        setLoadingMore(false);
-      }, 550);
-    }
-  }, [loadingMore, feedPages]);
-
   return (
     <View style={styles.root}>
       <View style={styles.leafBg} pointerEvents="none">
@@ -101,8 +90,15 @@ export default function HomeScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: 170 }}
-        onScroll={onScroll}
-        scrollEventThrottle={80}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.green}
+            colors={[colors.green]}
+            progressViewOffset={insets.top + 8}
+          />
+        }
       >
         {/* 検索 ＋ 右上アイコン */}
         <View style={styles.topBar}>
@@ -189,29 +185,6 @@ export default function HomeScreen() {
           </View>
         </Animated.View>
 
-        {/* 追い読みフィード（スクロールで増える） */}
-        {feedGroups.map((g) => (
-          <MosaicGroup
-            key={g.key}
-            title={g.title}
-            subtitle={g.subtitle}
-            items={g.items}
-            width={width}
-            onPressItem={(item) => router.push(`/item/${item.id}`)}
-          />
-        ))}
-
-        {/* 読み込みフッター */}
-        <View style={styles.feedFooter}>
-          {loadingMore ? (
-            <>
-              <ActivityIndicator size="small" color={colors.green} />
-              <Text style={styles.feedFooterText}>読み込み中…</Text>
-            </>
-          ) : (
-            <Sprout size={18} />
-          )}
-        </View>
       </ScrollView>
 
       {/* 「タネを植える」FAB（右下・ラベル付き拡張FAB） */}
@@ -286,8 +259,6 @@ const styles = StyleSheet.create({
   sectionTitle: { fontFamily: fonts.bold, fontSize: 18, color: colors.textPrimary },
   seeAll: { fontFamily: fonts.bold, fontSize: 13, color: colors.green },
   grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 20, gap: 8 },
-  feedFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, paddingVertical: spacing.xl },
-  feedFooterText: { fontFamily: fonts.medium, fontSize: 12.5, color: colors.textSecondary },
   howCard: {
     marginTop: spacing.md,
     backgroundColor: colors.card,
