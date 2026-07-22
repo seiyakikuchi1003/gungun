@@ -1,5 +1,15 @@
-import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, TextInput, ScrollView, useWindowDimensions } from 'react-native';
+import React, { useState, useMemo, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  ScrollView,
+  useWindowDimensions,
+  ActivityIndicator,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
+} from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -31,6 +41,25 @@ export default function SearchScreen() {
   }, [q, cat, sort, items]);
 
   const searching = q.length > 0 || cat !== null;
+
+  // 注目の種：スクロールで追い読み（インスタ/X風）。モックなので回転して流用
+  const hot = useMemo(
+    () => [...items].filter((i) => i.status === 'growing').sort((a, b) => b.waterCount - a.waterCount),
+    [items]
+  );
+  const [hotPages, setHotPages] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const hotList = Array.from({ length: hotPages }, (_, p) =>
+    hot.slice((p * 4) % hot.length).concat(hot.slice(0, (p * 4) % hot.length)).slice(0, 4)
+  ).flat();
+
+  const onScrollHot = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
+    if (contentOffset.y + layoutMeasurement.height > contentSize.height - 600 && !loadingMore && hotPages < 12) {
+      setLoadingMore(true);
+      setTimeout(() => { setHotPages((p) => p + 1); setLoadingMore(false); }, 550);
+    }
+  }, [loadingMore, hotPages]);
 
   return (
     <View style={styles.root}>
@@ -66,7 +95,7 @@ export default function SearchScreen() {
       </ScrollView>
 
       {!searching ? (
-        <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false} onScroll={onScrollHot} scrollEventThrottle={80}>
           <Text style={styles.sectionTitle}>最近の検索</Text>
           <View style={styles.recentWrap}>
             {RECENT.map((r) => (
@@ -92,13 +121,17 @@ export default function SearchScreen() {
             <Text style={styles.hotNote}>水やりが多い順</Text>
           </View>
           <View style={styles.grid}>
-            {[...items]
-              .filter((i) => i.status === 'growing')
-              .sort((a, b) => b.waterCount - a.waterCount)
-              .slice(0, 4)
-              .map((i) => (
-                <ItemCard key={i.id} item={i} width={cardW} onPress={() => router.push(`/item/${i.id}`)} />
-              ))}
+            {hotList.map((i, idx) => (
+              <ItemCard key={`${i.id}-${idx}`} item={i} width={cardW} onPress={() => router.push(`/item/${i.id}`)} />
+            ))}
+          </View>
+          <View style={styles.feedFooter}>
+            {loadingMore ? (
+              <>
+                <ActivityIndicator size="small" color={colors.green} />
+                <Text style={styles.feedFooterText}>読み込み中…</Text>
+              </>
+            ) : null}
           </View>
         </ScrollView>
       ) : (
@@ -165,4 +198,6 @@ const styles = StyleSheet.create({
   sortOn: { color: colors.green, fontFamily: fonts.bold },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   empty: { fontFamily: fonts.medium, fontSize: 14, color: colors.textSecondary, textAlign: 'center', marginTop: 40 },
+  feedFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, paddingVertical: spacing.lg },
+  feedFooterText: { fontFamily: fonts.medium, fontSize: 12.5, color: colors.textSecondary },
 });
