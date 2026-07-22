@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  Pressable,
   useWindowDimensions,
   RefreshControl,
 } from 'react-native';
@@ -12,9 +11,10 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown, useSharedValue, useAnimatedScrollHandler } from 'react-native-reanimated';
 import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
+import { RefreshSpinner } from '@/components/ui/RefreshSpinner';
 import { MosaicGroup } from '@/components/feature/MosaicGroup';
 import { LoginBonusSheet } from '@/components/feature/LoginBonusSheet';
 import { Sprout } from '@/components/art/Sprout';
@@ -53,6 +53,10 @@ export default function HomeScreen() {
   // モックでは並びを回転させて「新しい内容が届いた」感を出す
   const [refreshing, setRefreshing] = useState(false);
   const [refreshTick, setRefreshTick] = useState(0);
+  const scrollY = useSharedValue(0); // 引っ張り量 → カスタムスピナーの回転に連動
+  const onScroll = useAnimatedScrollHandler((e) => {
+    scrollY.value = e.contentOffset.y;
+  });
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     medium(); // 引っ張った瞬間の「トン」
@@ -61,7 +65,7 @@ export default function HomeScreen() {
       setRefreshTick((t) => t + 1);
       setRefreshing(false);
       playSfx('pop'); // 更新完了の「プチッ」
-    }, 900);
+    }, 1300);
   }, []);
 
   // 「みんなの種」＝木の根（parentId=null）をテーマ別のモザイクで表示
@@ -87,14 +91,16 @@ export default function HomeScreen() {
         <LeafDecor width={220} height={300} flip opacity={0.35} />
       </View>
 
-      <ScrollView
+      <Animated.ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: 170 }}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={colors.green}
+            tintColor="transparent"
             colors={[colors.green]}
             progressViewOffset={insets.top + 8}
           />
@@ -154,16 +160,19 @@ export default function HomeScreen() {
               <Text style={styles.seeAll}>すべて見る ›</Text>
             </PressableScale>
           </View>
-          {visibleGroups.map((g) => (
-            <MosaicGroup
-              key={g.title}
-              title={g.title}
-              subtitle={g.subtitle}
-              items={g.items}
-              width={width}
-              onPressItem={(item) => router.push(`/item/${item.id}`)}
-            />
-          ))}
+          {/* 更新のたびに key が変わり、新しい並びがふわっと入れ替わる */}
+          <Animated.View key={refreshTick} entering={FadeIn.duration(420)}>
+            {visibleGroups.map((g) => (
+              <MosaicGroup
+                key={g.title}
+                title={g.title}
+                subtitle={g.subtitle}
+                items={g.items}
+                width={width}
+                onPressItem={(item) => router.push(`/item/${item.id}`)}
+              />
+            ))}
+          </Animated.View>
         </Animated.View>
 
         {/* ぐんぐんの楽しみ方 */}
@@ -185,7 +194,10 @@ export default function HomeScreen() {
           </View>
         </Animated.View>
 
-      </ScrollView>
+      </Animated.ScrollView>
+
+      {/* X風のカスタム更新スピナー（引っ張りに連動して回転） */}
+      <RefreshSpinner pullY={scrollY} refreshing={refreshing} topOffset={insets.top + 6} />
 
       {/* 「タネを植える」FAB（右下・ラベル付き拡張FAB） */}
       <PressableScale

@@ -11,8 +11,10 @@ import {
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import Animated, { FadeIn, useSharedValue, useAnimatedScrollHandler } from 'react-native-reanimated';
 import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
+import { RefreshSpinner } from '@/components/ui/RefreshSpinner';
 import { ItemCard } from '@/components/ui/ItemCard';
 import { categories } from '@/data/mock';
 import { useTree } from '@/store/tree';
@@ -52,6 +54,10 @@ export default function SearchScreen() {
   const shift = (refreshTick * 3) % Math.max(hot.length, 1);
   const hotList = hot.slice(shift).concat(hot.slice(0, shift)).slice(0, 8);
 
+  const scrollY = useSharedValue(0); // 引っ張り量 → カスタムスピナーの回転に連動
+  const onScroll = useAnimatedScrollHandler((e) => {
+    scrollY.value = e.contentOffset.y;
+  });
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     medium();
@@ -59,7 +65,7 @@ export default function SearchScreen() {
       setRefreshTick((t) => t + 1);
       setRefreshing(false);
       playSfx('pop');
-    }, 900);
+    }, 1300);
   }, []);
 
   return (
@@ -96,43 +102,51 @@ export default function SearchScreen() {
       </ScrollView>
 
       {!searching ? (
-        <ScrollView
-          contentContainerStyle={styles.body}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.green} colors={[colors.green]} />
-          }
-        >
-          <Text style={styles.sectionTitle}>最近の検索</Text>
-          <View style={styles.recentWrap}>
-            {RECENT.map((r) => (
-              <PressableScale key={r} onPress={() => setQ(r)} activeScale={0.96} style={styles.recentChip}>
-                <Ionicons name="time-outline" size={15} color={colors.textSecondary} />
-                <Text style={styles.recentText}>{r}</Text>
-              </PressableScale>
-            ))}
-          </View>
+        <View style={{ flex: 1 }}>
+          <Animated.ScrollView
+            contentContainerStyle={styles.body}
+            showsVerticalScrollIndicator={false}
+            onScroll={onScroll}
+            scrollEventThrottle={16}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="transparent" colors={[colors.green]} />
+            }
+          >
+            <Text style={styles.sectionTitle}>最近の検索</Text>
+            <View style={styles.recentWrap}>
+              {RECENT.map((r) => (
+                <PressableScale key={r} onPress={() => setQ(r)} activeScale={0.96} style={styles.recentChip}>
+                  <Ionicons name="time-outline" size={15} color={colors.textSecondary} />
+                  <Text style={styles.recentText}>{r}</Text>
+                </PressableScale>
+              ))}
+            </View>
 
-          <Text style={[styles.sectionTitle, { marginTop: 28 }]}>人気のキーワード</Text>
-          <View style={styles.recentWrap}>
-            {TRENDING.map((r, i) => (
-              <PressableScale key={r} onPress={() => setQ(r)} activeScale={0.96} style={styles.trendChip}>
-                <Text style={styles.trendRank}>{i + 1}</Text>
-                <Text style={styles.trendText}>{r}</Text>
-              </PressableScale>
-            ))}
-          </View>
+            <Text style={[styles.sectionTitle, { marginTop: 28 }]}>人気のキーワード</Text>
+            <View style={styles.recentWrap}>
+              {TRENDING.map((r, i) => (
+                <PressableScale key={r} onPress={() => setQ(r)} activeScale={0.96} style={styles.trendChip}>
+                  <Text style={styles.trendRank}>{i + 1}</Text>
+                  <Text style={styles.trendText}>{r}</Text>
+                </PressableScale>
+              ))}
+            </View>
 
-          <View style={[styles.resultHead, { marginTop: 28 }]}>
-            <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>注目の種</Text>
-            <Text style={styles.hotNote}>水やりが多い順</Text>
-          </View>
-          <View style={styles.grid}>
-            {hotList.map((i, idx) => (
-              <ItemCard key={`${i.id}-${idx}`} item={i} width={cardW} onPress={() => router.push(`/item/${i.id}`)} />
-            ))}
-          </View>
-        </ScrollView>
+            <View style={[styles.resultHead, { marginTop: 28 }]}>
+              <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>注目の種</Text>
+              <Text style={styles.hotNote}>水やりが多い順</Text>
+            </View>
+            {/* 更新のたびに key が変わり、新しい並びがふわっと入れ替わる */}
+            <Animated.View key={refreshTick} entering={FadeIn.duration(420)} style={styles.grid}>
+              {hotList.map((i, idx) => (
+                <ItemCard key={`${i.id}-${idx}`} item={i} width={cardW} onPress={() => router.push(`/item/${i.id}`)} />
+              ))}
+            </Animated.View>
+          </Animated.ScrollView>
+
+          {/* X風のカスタム更新スピナー（引っ張りに連動して回転） */}
+          <RefreshSpinner pullY={scrollY} refreshing={refreshing} topOffset={4} />
+        </View>
       ) : (
         <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
           <View style={styles.resultHead}>
