@@ -8,6 +8,7 @@ import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { Avatar } from '@/components/ui/Avatar';
 import { HeartButton } from '@/components/ui/HeartButton';
+import { ReportSheet } from '@/components/feature/ReportSheet';
 import { boardPosts, boardComments, TAG_META } from '@/data/mockSocial';
 import { getUser } from '@/data/mock';
 
@@ -17,6 +18,7 @@ export default function BoardDetail() {
   const post = boardPosts.find((p) => p.id === id);
   const [text, setText] = useState('');
   const [comments, setComments] = useState(boardComments[id ?? ''] ?? []);
+  const [report, setReport] = useState(false);
 
   if (!post) return <View style={styles.root} />;
   const u = getUser(post.userId);
@@ -29,10 +31,12 @@ export default function BoardDetail() {
           <Ionicons name="chevron-back" size={26} color={colors.textPrimary} />
         </PressableScale>
         <Text style={styles.hTitle}>投稿</Text>
-        <PressableScale activeScale={0.9} style={styles.hBtn}>
+        <PressableScale onPress={() => setReport(true)} activeScale={0.9} style={styles.hBtn}>
           <Ionicons name="flag-outline" size={20} color={colors.textSecondary} />
         </PressableScale>
       </View>
+
+      <ReportSheet visible={report} onClose={() => setReport(false)} targetLabel="この投稿" />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
         {/* 投稿カード */}

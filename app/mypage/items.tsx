@@ -8,13 +8,15 @@ import { PressableScale } from '@/components/ui/PressableScale';
 import { TopTabs } from '@/components/ui/TopTabs';
 import { Thumb } from '@/components/ui/Thumb';
 import { Badge } from '@/components/ui/Badge';
-import { currentUser } from '@/data/mock';
+import { ItemActionSheet } from '@/components/feature/ItemActionSheet';
+import { currentUser, type MockItem } from '@/data/mock';
 import { useTree } from '@/store/tree';
 
 export default function MyItems() {
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState('seed');
   const { items } = useTree();
+  const [menuItem, setMenuItem] = useState<MockItem | null>(null);
   // 種植え＝自分の root（parentId=null）／水やり＝自分が水やりで出した子（parentId!=null）
   const mine = items.filter((i) => i.ownerId === currentUser.id);
   const list = tab === 'seed' ? mine.filter((i) => i.parentId === null) : mine.filter((i) => i.parentId !== null);
@@ -42,7 +44,9 @@ export default function MyItems() {
                 <Text style={styles.meta}>♡ {it.likeCount}・水やり {it.waterCount}</Text>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.textPlaceholder} />
+            <PressableScale onPress={() => setMenuItem(it)} activeScale={0.85} hitSlop={8} style={styles.moreBtn}>
+              <Ionicons name="ellipsis-horizontal" size={20} color={colors.textSecondary} />
+            </PressableScale>
           </PressableScale>
         ))}
         {list.length === 0 && (
@@ -51,6 +55,16 @@ export default function MyItems() {
           </Text>
         )}
       </ScrollView>
+
+      {menuItem && (
+        <ItemActionSheet
+          visible={!!menuItem}
+          onClose={() => setMenuItem(null)}
+          item={menuItem}
+          isOwner
+          onReport={() => {}}
+        />
+      )}
     </View>
   );
 }
@@ -61,6 +75,7 @@ const styles = StyleSheet.create({
   hBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
   hTitle: { fontFamily: fonts.bold, fontSize: 17, color: colors.textPrimary },
   card: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.md, marginBottom: spacing.md },
+  moreBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
   thumb: { width: 64, height: 64 },
   name: { fontFamily: fonts.bold, fontSize: 15, color: colors.textPrimary },
   category: { fontFamily: fonts.regular, fontSize: 12, color: colors.textSecondary, marginTop: 2 },

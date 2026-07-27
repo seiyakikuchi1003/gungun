@@ -10,7 +10,7 @@ import { BoardPost, TAG_META } from '@/data/mockSocial';
 import { getUser } from '@/data/mock';
 
 /** モダンなカード型の投稿。掲示板フィードの主役。 */
-export function PostCard({ post, onPress }: { post: BoardPost; onPress?: () => void }) {
+export function PostCard({ post, onPress, onMore }: { post: BoardPost; onPress?: () => void; onMore?: () => void }) {
   const u = getUser(post.userId);
   const tag = TAG_META[post.tag];
   return (
@@ -32,7 +32,7 @@ export function PostCard({ post, onPress }: { post: BoardPost; onPress?: () => v
           </View>
           <Text style={styles.time}>{post.createdAt}</Text>
         </View>
-        <PressableScale activeScale={0.85} style={styles.more}>
+        <PressableScale activeScale={0.85} style={styles.more} onPress={onMore} hitSlop={8}>
           <Ionicons name="ellipsis-horizontal" size={18} color={colors.textPlaceholder} />
         </PressableScale>
       </View>

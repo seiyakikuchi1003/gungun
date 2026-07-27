@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -6,11 +6,12 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { Avatar } from '@/components/ui/Avatar';
-import { users } from '@/data/mock';
+import { getUser } from '@/data/mock';
+import { useBlocks } from '@/store/blocks';
 
 export default function Blocks() {
   const insets = useSafeAreaInsets();
-  const [blocked, setBlocked] = useState(['kenta', 'yu']);
+  const { blocked, unblock } = useBlocks();
 
   return (
     <View style={styles.root}>
@@ -30,12 +31,12 @@ export default function Blocks() {
           </View>
         ) : (
           blocked.map((id) => {
-            const u = users[id];
+            const u = getUser(id);
             return (
               <View key={id} style={[styles.row, shadows.soft]}>
                 <Avatar uri={u.avatar} name={u.nickname} size={44} />
                 <Text style={styles.name}>{u.nickname}さん</Text>
-                <PressableScale onPress={() => setBlocked((b) => b.filter((x) => x !== id))} activeScale={0.94} style={styles.unblock}>
+                <PressableScale onPress={() => unblock(id)} activeScale={0.94} style={styles.unblock}>
                   <Text style={styles.unblockText}>解除</Text>
                 </PressableScale>
               </View>

@@ -33,6 +33,15 @@ export type CanWater =
   | { ok: true }
   | { ok: false; reason: string };
 
+/** 出品編集の入力（種植え・水やり共通のフォーム項目） */
+export type EditInput = {
+  name: string;
+  category: string;
+  condition: string;
+  description: string;
+  photos: string[];
+};
+
 type TreeState = {
   items: MockItem[];
   fertilizer: number;
@@ -40,6 +49,10 @@ type TreeState = {
   canWater: (targetId: string) => CanWater;
   /** 水やり実行＝子ノードを作成して返す（RPC 相当） */
   water: (targetId: string, input: WaterInput) => MockItem | null;
+  /** 出品内容の編集（自分の商品のみ） */
+  updateItem: (id: string, input: EditInput) => void;
+  /** 出品の削除。子ノードは新しい種として独立する（SPEC 3-3 detach_children 相当） */
+  deleteItem: (id: string) => void;
   /** 直近に自分が水やりで出した商品ID（完了画面のハイライト用） */
   lastWateredId: string | null;
   getItem: (id: string) => MockItem | undefined;
@@ -47,6 +60,27 @@ type TreeState = {
   treeItems: (rootId: string) => MockItem[];
   ancestorsOf: (id: string) => MockItem[];
 };
+
+/**
+ * parentId ポインタから rootId / depth を再計算する（森全体）。
+ * 親が存在しない（削除された・切り離された）ノードは自分自身が root になる。
+ * SPEC 3-3 の「子孫の root_id / depth 付け替え」をクライアント側で再現。
+ */
+function recomputeTree(pool: MockItem[]): MockItem[] {
+  const byId = new Map(pool.map((i) => [i.id, i]));
+  return pool.map((i) => {
+    let cur = i;
+    let depth = 0;
+    let guard = 0;
+    while (cur.parentId && byId.has(cur.parentId) && guard < 128) {
+      cur = byId.get(cur.parentId)!;
+      depth += 1;
+      guard += 1;
+    }
+    if (i.rootId === cur.id && i.depth === depth) return i;
+    return { ...i, rootId: cur.id, depth };
+  });
+}
 
 const TreeContext = createContext<TreeState | null>(null);
 
@@ -122,19 +156,62 @@ export function TreeProvider({ children }: { children: React.ReactNode }) {
     [pool, canWater]
   );
 
+  const updateItem = useCallback((id: string, input: EditInput) => {
+    setPool((prev) =>
+      prev.map((i) =>
+        i.id === id
+          ? {
+              ...i,
+              name: input.name.trim() || i.name,
+              category: input.category,
+              condition: input.condition,
+              description: input.description.trim(),
+              image: input.photos[0] ?? i.image,
+              images: input.photos.length ? input.photos : i.images,
+              // ローカル画像は編集で差し替えたらクリア（URIベースに寄せる）
+              localImages: input.photos.length ? undefined : i.localImages,
+            }
+          : i
+      )
+    );
+  }, []);
+
+  const deleteItem = useCallback((id: string) => {
+    setPool((prev) => {
+      const target = prev.find((i) => i.id === id);
+      if (!target) return prev;
+      let next = prev.map((i) =>
+        // 直接の子を切り離す（新しい種として独立させる準備）
+        i.parentId === id ? { ...i, parentId: null } : i
+      );
+      // 親の水やり数を1つ戻す（水やりで出した子だった場合）
+      if (target.parentId) {
+        next = next.map((i) =>
+          i.id === target.parentId ? { ...i, waterCount: Math.max(0, i.waterCount - 1) } : i
+        );
+      }
+      // 対象を削除
+      next = next.filter((i) => i.id !== id);
+      // 子孫の root_id / depth を再計算
+      return recomputeTree(next);
+    });
+  }, []);
+
   const value = useMemo<TreeState>(
     () => ({
       items: pool,
       fertilizer,
       canWater,
       water,
+      updateItem,
+      deleteItem,
       lastWateredId,
       getItem: (id) => pool.find((i) => i.id === id),
       childrenOf: (id) => childrenOf(pool, id),
       treeItems: (rootId) => treeItems(pool, rootId),
       ancestorsOf: (id) => ancestorsOf(pool, id),
     }),
-    [pool, fertilizer, canWater, water, lastWateredId]
+    [pool, fertilizer, canWater, water, updateItem, deleteItem, lastWateredId]
   );
 
   return <TreeContext.Provider value={value}>{children}</TreeContext.Provider>;

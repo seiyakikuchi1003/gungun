@@ -25,6 +25,7 @@ import { WateringCan } from '@/components/art/WateringCan';
 import { LeafDecor } from '@/components/art/LeafDecor';
 import { currentUser, howToSteps } from '@/data/mock';
 import { useTree } from '@/store/tree';
+import { useBlocks } from '@/store/blocks';
 import { medium } from '@/lib/haptics';
 import { playSfx, preloadSfx } from '@/lib/sound';
 
@@ -47,6 +48,7 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const { items } = useTree();
+  const { isBlocked } = useBlocks();
   const [claimed, setClaimed] = useState(false);
   const [showBonus, setShowBonus] = useState(false);
   React.useEffect(() => { preloadSfx(); }, []); // 初回再生の遅延を減らす
@@ -71,7 +73,7 @@ export default function HomeScreen() {
   }, []);
 
   // 「みんなの種」＝木の根（parentId=null）をテーマ別のモザイクで表示
-  const seedsBase = items.filter((i) => i.parentId === null).reverse();
+  const seedsBase = items.filter((i) => i.parentId === null && !isBlocked(i.ownerId)).reverse();
   const shift = refreshTick % Math.max(seedsBase.length, 1);
   const seeds = seedsBase.slice(shift).concat(seedsBase.slice(0, shift));
   const COLLECTIONS: { title: string; subtitle: string; match: (c: string) => boolean }[] = [

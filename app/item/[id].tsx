@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, useWindowDimensions, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, useWindowDimensions, NativeSyntheticEvent, NativeScrollEvent, Share, Platform } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -10,6 +10,8 @@ import { Thumb } from '@/components/ui/Thumb';
 import { HeartButton } from '@/components/ui/HeartButton';
 import { StarRating } from '@/components/ui/StarRating';
 import { Sprout } from '@/components/art/Sprout';
+import { ItemActionSheet } from '@/components/feature/ItemActionSheet';
+import { ReportSheet } from '@/components/feature/ReportSheet';
 import { getUser, currentUser, itemImageSources } from '@/data/mock';
 import { getItemComments } from '@/data/mockSocial';
 import { settings } from '@/config/settings';
@@ -30,6 +32,8 @@ export default function ItemDetailScreen() {
   const { getItem, canWater, childrenOf, treeItems } = useTree();
   const item = getItem(id ?? '');
   const [page, setPage] = useState(0);
+  const [menu, setMenu] = useState(false);
+  const [report, setReport] = useState(false);
 
   if (!item) {
     return (
@@ -47,10 +51,26 @@ export default function ItemDetailScreen() {
   const gate = canWater(item.id);
   // すでにこの商品へ水やり済みか（自分の商品が子にいる）
   const alreadyWatered = connected.some((c) => c.ownerId === currentUser.id);
+  const isOwner = item.ownerId === currentUser.id;
   const imgH = width * 0.94;
 
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     setPage(Math.round(e.nativeEvent.contentOffset.x / width));
+  };
+
+  const share = async () => {
+    const message = `「${item.name}」を見つけました！ #ぐんぐん`;
+    try {
+      if (Platform.OS === 'web') {
+        const nav = globalThis.navigator as Navigator | undefined;
+        if (nav?.share) await nav.share({ text: message });
+        else await nav?.clipboard?.writeText(message);
+      } else {
+        await Share.share({ message });
+      }
+    } catch {
+      /* キャンセル時など無視 */
+    }
   };
 
   return (
@@ -71,8 +91,8 @@ export default function ItemDetailScreen() {
           <View style={[styles.floatHeader, { top: insets.top + 6 }]} pointerEvents="box-none">
             <RoundBtn icon="chevron-back" onPress={() => router.back()} />
             <View style={styles.floatRight}>
-              <RoundBtn icon="share-social-outline" />
-              <RoundBtn icon="ellipsis-horizontal" />
+              <RoundBtn icon="share-social-outline" onPress={share} />
+              <RoundBtn icon="ellipsis-horizontal" onPress={() => setMenu(true)} />
             </View>
           </View>
         </View>
@@ -169,7 +189,18 @@ export default function ItemDetailScreen() {
 
       {/* 下部：水やりCTA（＝自分の商品を出品して子ノードに） */}
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
-        {alreadyWatered ? (
+        {isOwner ? (
+          <View style={styles.ownerRow}>
+            <PressableScale onPress={() => router.push(`/item/edit/${item.id}`)} activeScale={0.97} style={[styles.editBtn, shadows.button]}>
+              <Ionicons name="create-outline" size={19} color={colors.white} />
+              <Text style={styles.editText}>編集する</Text>
+            </PressableScale>
+            <PressableScale onPress={() => router.push(`/tree/${item.rootId}`)} activeScale={0.97} style={styles.treeBtn}>
+              <Sprout size={18} />
+              <Text style={styles.treeBtnText}>木を見る</Text>
+            </PressableScale>
+          </View>
+        ) : alreadyWatered ? (
           <PressableScale onPress={() => router.push(`/tree/${item.rootId}`)} activeScale={0.98} style={styles.wateredPill}>
             <Ionicons name="checkmark-circle" size={22} color={colors.green} />
             <Text style={styles.wateredText}>水やり済み — 木の様子を見る</Text>
@@ -187,6 +218,17 @@ export default function ItemDetailScreen() {
           </View>
         )}
       </View>
+
+      {/* …メニュー（編集/削除 または 通報/ブロック） */}
+      <ItemActionSheet
+        visible={menu}
+        onClose={() => setMenu(false)}
+        item={item}
+        isOwner={isOwner}
+        onReport={() => setReport(true)}
+        onDeleted={() => router.back()}
+      />
+      <ReportSheet visible={report} onClose={() => setReport(false)} targetLabel="この出品" />
     </View>
   );
 }
@@ -241,6 +283,11 @@ const styles = StyleSheet.create({
   commentInputText: { fontFamily: fonts.regular, fontSize: 14, color: colors.textPlaceholder },
   footer: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 20, paddingTop: spacing.md, backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.divider, ...shadows.sheet },
   waterBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, height: 56, borderRadius: radius.pill, backgroundColor: colors.waterBlue },
+  ownerRow: { flexDirection: 'row', gap: spacing.md },
+  editBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, height: 56, borderRadius: radius.pill, backgroundColor: colors.green },
+  editText: { fontFamily: fonts.bold, fontSize: 16, color: colors.white },
+  treeBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 56, paddingHorizontal: spacing.lg, borderRadius: radius.pill, backgroundColor: colors.greenSoft, borderWidth: 1, borderColor: colors.greenSoftBorder },
+  treeBtnText: { fontFamily: fonts.bold, fontSize: 14, color: colors.green },
   waterText: { fontFamily: fonts.bold, fontSize: 16, color: colors.white },
   waterCost: { backgroundColor: 'rgba(255,255,255,0.22)', paddingHorizontal: 10, paddingVertical: 3, borderRadius: radius.pill },
   waterCostText: { fontFamily: fonts.bold, fontSize: 12, color: colors.white },

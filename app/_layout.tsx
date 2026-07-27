@@ -8,6 +8,7 @@ import { useFonts } from 'expo-font';
 import { colors } from '@/theme';
 import { AuthProvider } from '@/store/auth';
 import { TreeProvider } from '@/store/tree';
+import { BlocksProvider } from '@/store/blocks';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -31,6 +32,7 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <AuthProvider>
           <TreeProvider>
+            <BlocksProvider>
             <StatusBar style="dark" />
             <Stack
               screenOptions={{
@@ -46,7 +48,9 @@ export default function RootLayout() {
               <Stack.Screen name="water/[id]" options={{ animation: 'slide_from_bottom', presentation: 'modal' }} />
               <Stack.Screen name="tree/[rootId]" />
               <Stack.Screen name="water/about" options={{ animation: 'slide_from_bottom', presentation: 'modal' }} />
+              <Stack.Screen name="item/edit/[id]" options={{ animation: 'slide_from_bottom', presentation: 'modal' }} />
             </Stack>
+            </BlocksProvider>
           </TreeProvider>
         </AuthProvider>
       </SafeAreaProvider>

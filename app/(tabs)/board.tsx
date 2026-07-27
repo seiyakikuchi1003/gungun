@@ -8,12 +8,25 @@ import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { ExpandableFab } from '@/components/ui/ExpandableFab';
 import { PostCard } from '@/components/board/PostCard';
-import { boardPosts, boardTagFilters, trendingTags } from '@/data/mockSocial';
+import { PostActionSheet } from '@/components/feature/PostActionSheet';
+import { ReportSheet } from '@/components/feature/ReportSheet';
+import { boardPosts, boardTagFilters, trendingTags, type BoardPost } from '@/data/mockSocial';
+import { currentUser } from '@/data/mock';
+import { useBlocks } from '@/store/blocks';
 
 export default function BoardScreen() {
   const insets = useSafeAreaInsets();
+  const { isBlocked } = useBlocks();
   const [filter, setFilter] = useState<string>('all');
-  const list = boardPosts.filter((p) => filter === 'all' || p.tag === filter);
+  const [hidden, setHidden] = useState<string[]>([]); // 自分で削除した投稿ID
+  const [sheetPost, setSheetPost] = useState<BoardPost | null>(null);
+  const [report, setReport] = useState(false);
+  const list = boardPosts.filter(
+    (p) =>
+      (filter === 'all' || p.tag === filter) &&
+      !isBlocked(p.userId) &&
+      !hidden.includes(p.id)
+  );
 
   // 投稿FABの開閉に使うスクロール位置
   const scrollY = useSharedValue(0);
@@ -71,9 +84,12 @@ export default function BoardScreen() {
 
         {list.map((p, i) => (
           <Animated.View key={p.id} entering={FadeInDown.delay(80 + i * 60).duration(400)}>
-            <PostCard post={p} onPress={() => router.push(`/board/${p.id}`)} />
+            <PostCard post={p} onPress={() => router.push(`/board/${p.id}`)} onMore={() => setSheetPost(p)} />
           </Animated.View>
         ))}
+        {list.length === 0 && (
+          <Text style={styles.empty}>表示できる投稿がありません</Text>
+        )}
       </Animated.ScrollView>
 
       {/* 投稿FAB（ホームと同じ位置・同じ挙動に統一） */}
@@ -85,6 +101,19 @@ export default function BoardScreen() {
         labelWidth={86}
         bottom={26}
       />
+
+      {/* 投稿の…メニュー（削除 or 通報/ブロック） */}
+      {sheetPost && (
+        <PostActionSheet
+          visible={!!sheetPost}
+          onClose={() => setSheetPost(null)}
+          authorId={sheetPost.userId}
+          isOwner={sheetPost.userId === currentUser.id}
+          onReport={() => setReport(true)}
+          onDelete={() => setHidden((h) => [...h, sheetPost.id])}
+        />
+      )}
+      <ReportSheet visible={report} onClose={() => setReport(false)} targetLabel="この投稿" />
     </View>
   );
 }
@@ -102,6 +131,7 @@ const styles = StyleSheet.create({
   chipText: { fontFamily: fonts.bold, fontSize: 13, color: colors.textSecondary },
   chipTextOn: { color: colors.white },
   feed: { paddingHorizontal: 20, paddingTop: spacing.sm, paddingBottom: 170, gap: spacing.lg },
+  empty: { fontFamily: fonts.medium, fontSize: 14, color: colors.textSecondary, textAlign: 'center', marginTop: 40 },
   trend: { backgroundColor: colors.card, borderRadius: radius.lg, padding: spacing.lg, gap: spacing.md },
   trendHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   trendTitle: { fontFamily: fonts.bold, fontSize: 14, color: colors.textPrimary },

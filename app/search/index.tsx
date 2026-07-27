@@ -18,6 +18,7 @@ import { RefreshSpinner } from '@/components/ui/RefreshSpinner';
 import { ItemCard } from '@/components/ui/ItemCard';
 import { categories } from '@/data/mock';
 import { useTree } from '@/store/tree';
+import { useBlocks } from '@/store/blocks';
 import { medium } from '@/lib/haptics';
 import { playSfx } from '@/lib/sound';
 
@@ -29,25 +30,26 @@ export default function SearchScreen() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const { items } = useTree();
+  const { isBlocked } = useBlocks();
   const [q, setQ] = useState('');
   const [cat, setCat] = useState<string | null>(null);
   const [sort, setSort] = useState<Sort>('new');
   const cardW = (width - 20 * 2 - 12) / 2;
 
   const results = useMemo(() => {
-    let r = items.filter((i) => i.status === 'growing');
+    let r = items.filter((i) => i.status === 'growing' && !isBlocked(i.ownerId));
     if (q) r = r.filter((i) => (i.name + i.description).toLowerCase().includes(q.toLowerCase()));
     if (cat) r = r.filter((i) => i.category === cat);
     r = [...r].sort((a, b) => (sort === 'water' ? b.waterCount - a.waterCount : 0));
     return r;
-  }, [q, cat, sort, items]);
+  }, [q, cat, sort, items, isBlocked]);
 
   const searching = q.length > 0 || cat !== null;
 
   // 注目の種：引っ張って更新で並びが入れ替わる（X/インスタ風）
   const hot = useMemo(
-    () => [...items].filter((i) => i.status === 'growing').sort((a, b) => b.waterCount - a.waterCount),
-    [items]
+    () => [...items].filter((i) => i.status === 'growing' && !isBlocked(i.ownerId)).sort((a, b) => b.waterCount - a.waterCount),
+    [items, isBlocked]
   );
   const [refreshing, setRefreshing] = useState(false);
   const [refreshTick, setRefreshTick] = useState(0);
