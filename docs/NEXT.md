@@ -61,6 +61,37 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=...
 2. **認証**：ログイン画面を Supabase Auth に接続（今は `src/store/auth.tsx` のモック）
 3. 型の自動生成：`supabase gen types typescript` で `src/types/db.ts` を置き換え
 
+## プレビューサイト（Cloudflare Pages）の運用
+
+公開URL：https://gungun-preview.pages.dev （誰でも閲覧可。認証なし）
+
+**重要：GitHub連携の自動デプロイは無効にしてある。**
+このプロジェクトは以前 GitHub 連携が有効で、production_branch が開発ブランチだったため、
+ブランチに push するたびに「ビルド設定が空のままリポジトリ直下を公開」する自動デプロイが走り、
+`index.html` が無いので全ページ404になっていた（2026-07-27に発生）。
+再発防止のため `deployments_enabled=false` に変更済み。
+
+そのため**プレビュー更新は手動デプロイのみ**：
+
+```bash
+# 1) Webを書き出して1枚のHTMLに固める
+npx expo export --platform web
+node scripts/inline-web.mjs          # → gungun-preview.html
+
+# 2) 配信ディレクトリを作る（index.html / 404.html / _redirects / sounds）
+#    _redirects の中身は「/*    /index.html   200」（SPAフォールバック。/login 等の直リンク用）
+
+# 3) デプロイ（要 CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID）
+npx wrangler pages deploy <配信ディレクトリ> \
+  --project-name gungun-preview \
+  --branch claude/app-design-mockup-9f1vtu --commit-dirty=true
+```
+
+将来 push で自動更新したい場合は、Pagesのビルド設定を
+`build_command: npm ci && npx expo export --platform web` / `destination_dir: dist` にした上で
+自動デプロイを再有効化する（`public/_redirects` を用意すれば dist にコピーされる）。
+ただしビルド失敗時に本番が壊れるリスクがあるため、現状は手動運用を推奨。
+
 ## 補足
 
 - 金額・肥料量はハードコード禁止。`app_settings` テーブル（DB側）と `src/config/settings.ts`（モック側）から読む
