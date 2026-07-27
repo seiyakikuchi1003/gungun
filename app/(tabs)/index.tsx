@@ -116,53 +116,52 @@ export default function HomeScreen() {
           <HeaderIcon name="swap-horizontal" badge onPress={() => router.push('/exchange')} />
         </View>
 
-        {/* 肥料残高＋ログインボーナス */}
-        <Animated.View entering={FadeInDown.duration(400)} style={styles.section}>
-          <LinearGradient
-            colors={['#3AB16E', colors.green, colors.greenDeep]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[styles.fertCard, shadows.card]}
-          >
-            {/* 背景の淡い装飾（葉の丸） */}
-            <View pointerEvents="none" style={styles.fertGlow} />
-            <View pointerEvents="none" style={styles.fertLeaf}>
-              <LeafDecor width={130} height={150} opacity={0.14} />
+        {/* 肥料残高／ログインボーナス（白いカード2枚を横並び） */}
+        <Animated.View entering={FadeInDown.duration(400)} style={[styles.section, styles.cardsRow]}>
+          {/* 左：現在の肥料 */}
+          <View style={[styles.infoCard, shadows.card]}>
+            <View pointerEvents="none" style={styles.cardLeaf}>
+              <LeafDecor width={78} height={92} opacity={0.5} />
             </View>
-
-            <View style={styles.fertTopRow}>
-              <View style={styles.fertBadge}>
-                <Ionicons name="leaf" size={15} color={colors.white} />
+            <Text style={styles.infoLabel}>現在の肥料</Text>
+            <View style={styles.fertBody}>
+              <Sprout size={44} base />
+              <View style={styles.fertNumRow}>
+                <Text style={styles.fertNum}>{currentUser.fertilizer.toLocaleString()}</Text>
+                <Text style={styles.fertUnit}>肥料</Text>
               </View>
-              <Text style={styles.fertLabel}>現在の肥料</Text>
             </View>
-            <View style={styles.fertRow}>
-              <Text style={styles.fertNum}>{currentUser.fertilizer.toLocaleString()}</Text>
-              <Text style={styles.fertUnit}>肥料</Text>
-            </View>
+          </View>
 
-            {/* ログインボーナス行 */}
-            <View style={styles.bonusRow}>
-              <View style={styles.bonusInfo}>
-                <Ionicons name="gift" size={16} color={colors.white} />
-                <Text style={styles.bonusText}>ログインボーナス　毎日 +40</Text>
+          {/* 右：ログインボーナス */}
+          <View style={[styles.infoCard, shadows.card]}>
+            <Text style={styles.infoLabel}>ログインボーナス</Text>
+            <View style={styles.bonusBody}>
+              <View style={styles.giftIcon}>
+                <Ionicons name="gift" size={26} color={colors.orangeDeep} />
               </View>
-              <PressableScale
-                onPress={() => { setClaimed(true); setShowBonus(true); }}
-                activeScale={0.94}
-                style={[styles.claimBtn, claimed && styles.claimBtnDone]}
+              <Text style={styles.bonusValue}>毎日 +40肥料</Text>
+            </View>
+            <PressableScale
+              onPress={() => { setClaimed(true); setShowBonus(true); }}
+              activeScale={0.95}
+              disabled={claimed}
+            >
+              <LinearGradient
+                colors={claimed ? ['#D9D3C6', '#CFC8BA'] : ['#F7B23F', colors.orangeDeep]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={[styles.claimBtn, !claimed && shadows.soft]}
               >
-                {claimed ? (
-                  <>
-                    <Ionicons name="checkmark" size={15} color={colors.white} />
-                    <Text style={[styles.claimText, styles.claimTextDone]}>受取済</Text>
-                  </>
-                ) : (
-                  <Text style={styles.claimText}>受け取る</Text>
-                )}
-              </PressableScale>
-            </View>
-          </LinearGradient>
+                <Text style={styles.claimText}>{claimed ? '受取済' : '受け取る'}</Text>
+                <Ionicons
+                  name={claimed ? 'checkmark' : 'chevron-forward'}
+                  size={15}
+                  color={colors.white}
+                />
+              </LinearGradient>
+            </PressableScale>
+          </View>
         </Animated.View>
 
         {/* みんなの種（テーマ別モザイク） */}
@@ -277,31 +276,31 @@ const styles = StyleSheet.create({
     borderColor: colors.card,
   },
   section: { paddingHorizontal: 20, marginBottom: spacing['2xl'] },
-  fertCard: { borderRadius: 24, paddingHorizontal: spacing.xl, paddingTop: spacing.lg, paddingBottom: spacing.md, overflow: 'hidden' },
-  fertGlow: { position: 'absolute', top: -60, right: -40, width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(255,255,255,0.10)' },
-  fertLeaf: { position: 'absolute', right: -10, bottom: -20 },
-  fertTopRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  fertBadge: { width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.22)', justifyContent: 'center', alignItems: 'center' },
-  fertLabel: { fontFamily: fonts.bold, fontSize: 13, color: 'rgba(255,255,255,0.92)' },
-  fertRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 5, marginTop: 4, marginBottom: spacing.md },
-  fertNum: { fontFamily: fonts.black, fontSize: 44, color: colors.white, includeFontPadding: false, letterSpacing: -0.5 },
-  fertUnit: { fontFamily: fonts.bold, fontSize: 16, color: 'rgba(255,255,255,0.92)', marginBottom: 8 },
-  bonusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  // 肥料／ボーナスの2枚カード
+  cardsRow: { flexDirection: 'row', gap: 12 },
+  infoCard: {
+    flex: 1,
+    backgroundColor: colors.card,
+    borderRadius: 20,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.lg,
+    overflow: 'hidden',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: radius.pill,
-    paddingLeft: spacing.lg,
-    paddingRight: 6,
-    paddingVertical: 6,
   },
-  bonusInfo: { flexDirection: 'row', alignItems: 'center', gap: 7, flex: 1 },
-  bonusText: { fontFamily: fonts.bold, fontSize: 12.5, color: colors.white },
-  claimBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.white, paddingHorizontal: 18, height: 38, borderRadius: radius.pill, justifyContent: 'center', ...shadows.soft },
-  claimBtnDone: { backgroundColor: 'rgba(255,255,255,0.28)' },
-  claimText: { fontFamily: fonts.black, fontSize: 13.5, color: colors.greenDeep },
-  claimTextDone: { color: colors.white },
+  cardLeaf: { position: 'absolute', right: -14, bottom: -16 },
+  infoLabel: { fontFamily: fonts.bold, fontSize: 12, color: colors.textSecondary, textAlign: 'center' },
+  // 左カード
+  fertBody: { alignItems: 'center', marginTop: 2 },
+  fertNumRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 4, marginTop: 2 },
+  fertNum: { fontFamily: fonts.black, fontSize: 34, color: colors.textPrimary, includeFontPadding: false, letterSpacing: -0.5 },
+  fertUnit: { fontFamily: fonts.bold, fontSize: 12, color: colors.textSecondary, marginBottom: 6 },
+  // 右カード
+  bonusBody: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: spacing.sm, marginBottom: spacing.md },
+  giftIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.orangeSoft, justifyContent: 'center', alignItems: 'center' },
+  bonusValue: { flex: 1, fontFamily: fonts.bold, fontSize: 13, color: colors.textPrimary },
+  claimBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 3, height: 38, borderRadius: radius.pill },
+  claimText: { fontFamily: fonts.black, fontSize: 13.5, color: colors.white },
   sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: spacing.md },
   sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   sectionTitle: { fontFamily: fonts.bold, fontSize: 18, color: colors.textPrimary },
