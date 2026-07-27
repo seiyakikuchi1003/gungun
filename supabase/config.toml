@@ -1,0 +1,28 @@
+# Supabase ローカル開発設定（supabase start 用）
+# 本番/お客様アカウントへは `supabase link` → `supabase db push` で同一マイグレーションを適用。
+project_id = "gungun"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 17
+
+[studio]
+enabled = true
+port = 54323
+
+[auth]
+enabled = true
+site_url = "http://localhost:8081"
+# 開発用：メール確認をスキップ（.env の EXPO_PUBLIC_SKIP_EMAIL_VERIFICATION と揃える）
+enable_confirmations = false
+
+[auth.email]
+enable_signup = true
