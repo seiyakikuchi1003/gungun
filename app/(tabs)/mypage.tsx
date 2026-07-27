@@ -33,7 +33,7 @@ export default function MyPage() {
   const insets = useSafeAreaInsets();
   return (
     <View style={styles.root}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: 130 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: 170 }}>
         <View style={styles.header}>
           <Text style={styles.title}>マイページ</Text>
           <PressableScale activeScale={0.9} onPress={() => router.push('/mypage/edit')} style={styles.settingsBtn}>

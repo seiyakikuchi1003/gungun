@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Switch } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Switch, TextInput } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
+import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
+import { success } from '@/lib/haptics';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -37,6 +39,8 @@ const NOTIF = [
 export default function Account() {
   const insets = useSafeAreaInsets();
   const [toggles, setToggles] = useState<Record<string, boolean>>({ watered: true, harvested: true, ship: true, message: true, board: false });
+  const [mailSheet, setMailSheet] = useState(false);
+  const [mail, setMail] = useState('demo@gungun.app');
 
   return (
     <View style={styles.root}>
@@ -51,7 +55,7 @@ export default function Account() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
         <Section title="アカウント">
           <Row label="ニックネーム" value="めたん" onPress={() => router.push('/mypage/edit')} />
-          <Row label="メールアドレス" value="demo@gungun.app" onPress={() => {}} />
+          <Row label="メールアドレス" value="demo@gungun.app" onPress={() => setMailSheet(true)} />
           <Row label="パスワード" value="変更する" onPress={() => router.push('/(auth)/reset')} last />
         </Section>
 
@@ -74,6 +78,28 @@ export default function Account() {
           ))}
         </Section>
       </ScrollView>
+
+      {/* メールアドレスの変更 */}
+      <BottomSheetModal visible={mailSheet} onClose={() => setMailSheet(false)}>
+        <Text style={styles.sheetTitle}>メールアドレスの変更</Text>
+        <Text style={styles.sheetNote}>新しいアドレスに確認メールを送ります</Text>
+        <TextInput
+          value={mail}
+          onChangeText={setMail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          placeholder="mail@example.com"
+          placeholderTextColor={colors.textPlaceholder}
+          style={[styles.sheetInput, { outlineStyle: 'none' } as object]}
+        />
+        <PressableScale
+          onPress={() => { success(); setMailSheet(false); }}
+          activeScale={0.97}
+          style={[styles.sheetBtn, shadows.button]}
+        >
+          <Text style={styles.sheetBtnText}>確認メールを送る</Text>
+        </PressableScale>
+      </BottomSheetModal>
     </View>
   );
 }
@@ -91,4 +117,9 @@ const styles = StyleSheet.create({
   rowLabel: { fontFamily: fonts.medium, fontSize: 15, color: colors.textPrimary },
   rowRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   rowValue: { fontFamily: fonts.regular, fontSize: 14, color: colors.textSecondary },
+  sheetTitle: { fontFamily: fonts.bold, fontSize: 17, color: colors.textPrimary, textAlign: 'center' },
+  sheetNote: { fontFamily: fonts.medium, fontSize: 12.5, color: colors.textSecondary, textAlign: 'center', marginTop: 4, marginBottom: spacing.lg },
+  sheetInput: { fontFamily: fonts.medium, fontSize: 15, color: colors.textPrimary, backgroundColor: colors.card, borderRadius: radius.md, paddingHorizontal: spacing.lg, paddingVertical: 14, borderWidth: 1, borderColor: colors.border },
+  sheetBtn: { height: 52, borderRadius: radius.pill, backgroundColor: colors.green, justifyContent: 'center', alignItems: 'center', marginTop: spacing.lg },
+  sheetBtnText: { fontFamily: fonts.bold, fontSize: 16, color: colors.white },
 });

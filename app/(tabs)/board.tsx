@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
   chipOn: { backgroundColor: colors.green },
   chipText: { fontFamily: fonts.bold, fontSize: 13, color: colors.textSecondary },
   chipTextOn: { color: colors.white },
-  feed: { paddingHorizontal: 20, paddingTop: spacing.sm, paddingBottom: 150, gap: spacing.lg },
+  feed: { paddingHorizontal: 20, paddingTop: spacing.sm, paddingBottom: 170, gap: spacing.lg },
   trend: { backgroundColor: colors.card, borderRadius: radius.lg, padding: spacing.lg, gap: spacing.md },
   trendHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   trendTitle: { fontFamily: fonts.bold, fontSize: 14, color: colors.textPrimary },

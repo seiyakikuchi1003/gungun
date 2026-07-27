@@ -41,7 +41,7 @@ export default function HarvestScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: insets.top + 12, paddingBottom: 130 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: insets.top + 12, paddingBottom: 170 }}
       >
         {/* ヘッダー */}
         <Animated.View entering={FadeInDown.duration(400)}>

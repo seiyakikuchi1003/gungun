@@ -97,6 +97,6 @@ const styles = StyleSheet.create({
   sectionTitle: { fontFamily: fonts.bold, fontSize: 16, color: colors.textPrimary, marginTop: spacing.xl, marginBottom: spacing.md },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   footer: { paddingHorizontal: 20, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: colors.divider },
-  waterBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, height: 56, borderRadius: radius.pill, backgroundColor: colors.green },
+  waterBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, height: 56, borderRadius: radius.pill, backgroundColor: colors.waterBlue },
   waterText: { fontFamily: fonts.bold, fontSize: 16, color: colors.white },
 });

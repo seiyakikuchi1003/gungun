@@ -119,31 +119,47 @@ export default function HomeScreen() {
         {/* 肥料残高＋ログインボーナス */}
         <Animated.View entering={FadeInDown.duration(400)} style={styles.section}>
           <LinearGradient
-            colors={[colors.green, colors.greenDeep]}
+            colors={['#3AB16E', colors.green, colors.greenDeep]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={[styles.fertCard, shadows.card]}
           >
-            <View style={styles.fertLeft}>
-              <Text style={styles.fertLabel}>現在の肥料</Text>
-              <View style={styles.fertRow}>
-                <Text style={styles.fertNum}>{currentUser.fertilizer}</Text>
-                <Text style={styles.fertUnit}>肥料</Text>
-              </View>
+            {/* 背景の淡い装飾（葉の丸） */}
+            <View pointerEvents="none" style={styles.fertGlow} />
+            <View pointerEvents="none" style={styles.fertLeaf}>
+              <LeafDecor width={130} height={150} opacity={0.14} />
             </View>
-            <View style={styles.bonusBox}>
-              <View>
-                <Text style={styles.bonusLabel}>ログインボーナス</Text>
-                <Text style={styles.bonusValue}>毎日 +40肥料</Text>
+
+            <View style={styles.fertTopRow}>
+              <View style={styles.fertBadge}>
+                <Ionicons name="leaf" size={15} color={colors.white} />
+              </View>
+              <Text style={styles.fertLabel}>現在の肥料</Text>
+            </View>
+            <View style={styles.fertRow}>
+              <Text style={styles.fertNum}>{currentUser.fertilizer.toLocaleString()}</Text>
+              <Text style={styles.fertUnit}>肥料</Text>
+            </View>
+
+            {/* ログインボーナス行 */}
+            <View style={styles.bonusRow}>
+              <View style={styles.bonusInfo}>
+                <Ionicons name="gift" size={16} color={colors.white} />
+                <Text style={styles.bonusText}>ログインボーナス　毎日 +40</Text>
               </View>
               <PressableScale
                 onPress={() => { setClaimed(true); setShowBonus(true); }}
                 activeScale={0.94}
                 style={[styles.claimBtn, claimed && styles.claimBtnDone]}
               >
-                <Text style={[styles.claimText, claimed && styles.claimTextDone]}>
-                  {claimed ? '受取済' : '受け取る'}
-                </Text>
+                {claimed ? (
+                  <>
+                    <Ionicons name="checkmark" size={15} color={colors.white} />
+                    <Text style={[styles.claimText, styles.claimTextDone]}>受取済</Text>
+                  </>
+                ) : (
+                  <Text style={styles.claimText}>受け取る</Text>
+                )}
               </PressableScale>
             </View>
           </LinearGradient>
@@ -203,12 +219,20 @@ export default function HomeScreen() {
       <PressableScale
         onPress={() => router.push('/plant/seed')}
         accessibilityLabel="タネを植える（出品する）"
-        style={[styles.fab, shadows.button]}
+        activeScale={0.96}
+        style={styles.fabWrap}
       >
-        <View style={styles.fabIcon}>
-          <Sprout size={20} color={colors.white} />
-        </View>
-        <Text style={styles.fabText}>タネを植える</Text>
+        <LinearGradient
+          colors={[colors.green, colors.greenDeep]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.fab, shadows.button]}
+        >
+          <View style={styles.fabIcon}>
+            <Sprout size={20} color={colors.green} />
+          </View>
+          <Text style={styles.fabText}>タネを植える</Text>
+        </LinearGradient>
       </PressableScale>
 
       {/* ログインボーナスのスタンプカレンダー */}
@@ -253,18 +277,30 @@ const styles = StyleSheet.create({
     borderColor: colors.card,
   },
   section: { paddingHorizontal: 20, marginBottom: spacing['2xl'] },
-  fertCard: { borderRadius: radius.lg, padding: spacing.xl, flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
-  fertLeft: { flex: 1 },
-  fertLabel: { fontFamily: fonts.medium, fontSize: 13, color: 'rgba(255,255,255,0.85)' },
-  fertRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 4, marginTop: 2 },
-  fertNum: { fontFamily: fonts.black, fontSize: 38, color: colors.white, includeFontPadding: false },
-  fertUnit: { fontFamily: fonts.bold, fontSize: 16, color: colors.white, marginBottom: 6 },
-  bonusBox: { backgroundColor: 'rgba(255,255,255,0.16)', borderRadius: radius.md, padding: spacing.md, gap: spacing.sm, alignItems: 'center' },
-  bonusLabel: { fontFamily: fonts.medium, fontSize: 11, color: 'rgba(255,255,255,0.9)' },
-  bonusValue: { fontFamily: fonts.bold, fontSize: 14, color: colors.white },
-  claimBtn: { backgroundColor: colors.white, paddingHorizontal: 16, paddingVertical: 7, borderRadius: radius.pill },
-  claimBtnDone: { backgroundColor: 'rgba(255,255,255,0.3)' },
-  claimText: { fontFamily: fonts.bold, fontSize: 13, color: colors.green },
+  fertCard: { borderRadius: 24, paddingHorizontal: spacing.xl, paddingTop: spacing.lg, paddingBottom: spacing.md, overflow: 'hidden' },
+  fertGlow: { position: 'absolute', top: -60, right: -40, width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(255,255,255,0.10)' },
+  fertLeaf: { position: 'absolute', right: -10, bottom: -20 },
+  fertTopRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  fertBadge: { width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.22)', justifyContent: 'center', alignItems: 'center' },
+  fertLabel: { fontFamily: fonts.bold, fontSize: 13, color: 'rgba(255,255,255,0.92)' },
+  fertRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 5, marginTop: 4, marginBottom: spacing.md },
+  fertNum: { fontFamily: fonts.black, fontSize: 44, color: colors.white, includeFontPadding: false, letterSpacing: -0.5 },
+  fertUnit: { fontFamily: fonts.bold, fontSize: 16, color: 'rgba(255,255,255,0.92)', marginBottom: 8 },
+  bonusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: radius.pill,
+    paddingLeft: spacing.lg,
+    paddingRight: 6,
+    paddingVertical: 6,
+  },
+  bonusInfo: { flexDirection: 'row', alignItems: 'center', gap: 7, flex: 1 },
+  bonusText: { fontFamily: fonts.bold, fontSize: 12.5, color: colors.white },
+  claimBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.white, paddingHorizontal: 18, height: 38, borderRadius: radius.pill, justifyContent: 'center', ...shadows.soft },
+  claimBtnDone: { backgroundColor: 'rgba(255,255,255,0.28)' },
+  claimText: { fontFamily: fonts.black, fontSize: 13.5, color: colors.greenDeep },
   claimTextDone: { color: colors.white },
   sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: spacing.md },
   sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
@@ -284,26 +320,24 @@ const styles = StyleSheet.create({
   stepArt: { height: 40, justifyContent: 'center', alignItems: 'center' },
   stepTitle: { fontFamily: fonts.bold, fontSize: 13, color: colors.textPrimary, marginTop: 2 },
   stepDesc: { fontFamily: fonts.regular, fontSize: 11, lineHeight: 16, color: colors.textSecondary, textAlign: 'center' },
+  fabWrap: { position: 'absolute', right: 20, bottom: 26 },
   fab: {
-    position: 'absolute',
-    right: 20,
-    bottom: 24,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    height: 54,
+    gap: 9,
+    height: 58,
     paddingLeft: 8,
-    paddingRight: 22,
-    borderRadius: 27,
-    backgroundColor: colors.greenDeep,
+    paddingRight: 24,
+    borderRadius: 29,
   },
   fabIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.18)',
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: colors.white,
     justifyContent: 'center',
     alignItems: 'center',
+    ...shadows.soft,
   },
-  fabText: { fontFamily: fonts.bold, fontSize: 15, color: colors.white },
+  fabText: { fontFamily: fonts.black, fontSize: 15.5, color: colors.white, letterSpacing: 0.2 },
 });

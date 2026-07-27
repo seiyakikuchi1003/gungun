@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
   commentInput: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.cardMuted, borderRadius: radius.pill, paddingHorizontal: spacing.lg, paddingVertical: 12, marginTop: spacing.md },
   commentInputText: { fontFamily: fonts.regular, fontSize: 14, color: colors.textPlaceholder },
   footer: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 20, paddingTop: spacing.md, backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.divider, ...shadows.sheet },
-  waterBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, height: 56, borderRadius: radius.pill, backgroundColor: colors.green },
+  waterBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, height: 56, borderRadius: radius.pill, backgroundColor: colors.waterBlue },
   waterText: { fontFamily: fonts.bold, fontSize: 16, color: colors.white },
   waterCost: { backgroundColor: 'rgba(255,255,255,0.22)', paddingHorizontal: 10, paddingVertical: 3, borderRadius: radius.pill },
   waterCostText: { fontFamily: fonts.bold, fontSize: 12, color: colors.white },

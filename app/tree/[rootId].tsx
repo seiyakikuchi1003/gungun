@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, useWindowDimensions, Share, Platform } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -39,6 +39,22 @@ export default function TreeScreen() {
   // 成長段階（木に属する総数で決まる）と、次の段階までの進捗
   const growth = treeGrowth(all.length);
   const progress = growth.next ? Math.min((all.length - growth.min) / (growth.next - growth.min), 1) : 1;
+
+  // ツリーをシェア（OSの共有シート。Webは navigator.share → クリップボードの順にフォールバック）
+  const shareTree = async () => {
+    const message = `「${root.name}」の木に${waterings}件の水やりが集まっています！ #ぐんぐん`;
+    try {
+      if (Platform.OS === 'web') {
+        const nav = globalThis.navigator as Navigator | undefined;
+        if (nav?.share) await nav.share({ text: message });
+        else await nav?.clipboard?.writeText(message);
+      } else {
+        await Share.share({ message });
+      }
+    } catch {
+      // ユーザーがキャンセルした場合など。何もしない
+    }
+  };
 
   return (
     <View style={styles.root}>
@@ -137,7 +153,7 @@ export default function TreeScreen() {
               <Ionicons name="water" size={18} color={colors.white} />
               <Text style={styles.shareText}>この木に水やりする</Text>
             </PressableScale>
-            <PressableScale onPress={() => {}} activeScale={0.97} style={styles.ghostBtn}>
+            <PressableScale onPress={shareTree} activeScale={0.97} style={styles.ghostBtn}>
               <Ionicons name="share-social" size={16} color={colors.textSecondary} />
               <Text style={styles.ghostText}>あなたのツリーをシェア</Text>
             </PressableScale>

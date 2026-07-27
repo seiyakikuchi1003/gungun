@@ -1,12 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { Button } from '@/components/ui/Button';
+import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
+import { PressableScale } from '@/components/ui/PressableScale';
 import { Mikan } from '@/components/art/Mikan';
 import { settings, formatPrice } from '@/config/settings';
+import { success } from '@/lib/haptics';
 
 const FEATURES: { icon: keyof typeof Ionicons.glyphMap; title: string; desc: string }[] = [
   { icon: 'gift', title: 'ログインボーナス増量', desc: '毎日もらえる肥料がアップ' },
@@ -17,9 +20,11 @@ const FEATURES: { icon: keyof typeof Ionicons.glyphMap; title: string; desc: str
 
 export default function Premium() {
   const insets = useSafeAreaInsets();
+  const [confirm, setConfirm] = useState(false);
+  const [joined, setJoined] = useState(false);
   return (
     <View style={styles.root}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: 150 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: 170 }}>
         <View style={styles.header}><Text style={styles.title}>プレミアム</Text></View>
 
         <LinearGradient colors={['#F6C560', colors.orange, '#E8901C']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.hero, shadows.card]}>
@@ -45,10 +50,38 @@ export default function Premium() {
         </View>
 
         <View style={styles.ctaWrap}>
-          <Button title="プレミアムに登録する" variant="accent" onPress={() => {}} />
+          <Button
+            title={joined ? 'プレミアム登録済み' : 'プレミアムに登録する'}
+            variant="accent"
+            disabled={joined}
+            onPress={() => setConfirm(true)}
+          />
           <Text style={styles.note}>※ 料金・提供機能は調整中です（管理画面から変更可能）</Text>
         </View>
       </ScrollView>
+
+      {/* 登録の確認 */}
+      <BottomSheetModal visible={confirm} onClose={() => setConfirm(false)}>
+        <View style={styles.sheetHead}>
+          <Mikan size={56} />
+          <Text style={styles.sheetTitle}>ぐんぐん プレミアム</Text>
+          <Text style={styles.sheetPrice}>{formatPrice(settings.premiumMonthly)} / 月</Text>
+        </View>
+        <Text style={styles.sheetNote}>
+          いつでも解約できます。料金は調整中のため、正式提供時に改めてご案内します。
+        </Text>
+        <PressableScale
+          onPress={() => { success(); setJoined(true); setConfirm(false); }}
+          activeScale={0.97}
+          style={[styles.sheetBtn, shadows.button]}
+        >
+          <Ionicons name="diamond" size={18} color={colors.white} />
+          <Text style={styles.sheetBtnText}>登録する</Text>
+        </PressableScale>
+        <PressableScale onPress={() => setConfirm(false)} activeScale={0.98} style={styles.sheetCancel}>
+          <Text style={styles.sheetCancelText}>あとで</Text>
+        </PressableScale>
+      </BottomSheetModal>
     </View>
   );
 }
@@ -70,4 +103,12 @@ const styles = StyleSheet.create({
   featDesc: { fontFamily: fonts.regular, fontSize: 12.5, color: colors.textSecondary, marginTop: 2 },
   ctaWrap: { paddingHorizontal: 20, marginTop: spacing.xl, gap: spacing.md },
   note: { fontFamily: fonts.regular, fontSize: 12, color: colors.textSecondary, textAlign: 'center' },
+  sheetHead: { alignItems: 'center', gap: 2, marginBottom: spacing.md },
+  sheetTitle: { fontFamily: fonts.black, fontSize: 19, color: colors.textPrimary, marginTop: spacing.sm },
+  sheetPrice: { fontFamily: fonts.black, fontSize: 22, color: colors.orangeDeep },
+  sheetNote: { fontFamily: fonts.medium, fontSize: 12.5, lineHeight: 19, color: colors.textSecondary, textAlign: 'center', marginBottom: spacing.lg },
+  sheetBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, height: 54, borderRadius: radius.pill, backgroundColor: colors.orange },
+  sheetBtnText: { fontFamily: fonts.bold, fontSize: 16.5, color: colors.white },
+  sheetCancel: { height: 46, justifyContent: 'center', alignItems: 'center', marginTop: spacing.xs },
+  sheetCancelText: { fontFamily: fonts.bold, fontSize: 14, color: colors.textSecondary },
 });
