@@ -11,26 +11,29 @@ import Animated, {
 } from 'react-native-reanimated';
 import { colors, fonts, shadows } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
-import { Sprout } from '@/components/art/Sprout';
 import { medium } from '@/lib/haptics';
 
-const SIZE = 56;          // 丸に畳んだときの直径
-const LABEL_W = 118;      // ラベル分の追加幅
+const SIZE = 56; // 丸に畳んだときの直径
 
 type Props = {
-  /** ホームのスクロール位置。下に読むと畳む */
+  /** 一覧のスクロール位置。下に読むと畳む */
   scrollY: SharedValue<number>;
   onPress: () => void;
+  label: string;
+  icon: React.ReactNode;
+  /** ラベル分の追加幅（文字数に合わせて指定） */
+  labelWidth?: number;
   bottom?: number;
 };
 
 /**
- * 「タネを植える」拡張FAB。
+ * スクロールに追従する拡張FAB。
  *
- * 一覧を読んでいる間は丸く畳んで商品を隠さないようにし、
+ * 一覧を読んでいる間は丸く畳んでコンテンツを隠さず、
  * 上に戻る／最上部ではラベル付きに開いて何のボタンか分かるようにする。
+ * ホームの「タネを植える」・掲示板の「投稿」で共通利用する。
  */
-export function PlantFab({ scrollY, onPress, bottom = 26 }: Props) {
+export function ExpandableFab({ scrollY, onPress, label, icon, labelWidth = 118, bottom = 26 }: Props) {
   const open = useSharedValue(1);
 
   useAnimatedReaction(
@@ -49,14 +52,14 @@ export function PlantFab({ scrollY, onPress, bottom = 26 }: Props) {
   );
 
   // 幅は外側のビューでアニメーションさせる（グラデーション側に当てると効かない）
-  const wrap = useAnimatedStyle(() => ({ width: SIZE + open.value * LABEL_W }));
-  const label = useAnimatedStyle(() => ({ opacity: open.value }));
+  const wrap = useAnimatedStyle(() => ({ width: SIZE + open.value * labelWidth }));
+  const labelStyle = useAnimatedStyle(() => ({ opacity: open.value }));
 
   return (
     <Animated.View style={[styles.wrap, { bottom }, wrap]}>
       <PressableScale
         onPress={() => { medium(); onPress(); }}
-        accessibilityLabel="タネを植える（出品する）"
+        accessibilityLabel={label}
         activeScale={0.95}
         style={styles.press}
       >
@@ -66,11 +69,9 @@ export function PlantFab({ scrollY, onPress, bottom = 26 }: Props) {
           end={{ x: 1, y: 1 }}
           style={[styles.fab, shadows.button]}
         >
-          <View style={styles.icon}>
-            <Sprout size={24} color={colors.white} />
-          </View>
-          <Animated.Text numberOfLines={1} style={[styles.text, label]}>
-            タネを植える
+          <View style={styles.icon}>{icon}</View>
+          <Animated.Text numberOfLines={1} style={[styles.text, labelStyle]}>
+            {label}
           </Animated.Text>
         </LinearGradient>
       </PressableScale>

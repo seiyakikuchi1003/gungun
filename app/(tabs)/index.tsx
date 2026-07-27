@@ -16,7 +16,7 @@ import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { RefreshSpinner } from '@/components/ui/RefreshSpinner';
 import { MosaicGroup } from '@/components/feature/MosaicGroup';
-import { PlantFab } from '@/components/feature/PlantFab';
+import { ExpandableFab } from '@/components/ui/ExpandableFab';
 import { LoginBonusSheet } from '@/components/feature/LoginBonusSheet';
 import { Sprout } from '@/components/art/Sprout';
 import { Mikan } from '@/components/art/Mikan';
@@ -215,7 +215,14 @@ export default function HomeScreen() {
       <RefreshSpinner pullY={scrollY} refreshing={refreshing} topOffset={insets.top + 6} />
 
       {/* 「タネを植える」FAB（スクロールで畳まれる拡張FAB） */}
-      <PlantFab scrollY={scrollY} onPress={() => router.push('/plant/seed')} bottom={26} />
+      <ExpandableFab
+        scrollY={scrollY}
+        onPress={() => router.push('/plant/seed')}
+        label="タネを植える"
+        icon={<Sprout size={24} color={colors.white} />}
+        labelWidth={118}
+        bottom={26}
+      />
 
       {/* ログインボーナスのスタンプカレンダー */}
       <LoginBonusSheet visible={showBonus} claimedToday={claimed} onClose={() => setShowBonus(false)} />

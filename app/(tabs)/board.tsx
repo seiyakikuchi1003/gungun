@@ -3,10 +3,10 @@ import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeInDown, useSharedValue, useAnimatedScrollHandler } from 'react-native-reanimated';
 import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
+import { ExpandableFab } from '@/components/ui/ExpandableFab';
 import { PostCard } from '@/components/board/PostCard';
 import { boardPosts, boardTagFilters, trendingTags } from '@/data/mockSocial';
 
@@ -15,12 +15,18 @@ export default function BoardScreen() {
   const [filter, setFilter] = useState<string>('all');
   const list = boardPosts.filter((p) => filter === 'all' || p.tag === filter);
 
+  // 投稿FABの開閉に使うスクロール位置
+  const scrollY = useSharedValue(0);
+  const onScroll = useAnimatedScrollHandler((e) => {
+    scrollY.value = e.contentOffset.y;
+  });
+
   return (
     <View style={styles.root}>
       {/* ヘッダー */}
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
         <View>
-          <Text style={styles.title}>ひろば</Text>
+          <Text style={styles.title}>掲示板</Text>
           <Text style={styles.subtitle}>交換の様子や質問をシェアしよう</Text>
         </View>
         <PressableScale activeScale={0.9} style={styles.searchBtn}>
@@ -42,7 +48,12 @@ export default function BoardScreen() {
       </ScrollView>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.feed}>
+      <Animated.ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.feed}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+      >
         {/* トレンド */}
         <Animated.View entering={FadeInDown.duration(400)} style={[styles.trend, shadows.soft]}>
           <View style={styles.trendHead}>
@@ -63,14 +74,17 @@ export default function BoardScreen() {
             <PostCard post={p} onPress={() => router.push(`/board/${p.id}`)} />
           </Animated.View>
         ))}
-      </ScrollView>
+      </Animated.ScrollView>
 
-      {/* 拡張FAB */}
-      <PressableScale onPress={() => router.push('/board/new')} style={[styles.fab, { bottom: 100 }, shadows.button]}>
-        <LinearGradient colors={[colors.green, colors.greenDeep]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={StyleSheet.absoluteFill} />
-        <Ionicons name="create" size={20} color={colors.white} />
-        <Text style={styles.fabText}>投稿</Text>
-      </PressableScale>
+      {/* 投稿FAB（ホームと同じ位置・同じ挙動に統一） */}
+      <ExpandableFab
+        scrollY={scrollY}
+        onPress={() => router.push('/board/new')}
+        label="投稿する"
+        icon={<Ionicons name="create" size={22} color={colors.white} />}
+        labelWidth={86}
+        bottom={26}
+      />
     </View>
   );
 }
@@ -94,6 +108,4 @@ const styles = StyleSheet.create({
   trendTags: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   trendChip: { backgroundColor: colors.greenSoft, paddingHorizontal: 12, paddingVertical: 7, borderRadius: radius.pill },
   trendChipText: { fontFamily: fonts.bold, fontSize: 12.5, color: colors.green },
-  fab: { position: 'absolute', right: 20, flexDirection: 'row', alignItems: 'center', gap: 6, height: 52, paddingHorizontal: 20, borderRadius: radius.pill, overflow: 'hidden', justifyContent: 'center' },
-  fabText: { fontFamily: fonts.bold, fontSize: 15, color: colors.white },
 });
