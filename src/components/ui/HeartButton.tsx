@@ -4,10 +4,16 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 import { colors, fonts } from '@/theme';
 import { like } from '@/lib/haptics';
+import { useLikes } from '@/store/likes';
 
-/** いいねボタン（タップでハートがポップするマイクロインタラクション）。 */
-export function HeartButton({ count, initial = false, size = 18 }: { count: number; initial?: boolean; size?: number }) {
-  const [liked, setLiked] = useState(initial);
+/**
+ * いいねボタン（タップでハートがポップするマイクロインタラクション）。
+ * `id` を渡すと likes ストアで状態を保持し、画面をまたいでも維持される。
+ */
+export function HeartButton({ count, initial = false, size = 18, id }: { count: number; initial?: boolean; size?: number; id?: string }) {
+  const likes = useLikes();
+  const [localLiked, setLocalLiked] = useState(initial);
+  const liked = id ? likes.isLiked(id, initial) : localLiked;
   const scale = useSharedValue(1);
   const burst = useSharedValue(0);
 
@@ -18,8 +24,8 @@ export function HeartButton({ count, initial = false, size = 18 }: { count: numb
   }));
 
   const toggle = () => {
-    const next = !liked;
-    setLiked(next);
+    const next = id ? likes.toggle(id, initial) : !localLiked;
+    if (!id) setLocalLiked(next);
     if (next) like(); // インスタ風：いいねの瞬間にしっかりした振動
     scale.value = withSequence(withSpring(next ? 1.4 : 0.85, { damping: 6, stiffness: 300 }), withSpring(1, { damping: 10 }));
     if (next) {
@@ -38,7 +44,7 @@ export function HeartButton({ count, initial = false, size = 18 }: { count: numb
           <Ionicons name={liked ? 'heart' : 'heart-outline'} size={size} color={liked ? colors.heart : colors.textSecondary} />
         </Animated.View>
       </Animated.View>
-      <Text style={[styles.count, liked && { color: colors.heart }]}>{count + (liked ? 1 : 0)}</Text>
+      <Text style={[styles.count, liked && { color: colors.heart }]}>{count + (liked ? 1 : 0) - (initial ? 1 : 0)}</Text>
     </Pressable>
   );
 }

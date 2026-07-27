@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -6,8 +6,9 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { Avatar } from '@/components/ui/Avatar';
-import { notifications, NOTIF_ICON, NotificationType, Notif } from '@/data/mockSocial';
+import { NOTIF_ICON, NotificationType, Notif } from '@/data/mockSocial';
 import { getUser } from '@/data/mock';
+import { useNotifications } from '@/store/notifications';
 
 const TONE: Record<NotificationType, string> = {
   watered: colors.green,
@@ -18,10 +19,10 @@ const TONE: Record<NotificationType, string> = {
   board_comment: colors.premium,
 };
 
-function Row({ n }: { n: Notif }) {
+function Row({ n, onPress }: { n: Notif; onPress: () => void }) {
   const actor = n.actorId ? getUser(n.actorId) : null;
   return (
-    <PressableScale activeScale={0.99} style={[styles.row, !n.read && styles.unread]}>
+    <PressableScale onPress={onPress} activeScale={0.99} style={[styles.row, !n.read && styles.unread]}>
       <View style={styles.avatarWrap}>
         {actor ? <Avatar uri={actor.avatar} name={actor.nickname} size={44} /> : <View style={styles.avatarFallback} />}
         <View style={[styles.badge, { backgroundColor: TONE[n.type] }]}>
@@ -42,8 +43,7 @@ function Row({ n }: { n: Notif }) {
 
 export default function Notifications() {
   const insets = useSafeAreaInsets();
-  const [read, setRead] = useState(false);
-  const list = read ? notifications.map((n) => ({ ...n, read: true })) : notifications;
+  const { list, markRead, markAllRead } = useNotifications();
   const today = list.filter((n) => n.today);
   const earlier = list.filter((n) => !n.today);
 
@@ -54,7 +54,7 @@ export default function Notifications() {
           <Ionicons name="chevron-back" size={26} color={colors.textPrimary} />
         </PressableScale>
         <Text style={styles.hTitle}>通知</Text>
-        <PressableScale onPress={() => setRead(true)} activeScale={0.94} style={styles.hBtn}>
+        <PressableScale onPress={markAllRead} activeScale={0.94} style={styles.hBtn}>
           <Ionicons name="checkmark-done" size={22} color={colors.green} />
         </PressableScale>
       </View>
@@ -63,13 +63,13 @@ export default function Notifications() {
         {today.length > 0 && (
           <>
             <Text style={styles.groupTitle}>今日</Text>
-            {today.map((n) => <Row key={n.id} n={n} />)}
+            {today.map((n) => <Row key={n.id} n={n} onPress={() => markRead(n.id)} />)}
           </>
         )}
         {earlier.length > 0 && (
           <>
             <Text style={styles.groupTitle}>これまで</Text>
-            {earlier.map((n) => <Row key={n.id} n={n} />)}
+            {earlier.map((n) => <Row key={n.id} n={n} onPress={() => markRead(n.id)} />)}
           </>
         )}
       </ScrollView>

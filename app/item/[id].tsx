@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, useWindowDimensions, NativeSyntheticEvent, NativeScrollEvent, Share, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, useWindowDimensions, NativeSyntheticEvent, NativeScrollEvent, Share, Platform } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -34,6 +34,8 @@ export default function ItemDetailScreen() {
   const [page, setPage] = useState(0);
   const [menu, setMenu] = useState(false);
   const [report, setReport] = useState(false);
+  const [ctext, setCtext] = useState('');
+  const [comments, setComments] = useState(() => getItemComments(id ?? ''));
 
   if (!item) {
     return (
@@ -44,7 +46,6 @@ export default function ItemDetailScreen() {
   }
   const owner = getUser(item.ownerId);
   const imgs = itemImageSources(item);
-  const comments = getItemComments(item.id);
   const connected = childrenOf(item.id); // この商品に水やりした商品（＝子ノード）
   const treeCount = treeItems(item.rootId).length;
   const treeThumbs = treeItems(item.rootId).filter((i) => i.id !== item.id);
@@ -109,7 +110,7 @@ export default function ItemDetailScreen() {
               </View>
             </View>
             <View style={styles.favBox}>
-              <HeartButton count={item.likeCount} initial={false} size={26} />
+              <HeartButton count={item.likeCount} initial={false} size={26} id={`item:${item.id}`} />
             </View>
           </View>
 
@@ -165,24 +166,52 @@ export default function ItemDetailScreen() {
             </View>
             {comments.map((c) => {
               const cu = getUser(c.userId);
-              const mine = c.userId === owner.id;
+              const fromOwner = c.userId === owner.id;
+              const isMine = c.userId === currentUser.id;
               return (
                 <View key={c.id} style={styles.comment}>
                   <Avatar uri={cu.avatar} name={cu.nickname} size={34} />
-                  <View style={[styles.bubble, mine && styles.bubbleOwner]}>
+                  <View style={[styles.bubble, fromOwner && styles.bubbleOwner]}>
                     <View style={styles.cHead}>
-                      <Text style={styles.cName}>{cu.nickname}{mine ? '（出品者）' : ''}</Text>
+                      <Text style={styles.cName}>{cu.nickname}{fromOwner ? '（出品者）' : ''}</Text>
                       <Text style={styles.cTime}>{c.createdAt}</Text>
+                      {isMine && (
+                        <PressableScale
+                          onPress={() => setComments((list) => list.filter((x) => x.id !== c.id))}
+                          activeScale={0.8}
+                          hitSlop={8}
+                          style={styles.cDelete}
+                        >
+                          <Ionicons name="close" size={14} color={colors.textPlaceholder} />
+                        </PressableScale>
+                      )}
                     </View>
                     <Text style={styles.cBody}>{c.body}</Text>
                   </View>
                 </View>
               );
             })}
-            <PressableScale activeScale={0.99} style={styles.commentInput}>
-              <Ionicons name="chatbubble-outline" size={16} color={colors.textPlaceholder} />
-              <Text style={styles.commentInputText}>コメントを書く…</Text>
-            </PressableScale>
+            {comments.length === 0 && <Text style={styles.commentEmpty}>最初のコメントを書いてみましょう</Text>}
+            <View style={styles.commentInputRow}>
+              <TextInput
+                value={ctext}
+                onChangeText={setCtext}
+                placeholder="コメントを書く…"
+                placeholderTextColor={colors.textPlaceholder}
+                style={[styles.commentField, { outlineStyle: 'none' } as object]}
+              />
+              <PressableScale
+                onPress={() => {
+                  if (!ctext.trim()) return;
+                  setComments((list) => [...list, { id: `ci${list.length}-${Date.now()}`, userId: currentUser.id, body: ctext.trim(), createdAt: 'たった今' }]);
+                  setCtext('');
+                }}
+                activeScale={0.9}
+                style={[styles.commentSend, !ctext.trim() && styles.commentSendOff]}
+              >
+                <Ionicons name="arrow-up" size={18} color={colors.white} />
+              </PressableScale>
+            </View>
           </View>
         </View>
       </ScrollView>
@@ -279,8 +308,12 @@ const styles = StyleSheet.create({
   cName: { fontFamily: fonts.bold, fontSize: 12.5, color: colors.textPrimary },
   cTime: { fontFamily: fonts.regular, fontSize: 11, color: colors.textSecondary },
   cBody: { fontFamily: fonts.regular, fontSize: 14, lineHeight: 21, color: colors.textPrimary, marginTop: 3 },
-  commentInput: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.cardMuted, borderRadius: radius.pill, paddingHorizontal: spacing.lg, paddingVertical: 12, marginTop: spacing.md },
-  commentInputText: { fontFamily: fonts.regular, fontSize: 14, color: colors.textPlaceholder },
+  commentEmpty: { fontFamily: fonts.regular, fontSize: 13.5, color: colors.textSecondary, textAlign: 'center', marginVertical: spacing.md },
+  commentInputRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.md },
+  commentField: { flex: 1, minWidth: 0, backgroundColor: colors.cardMuted, borderRadius: radius.pill, paddingHorizontal: spacing.lg, paddingVertical: 12, fontFamily: fonts.regular, fontSize: 14, color: colors.textPrimary },
+  commentSend: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.green, justifyContent: 'center', alignItems: 'center' },
+  commentSendOff: { backgroundColor: colors.textPlaceholder, opacity: 0.5 },
+  cDelete: { marginLeft: 'auto', padding: 2 },
   footer: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 20, paddingTop: spacing.md, backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.divider, ...shadows.sheet },
   waterBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, height: 56, borderRadius: radius.pill, backgroundColor: colors.waterBlue },
   ownerRow: { flexDirection: 'row', gap: spacing.md },

@@ -26,6 +26,7 @@ import { LeafDecor } from '@/components/art/LeafDecor';
 import { currentUser, howToSteps } from '@/data/mock';
 import { useTree } from '@/store/tree';
 import { useBlocks } from '@/store/blocks';
+import { useNotifications } from '@/store/notifications';
 import { medium } from '@/lib/haptics';
 import { playSfx, preloadSfx } from '@/lib/sound';
 
@@ -49,6 +50,7 @@ export default function HomeScreen() {
   const { width } = useWindowDimensions();
   const { items } = useTree();
   const { isBlocked } = useBlocks();
+  const { unreadCount } = useNotifications();
   const [claimed, setClaimed] = useState(false);
   const [showBonus, setShowBonus] = useState(false);
   React.useEffect(() => { preloadSfx(); }, []); // 初回再生の遅延を減らす
@@ -116,7 +118,7 @@ export default function HomeScreen() {
             <Ionicons name="search" size={20} color={colors.textSecondary} />
             <Text style={styles.searchPlaceholder}>欲しいものを探してみよう</Text>
           </PressableScale>
-          <HeaderIcon name="notifications" badge onPress={() => router.push('/notifications')} />
+          <HeaderIcon name="notifications" badge={unreadCount > 0} onPress={() => router.push('/notifications')} />
           <HeaderIcon name="swap-horizontal" badge onPress={() => router.push('/exchange')} />
         </View>
 

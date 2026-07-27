@@ -9,6 +9,8 @@ import { colors } from '@/theme';
 import { AuthProvider } from '@/store/auth';
 import { TreeProvider } from '@/store/tree';
 import { BlocksProvider } from '@/store/blocks';
+import { LikesProvider } from '@/store/likes';
+import { NotificationsProvider } from '@/store/notifications';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -33,6 +35,8 @@ export default function RootLayout() {
         <AuthProvider>
           <TreeProvider>
             <BlocksProvider>
+            <LikesProvider>
+            <NotificationsProvider>
             <StatusBar style="dark" />
             <Stack
               screenOptions={{
@@ -50,6 +54,8 @@ export default function RootLayout() {
               <Stack.Screen name="water/about" options={{ animation: 'slide_from_bottom', presentation: 'modal' }} />
               <Stack.Screen name="item/edit/[id]" options={{ animation: 'slide_from_bottom', presentation: 'modal' }} />
             </Stack>
+            </NotificationsProvider>
+            </LikesProvider>
             </BlocksProvider>
           </TreeProvider>
         </AuthProvider>

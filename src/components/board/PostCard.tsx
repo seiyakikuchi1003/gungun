@@ -44,7 +44,7 @@ export function PostCard({ post, onPress, onMore }: { post: BoardPost; onPress?:
       )}
 
       <View style={styles.actions}>
-        <HeartButton count={post.likeCount} initial={post.liked} />
+        <HeartButton count={post.likeCount} initial={post.liked} id={`post:${post.id}`} />
         <View style={styles.action}>
           <Ionicons name="chatbubble-outline" size={17} color={colors.textSecondary} />
           <Text style={styles.actionText}>{post.commentCount}</Text>

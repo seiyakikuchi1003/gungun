@@ -56,7 +56,7 @@ export default function BoardDetail() {
           <Text style={styles.body}>{post.body}</Text>
           {post.image != null && <Image source={post.image} style={styles.image} contentFit="cover" transition={200} />}
           <View style={styles.stats}>
-            <HeartButton count={post.likeCount} initial={post.liked} size={20} />
+            <HeartButton count={post.likeCount} initial={post.liked} size={20} id={`post:${post.id}`} />
             <View style={styles.stat}>
               <Ionicons name="chatbubble-outline" size={18} color={colors.textSecondary} />
               <Text style={styles.statText}>{comments.length}</Text>

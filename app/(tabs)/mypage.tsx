@@ -1,23 +1,27 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Linking } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
+import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
 import { Avatar } from '@/components/ui/Avatar';
 import { StarRating } from '@/components/ui/StarRating';
 import { currentUser } from '@/data/mock';
+import { useAuth } from '@/store/auth';
+import { warning } from '@/lib/haptics';
 
-const MENU: { icon: keyof typeof Ionicons.glyphMap; label: string; route?: string; danger?: boolean }[] = [
+type Action = 'about' | 'contact' | 'logout' | 'withdraw';
+const MENU: { icon: keyof typeof Ionicons.glyphMap; label: string; route?: string; action?: Action; danger?: boolean }[] = [
   { icon: 'person-circle-outline', label: '個人情報設定', route: '/mypage/account' },
   { icon: 'pricetags-outline', label: '出品履歴', route: '/mypage/items' },
   { icon: 'chatbox-ellipses-outline', label: '掲示板投稿履歴', route: '/mypage/posts' },
   { icon: 'ban-outline', label: 'ブロックリスト', route: '/mypage/blocks' },
-  { icon: 'information-circle-outline', label: 'ぐんぐんについて' },
-  { icon: 'mail-outline', label: 'お問い合わせ' },
-  { icon: 'exit-outline', label: 'ログアウト' },
-  { icon: 'trash-outline', label: '退会', danger: true },
+  { icon: 'information-circle-outline', label: 'ぐんぐんについて', action: 'about' },
+  { icon: 'mail-outline', label: 'お問い合わせ', action: 'contact' },
+  { icon: 'exit-outline', label: 'ログアウト', action: 'logout' },
+  { icon: 'trash-outline', label: '退会', action: 'withdraw', danger: true },
 ];
 
 function Stat({ n, label }: { n: number; label: string }) {
@@ -31,6 +35,14 @@ function Stat({ n, label }: { n: number; label: string }) {
 
 export default function MyPage() {
   const insets = useSafeAreaInsets();
+  const { signOut } = useAuth();
+  const [sheet, setSheet] = useState<Action | null>(null);
+
+  const onMenu = (m: (typeof MENU)[number]) => {
+    if (m.route) { router.push(m.route as never); return; }
+    if (m.action) setSheet(m.action);
+  };
+
   return (
     <View style={styles.root}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: 170 }}>
@@ -82,7 +94,7 @@ export default function MyPage() {
         {/* メニュー */}
         <View style={[styles.menu, shadows.soft]}>
           {MENU.map((m, i) => (
-            <PressableScale key={m.label} activeScale={0.99} onPress={() => m.route && router.push(m.route as never)} style={[styles.menuRow, i < MENU.length - 1 && styles.menuBorder]}>
+            <PressableScale key={m.label} activeScale={0.99} onPress={() => onMenu(m)} style={[styles.menuRow, i < MENU.length - 1 && styles.menuBorder]}>
               <Ionicons name={m.icon} size={22} color={m.danger ? '#D5675C' : colors.green} />
               <Text style={[styles.menuLabel, m.danger && { color: '#D5675C' }]}>{m.label}</Text>
               <Ionicons name="chevron-forward" size={18} color={colors.textPlaceholder} style={{ marginLeft: 'auto' }} />
@@ -90,12 +102,80 @@ export default function MyPage() {
           ))}
         </View>
       </ScrollView>
+
+      {/* ぐんぐんについて */}
+      <BottomSheetModal visible={sheet === 'about'} onClose={() => setSheet(null)}>
+        <Text style={styles.sheetTitle}>ぐんぐんについて</Text>
+        <Text style={styles.sheetBody}>
+          「ぐんぐん」は、いらなくなったものを植えて、みんなの水やり（交換希望）で育て、
+          わらしべ長者のように交換の輪をつくるC2Cアプリです。{'\n\n'}バージョン 1.0.0（プレビュー）
+        </Text>
+        <PressableScale onPress={() => setSheet(null)} activeScale={0.97} style={[styles.sheetBtn, shadows.button]}>
+          <Text style={styles.sheetBtnText}>閉じる</Text>
+        </PressableScale>
+      </BottomSheetModal>
+
+      {/* お問い合わせ */}
+      <BottomSheetModal visible={sheet === 'contact'} onClose={() => setSheet(null)}>
+        <Text style={styles.sheetTitle}>お問い合わせ</Text>
+        <Text style={styles.sheetBody}>
+          ご不明な点・不具合のご報告は、以下までお気軽にご連絡ください。
+        </Text>
+        <PressableScale
+          onPress={() => { Linking.openURL('mailto:support@gungun.app').catch(() => {}); setSheet(null); }}
+          activeScale={0.97}
+          style={[styles.sheetBtn, shadows.button]}
+        >
+          <Ionicons name="mail" size={18} color={colors.white} />
+          <Text style={styles.sheetBtnText}>support@gungun.app にメール</Text>
+        </PressableScale>
+      </BottomSheetModal>
+
+      {/* ログアウト */}
+      <BottomSheetModal visible={sheet === 'logout'} onClose={() => setSheet(null)}>
+        <Text style={styles.sheetTitle}>ログアウトしますか？</Text>
+        <PressableScale
+          onPress={() => { setSheet(null); signOut(); router.replace('/(auth)/login'); }}
+          activeScale={0.97}
+          style={[styles.sheetBtn, shadows.button]}
+        >
+          <Text style={styles.sheetBtnText}>ログアウト</Text>
+        </PressableScale>
+        <PressableScale onPress={() => setSheet(null)} activeScale={0.98} style={styles.sheetCancel}>
+          <Text style={styles.sheetCancelText}>キャンセル</Text>
+        </PressableScale>
+      </BottomSheetModal>
+
+      {/* 退会 */}
+      <BottomSheetModal visible={sheet === 'withdraw'} onClose={() => setSheet(null)}>
+        <Text style={styles.sheetTitle}>本当に退会しますか？</Text>
+        <Text style={styles.sheetBody}>
+          退会すると、出品・水やり・肥料などのデータがすべて削除され、元に戻せません。
+        </Text>
+        <PressableScale
+          onPress={() => { warning(); setSheet(null); signOut(); router.replace('/(auth)/login'); }}
+          activeScale={0.97}
+          style={[styles.sheetDanger, shadows.button]}
+        >
+          <Text style={styles.sheetBtnText}>退会する</Text>
+        </PressableScale>
+        <PressableScale onPress={() => setSheet(null)} activeScale={0.98} style={styles.sheetCancel}>
+          <Text style={styles.sheetCancelText}>キャンセル</Text>
+        </PressableScale>
+      </BottomSheetModal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
+  sheetTitle: { fontFamily: fonts.bold, fontSize: 17, color: colors.textPrimary, textAlign: 'center' },
+  sheetBody: { fontFamily: fonts.medium, fontSize: 13, lineHeight: 21, color: colors.textSecondary, textAlign: 'center', marginTop: 8, marginBottom: spacing.lg },
+  sheetBtn: { flexDirection: 'row', gap: spacing.sm, height: 54, borderRadius: radius.pill, backgroundColor: colors.green, justifyContent: 'center', alignItems: 'center', marginTop: spacing.md },
+  sheetDanger: { height: 54, borderRadius: radius.pill, backgroundColor: '#D5675C', justifyContent: 'center', alignItems: 'center', marginTop: spacing.md },
+  sheetBtnText: { fontFamily: fonts.bold, fontSize: 15.5, color: colors.white },
+  sheetCancel: { height: 48, justifyContent: 'center', alignItems: 'center', marginTop: spacing.xs },
+  sheetCancelText: { fontFamily: fonts.bold, fontSize: 14.5, color: colors.textSecondary },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20, paddingBottom: spacing.lg },
   title: { fontFamily: fonts.bold, fontSize: 20, color: colors.textPrimary },
   settingsBtn: { position: 'absolute', right: 20, padding: 4 },
