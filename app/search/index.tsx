@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: 12, paddingBottom: spacing.md },
   back: { width: 36, height: 44, justifyContent: 'center', alignItems: 'center' },
   searchBar: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.card, borderRadius: radius.pill, height: 46, paddingHorizontal: spacing.lg },
-  input: { flex: 1, fontFamily: fonts.medium, fontSize: 15, color: colors.textPrimary },
+  input: { flex: 1, minWidth: 0, fontFamily: fonts.medium, fontSize: 15, color: colors.textPrimary },
   chipsRow: { maxHeight: 64, flexGrow: 0 },
   chips: { paddingHorizontal: 20, gap: spacing.sm, paddingVertical: 12, alignItems: 'center' },
   chip: { paddingHorizontal: 16, height: 34, borderRadius: radius.pill, backgroundColor: colors.card, justifyContent: 'center', ...shadows.soft },

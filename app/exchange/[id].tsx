@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
   waitBox: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.bgWarm, borderRadius: radius.md, padding: spacing.md },
   waitText: { flex: 1, fontFamily: fonts.medium, fontSize: 12.5, color: colors.textSecondary },
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  input: { flex: 1, backgroundColor: colors.cardMuted, borderRadius: 999, paddingHorizontal: spacing.lg, paddingVertical: 10, fontFamily: fonts.regular, fontSize: 14.5, color: colors.textPrimary },
+  input: { flex: 1, minWidth: 0, backgroundColor: colors.cardMuted, borderRadius: 999, paddingHorizontal: spacing.lg, paddingVertical: 10, fontFamily: fonts.regular, fontSize: 14.5, color: colors.textPrimary },
   send: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
   reportCenter: { alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md },
   reportIcon: { width: 68, height: 68, borderRadius: 34, justifyContent: 'center', alignItems: 'center', marginBottom: spacing.sm },

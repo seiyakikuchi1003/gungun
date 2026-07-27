@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, fonts, shadows } from '@/theme';
 import { PressableScale } from './PressableScale';
-import { Mikan } from '@/components/art/Mikan';
+import { MikanWander } from '@/components/art/MikanWander';
 
 type TabMeta = { label: string; icon: keyof typeof Ionicons.glyphMap };
 
@@ -46,7 +46,8 @@ export function BottomNav({ state, navigation }: TabBarProps) {
           return (
             <PressableScale key={route.key} onPress={onPress} activeScale={0.9} style={styles.centerTab}>
               <View style={[styles.centerCircle, shadows.button]}>
-                <Mikan size={44} />
+                {/* みかんは円の中をうろうろ動く（固定表示にしない） */}
+                <MikanWander size={42} range={7} duration={3600} />
               </View>
               <Text style={[styles.label, styles.centerLabel, focused && styles.labelActiveOrange]}>
                 {meta.label}

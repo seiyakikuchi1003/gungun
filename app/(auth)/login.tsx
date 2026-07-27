@@ -82,7 +82,7 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  container: { flex: 1, paddingHorizontal: 28, justifyContent: 'center' },
+  container: { flex: 1, paddingHorizontal: 20, justifyContent: 'center' },
   header: { alignItems: 'center', marginBottom: 44 },
   tagline: {
     marginTop: 18,

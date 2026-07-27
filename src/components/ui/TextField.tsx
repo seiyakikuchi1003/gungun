@@ -81,6 +81,8 @@ const styles = StyleSheet.create({
   left: { marginRight: 2 },
   input: {
     flex: 1,
+    // minWidth:0 が無いと、入力欄が内容分の幅を主張して右アイコンを枠外へ押し出す
+    minWidth: 0,
     fontFamily: fonts.medium,
     fontSize: 16,
     color: colors.textPrimary,

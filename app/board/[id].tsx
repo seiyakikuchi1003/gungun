@@ -130,6 +130,6 @@ const styles = StyleSheet.create({
   cBody: { fontFamily: fonts.regular, fontSize: 14, lineHeight: 21, color: colors.textPrimary, marginTop: 3 },
   empty: { fontFamily: fonts.regular, fontSize: 13.5, color: colors.textSecondary, textAlign: 'center', marginTop: 20 },
   inputBar: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.card, paddingHorizontal: spacing.lg, paddingTop: spacing.md, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
-  input: { flex: 1, backgroundColor: colors.cardMuted, borderRadius: 999, paddingHorizontal: spacing.lg, paddingVertical: 10, fontFamily: fonts.regular, fontSize: 14.5, color: colors.textPrimary },
+  input: { flex: 1, minWidth: 0, backgroundColor: colors.cardMuted, borderRadius: 999, paddingHorizontal: spacing.lg, paddingVertical: 10, fontFamily: fonts.regular, fontSize: 14.5, color: colors.textPrimary },
   send: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.green, justifyContent: 'center', alignItems: 'center' },
 });

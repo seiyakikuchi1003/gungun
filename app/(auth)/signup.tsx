@@ -80,7 +80,7 @@ export default function SignupScreen() {
 
 const styles = StyleSheet.create({
   back: { position: 'absolute', top: 8, left: 16, zIndex: 10, padding: 6 },
-  container: { paddingHorizontal: 28, paddingTop: 12, paddingBottom: 40 },
+  container: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 40 },
   header: { alignItems: 'center', marginBottom: 28 },
   title: { fontFamily: fonts.black, fontSize: 40, color: colors.green, marginTop: 8, letterSpacing: 4 },
   subtitle: { fontFamily: fonts.medium, fontSize: 16, color: colors.textPrimary, marginTop: 6 },

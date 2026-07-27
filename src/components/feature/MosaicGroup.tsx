@@ -17,7 +17,7 @@ type Props = {
   onPressItem: (item: MockItem) => void;
 };
 
-const PAD = 16;
+const PAD = 20; // 他セクション（みんなの種の見出し等）と左端を揃える
 const GAP = 8;
 
 function ribbonOf(item: MockItem): 'NEW' | 'HOT' | null {
@@ -85,12 +85,6 @@ export function MosaicGroup({ title, subtitle, items, width, onPressItem }: Prop
           <Text style={styles.title} numberOfLines={1}>{title}</Text>
           {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
         </View>
-        <PressableScale activeScale={0.9} style={styles.hIcon}>
-          <Ionicons name="heart-outline" size={20} color={colors.textSecondary} />
-        </PressableScale>
-        <PressableScale activeScale={0.9} style={styles.hIcon}>
-          <Ionicons name="ellipsis-horizontal" size={20} color={colors.textSecondary} />
-        </PressableScale>
       </View>
 
       {/* ヒーロー行：大1枚 ＋ 小1〜2枚（縦積み） */}
@@ -122,7 +116,6 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: PAD, marginBottom: spacing.md },
   title: { fontFamily: fonts.black, fontSize: 17, color: colors.textPrimary },
   subtitle: { fontFamily: fonts.medium, fontSize: 12, color: colors.textSecondary, marginTop: 2 },
-  hIcon: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.card, justifyContent: 'center', alignItems: 'center', ...shadows.soft },
   heroRow: { flexDirection: 'row', gap: GAP, paddingHorizontal: PAD },
   rest: { flexDirection: 'row', flexWrap: 'wrap', gap: GAP, paddingHorizontal: PAD, marginTop: GAP },
   card: { borderRadius: 16, overflow: 'hidden', backgroundColor: colors.cardMuted },

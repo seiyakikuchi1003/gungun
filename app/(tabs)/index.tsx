@@ -16,9 +16,11 @@ import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { RefreshSpinner } from '@/components/ui/RefreshSpinner';
 import { MosaicGroup } from '@/components/feature/MosaicGroup';
+import { PlantFab } from '@/components/feature/PlantFab';
 import { LoginBonusSheet } from '@/components/feature/LoginBonusSheet';
 import { Sprout } from '@/components/art/Sprout';
 import { Mikan } from '@/components/art/Mikan';
+import { GiftBox } from '@/components/art/GiftBox';
 import { WateringCan } from '@/components/art/WateringCan';
 import { LeafDecor } from '@/components/art/LeafDecor';
 import { currentUser, howToSteps } from '@/data/mock';
@@ -121,7 +123,7 @@ export default function HomeScreen() {
           {/* 左：現在の肥料 */}
           <View style={[styles.infoCard, shadows.card]}>
             <View pointerEvents="none" style={styles.cardLeaf}>
-              <LeafDecor width={78} height={92} opacity={0.5} />
+              <LeafDecor width={74} height={88} opacity={0.35} />
             </View>
             <Text style={styles.infoLabel}>現在の肥料</Text>
             <View style={styles.fertBody}>
@@ -137,10 +139,8 @@ export default function HomeScreen() {
           <View style={[styles.infoCard, shadows.card]}>
             <Text style={styles.infoLabel}>ログインボーナス</Text>
             <View style={styles.bonusBody}>
-              <View style={styles.giftIcon}>
-                <Ionicons name="gift" size={26} color={colors.orangeDeep} />
-              </View>
-              <Text style={styles.bonusValue}>毎日 +40肥料</Text>
+              <GiftBox size={46} />
+              <Text style={styles.bonusValue}>毎日{'\n'}+40肥料</Text>
             </View>
             <PressableScale
               onPress={() => { setClaimed(true); setShowBonus(true); }}
@@ -214,25 +214,8 @@ export default function HomeScreen() {
       {/* X風のカスタム更新スピナー（引っ張りに連動して回転） */}
       <RefreshSpinner pullY={scrollY} refreshing={refreshing} topOffset={insets.top + 6} />
 
-      {/* 「タネを植える」FAB（右下・ラベル付き拡張FAB） */}
-      <PressableScale
-        onPress={() => router.push('/plant/seed')}
-        accessibilityLabel="タネを植える（出品する）"
-        activeScale={0.96}
-        style={styles.fabWrap}
-      >
-        <LinearGradient
-          colors={[colors.green, colors.greenDeep]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[styles.fab, shadows.button]}
-        >
-          <View style={styles.fabIcon}>
-            <Sprout size={20} color={colors.green} />
-          </View>
-          <Text style={styles.fabText}>タネを植える</Text>
-        </LinearGradient>
-      </PressableScale>
+      {/* 「タネを植える」FAB（スクロールで畳まれる拡張FAB） */}
+      <PlantFab scrollY={scrollY} onPress={() => router.push('/plant/seed')} bottom={26} />
 
       {/* ログインボーナスのスタンプカレンダー */}
       <LoginBonusSheet visible={showBonus} claimedToday={claimed} onClose={() => setShowBonus(false)} />
@@ -288,7 +271,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     justifyContent: 'space-between',
   },
-  cardLeaf: { position: 'absolute', right: -14, bottom: -16 },
+  cardLeaf: { position: 'absolute', right: -26, bottom: -30 },
   infoLabel: { fontFamily: fonts.bold, fontSize: 12, color: colors.textSecondary, textAlign: 'center' },
   // 左カード
   fertBody: { alignItems: 'center', marginTop: 2 },
@@ -296,9 +279,8 @@ const styles = StyleSheet.create({
   fertNum: { fontFamily: fonts.black, fontSize: 34, color: colors.textPrimary, includeFontPadding: false, letterSpacing: -0.5 },
   fertUnit: { fontFamily: fonts.bold, fontSize: 12, color: colors.textSecondary, marginBottom: 6 },
   // 右カード
-  bonusBody: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: spacing.sm, marginBottom: spacing.md },
-  giftIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.orangeSoft, justifyContent: 'center', alignItems: 'center' },
-  bonusValue: { flex: 1, fontFamily: fonts.bold, fontSize: 13, color: colors.textPrimary },
+  bonusBody: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6, marginBottom: spacing.md },
+  bonusValue: { flex: 1, fontFamily: fonts.bold, fontSize: 13, lineHeight: 18, color: colors.textPrimary },
   claimBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 3, height: 38, borderRadius: radius.pill },
   claimText: { fontFamily: fonts.black, fontSize: 13.5, color: colors.white },
   sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: spacing.md },
@@ -319,24 +301,4 @@ const styles = StyleSheet.create({
   stepArt: { height: 40, justifyContent: 'center', alignItems: 'center' },
   stepTitle: { fontFamily: fonts.bold, fontSize: 13, color: colors.textPrimary, marginTop: 2 },
   stepDesc: { fontFamily: fonts.regular, fontSize: 11, lineHeight: 16, color: colors.textSecondary, textAlign: 'center' },
-  fabWrap: { position: 'absolute', right: 20, bottom: 26 },
-  fab: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 9,
-    height: 58,
-    paddingLeft: 8,
-    paddingRight: 24,
-    borderRadius: 29,
-  },
-  fabIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: colors.white,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...shadows.soft,
-  },
-  fabText: { fontFamily: fonts.black, fontSize: 15.5, color: colors.white, letterSpacing: 0.2 },
 });
