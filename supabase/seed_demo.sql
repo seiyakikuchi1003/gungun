@@ -29,6 +29,11 @@ declare
     '00000000-0000-0000-0000-0000000000a6'
   ]::uuid[];
 begin
+  -- fertilizer_ledger.related_item_id は items を参照している（cascade なし）ので
+  -- items を消す前にリンクを外す。デモユーザー分だけ NULL 化する。
+  update fertilizer_ledger set related_item_id = null
+   where user_id = any(demo_ids) or related_item_id in (select id from items where user_id = any(demo_ids));
+
   delete from items where user_id = any(demo_ids);
   delete from board_posts where user_id = any(demo_ids);
   -- auth.users を消せば profiles / fertilizer_ledger 等は cascade で消える
