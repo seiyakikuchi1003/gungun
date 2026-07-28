@@ -1,6 +1,6 @@
 # 次に何をするか（Mac 再開用メモ）
 
-最終更新：2026-07-23（クラウドセッションでの作業分）
+最終更新：2026-07-28（クラウドセッションでの作業分）
 
 ## Macですぐ再開する手順
 
@@ -28,6 +28,7 @@ npx expo start       # QRをExpo Goで読む（SDK 54）
 - `migrations/0001_schema.sql` … spec 2-2 のDDL（items1本で森を表現）＋ `app_settings`
 - `migrations/0002_functions.sql` … トリガ＋RPC（`get_ancestors` / `can_water` / `detach_children` / `harvest` / `plant_seed` / `water`）
 - `migrations/0003_rls.sql` … RLS土台＋肥料額などの既定値
+- `migrations/0004_admin.sql` … 管理画面用（`reports.status` / `profiles.is_suspended` / `admin_audit_log`）
 - `seed.sql` … デモの木をRPC経由で構築
 
 **検証済み**：仕様書のPhase-1テスト全17項目をローカルPostgresで実行し全PASS
@@ -54,6 +55,32 @@ psql "<connection string>" -f supabase/seed.sql
 EXPO_PUBLIC_SUPABASE_URL=...
 EXPO_PUBLIC_SUPABASE_ANON_KEY=...
 ```
+
+## 管理画面（`admin/`）
+
+Next.js App Router + Tailwind。ユーザー／商品／通報の運営と、アプリ設定（金額・肥料量）の変更ができる。
+詳しい手順は `admin/README.md`。
+
+```bash
+cd admin
+npm install
+cp .env.example .env.local   # SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY / ADMIN_PASSWORD
+npm run dev                  # http://localhost:3100
+```
+
+- **接続先は環境変数だけで決まる**。お客様の Supabase アカウントへ移すときにコード変更は不要
+- `SUPABASE_SERVICE_ROLE_KEY` は RLS を越える全権キー。サーバー専用・コミット禁止・共有禁止
+- URL に `NEXT_PUBLIC_` を付けないこと（ビルド時に値が焼き込まれ、デプロイ先で差し替えられなくなる）
+- `ADMIN_PASSWORD` 未設定だと誰でも開けるため、公開前に必ず設定する
+
+## お客様アカウントへの引き継ぎ
+
+1. お客様の Supabase で新規プロジェクト（推奨リージョン: Northeast Asia / Tokyo）
+2. `supabase db push` で `supabase/migrations/` を流す
+3. 必要ならデータを `pg_dump` / `psql` で移送
+4. 管理画面の環境変数を新しい URL / service_role キーに差し替え
+5. アプリの `.env`（`EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_ANON_KEY`）も差し替え
+6. 旧プロジェクトの service_role キーを失効させる
 
 ## 次にやる候補
 
