@@ -12,35 +12,41 @@ import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
 import { Mikan } from '@/components/art/Mikan';
 import { Sprout } from '@/components/art/Sprout';
 import { Avatar } from '@/components/ui/Avatar';
-import { getItem, getUser, items, currentUser, MockItem } from '@/data/mock';
+import { getUser, currentUser, MockItem } from '@/data/mock';
+import { useTree } from '@/store/tree';
 import { success } from '@/lib/haptics';
 
-/** デモ用：候補までの一本道の人数（根の自分＋途中の人数）。深さをそれらしく散らす */
-function ringSizeOf(index: number): number {
-  return 2 + (index % 3); // 2〜4人の輪
-}
-
-/** デモ用：輪に入るユーザー列（自分 → 途中の人たち → 最後は自分に戻る） */
-function ringUsersOf(target: MockItem, size: number) {
-  const others = ['takusan', 'sakura', 'yu', 'haru', 'kenta']
-    .filter((id) => id !== target.ownerId);
-  const mid = [target.ownerId, ...others].slice(0, size - 1);
-  return [currentUser, ...mid.map((id) => getUser(id))];
-}
-
+/**
+ * 収穫画面。
+ *
+ * ★重要な仕様（SPEC 2-3 / 3-4）
+ * 収穫は「選んだ商品までの“一本道”だけ」で成立する。木にぶら下がる全員ではない。
+ *   例）A(種) → B → D → F の木で D を選ぶと、輪は A・B・D の3人。
+ *       F や、途中で分かれた別の枝の人は輪に入らず、それぞれ新しいタネとして独立する。
+ * ここでは実際のツリー（parentId/rootId）から祖先ラインを引いて輪を組み立てる。
+ */
 export default function HarvestDetail() {
   const { rootId } = useLocalSearchParams<{ rootId: string }>();
   const insets = useSafeAreaInsets();
+  const { getItem, treeItems, ancestorsOf } = useTree();
   const seed = getItem(rootId ?? '');
   const [target, setTarget] = useState<MockItem | null>(null);
-  const [targetIndex, setTargetIndex] = useState(0);
   const [done, setDone] = useState(false);
 
   if (!seed) return <View style={styles.root} />;
-  // 集まった商品（デモ：seed 以外から数点）
-  const gathered = items.filter((i) => i.id !== seed.id).slice(0, 5);
-  const ringSize = ringSizeOf(targetIndex);
-  const ringUsers = target ? ringUsersOf(target, ringSize) : [];
+
+  // 集まった商品＝この木にぶら下がっている商品（種そのものは除く）
+  const gathered = treeItems(seed.id)
+    .filter((i) => i.id !== seed.id)
+    .sort((a, b) => a.depth - b.depth);
+
+  /** 選んだ商品までの一本道（root → … → target）。この人たちだけが輪になる */
+  const pathTo = (item: MockItem): MockItem[] =>
+    [...ancestorsOf(item.id)].sort((a, b) => a.depth - b.depth);
+
+  const path = target ? pathTo(target) : [];
+  // 輪から外れる件数（別の枝＋選んだ商品より先）＝それぞれ新しいタネとして独立する
+  const detachedCount = target ? gathered.length + 1 - path.length : 0;
 
   return (
     <View style={styles.root}>
@@ -57,7 +63,7 @@ export default function HarvestDetail() {
           <Thumb source={seed.local} uri={seed.image} style={styles.seedThumb} radius={radius.md} markSize={30} />
           <View style={{ flex: 1 }}>
             <Text style={styles.seedName}>{seed.name}</Text>
-            <Text style={styles.seedSub}>あなたのタネ・木全体 {seed.treeCount}件</Text>
+            <Text style={styles.seedSub}>あなたのタネ・木全体 {gathered.length + 1}件</Text>
           </View>
         </View>
 
@@ -65,10 +71,14 @@ export default function HarvestDetail() {
           <Sprout size={18} />
           <Text style={styles.gatherTitle}>集まった商品（{gathered.length}）</Text>
         </View>
-        <Text style={styles.hint}>収穫すると、選んだ商品までの一本道の全員が輪になって交換します</Text>
+        <Text style={styles.hint}>
+          ひとつ選ぶと、<Text style={styles.hintStrong}>その商品までの一本道の人だけ</Text>が輪になって交換します。
+          別の枝や、選んだ商品より先の人は輪に入らず、新しいタネとして独立します。
+        </Text>
 
-        {gathered.map((g, i) => {
+        {gathered.map((g) => {
           const u = getUser(g.ownerId);
+          const ring = pathTo(g); // この商品を選んだときの輪
           return (
             <View key={g.id} style={[styles.gCard, shadows.soft]}>
               <Thumb source={g.local} uri={g.image} style={styles.gThumb} radius={radius.md} markSize={26} />
@@ -76,56 +86,77 @@ export default function HarvestDetail() {
                 <Text style={styles.gName} numberOfLines={1}>{g.name}</Text>
                 <View style={styles.gMeta}>
                   <Text style={styles.gOwner}>{u.nickname}さん</Text>
-                  <View style={styles.ringChip}>
-                    <Ionicons name="sync" size={11} color={colors.green} />
-                    <Text style={styles.ringChipText}>{ringSizeOf(i)}人の輪</Text>
+                  <View style={styles.depthChip}>
+                    <Text style={styles.depthChipText}>{g.depth}段目</Text>
                   </View>
                 </View>
+                <View style={styles.ringChip}>
+                  <Ionicons name="sync" size={11} color={colors.green} />
+                  <Text style={styles.ringChipText}>{ring.length}人の輪</Text>
+                </View>
               </View>
-              <PressableScale onPress={() => { setTarget(g); setTargetIndex(i); }} activeScale={0.94} style={styles.harvestBtn}>
+              <PressableScale onPress={() => setTarget(g)} activeScale={0.94} style={styles.harvestBtn}>
                 <Text style={styles.harvestText}>収穫する</Text>
               </PressableScale>
             </View>
           );
         })}
+
+        {gathered.length === 0 && (
+          <Text style={styles.empty}>まだ水やりがありません。{'\n'}誰かが水やりすると、ここに商品が集まります。</Text>
+        )}
       </ScrollView>
 
       {/* 収穫確認 */}
       <BottomSheetModal visible={!!target && !done} onClose={() => setTarget(null)}>
         <View style={styles.confirmCenter}>
-          <Mikan size={96} />
+          <Mikan size={88} />
           <Text style={styles.confirmTitle}>この商品を収穫しますか？</Text>
-          <Text style={styles.confirmSub}>{target?.name} まで、一本道の全員で交換します</Text>
+          <Text style={styles.confirmSub}>{target?.name} まで、一本道の {path.length} 人で交換します</Text>
         </View>
 
-        {/* 交換の輪プレビュー：あなた → … → あなた */}
+        {/* 交換の輪：path[i]の品 → path[i+1]の人／最後は先頭（あなた）に戻る */}
         <View style={styles.ringBox}>
-          <Text style={styles.ringTitle}>{ringUsers.length}人の輪ができます</Text>
-          <View style={styles.ringRow}>
-            {ringUsers.map((u, i) => (
-              <React.Fragment key={`${u.id}-${i}`}>
-                <View style={styles.ringUser}>
-                  <Avatar uri={u.avatar} name={u.nickname} size={40} />
-                  <Text style={styles.ringName} numberOfLines={1}>
-                    {u.id === currentUser.id ? 'あなた' : u.nickname}
-                  </Text>
-                </View>
-                <Ionicons name="arrow-forward" size={14} color={colors.greenSoftBorder} style={styles.ringArrow} />
-              </React.Fragment>
-            ))}
+          <Text style={styles.ringTitle}>{path.length}人の輪ができます</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.ringRow}>
+            {path.map((node) => {
+              const u = getUser(node.ownerId);
+              const isMe = node.ownerId === currentUser.id;
+              return (
+                <React.Fragment key={node.id}>
+                  <View style={styles.ringUser}>
+                    <Avatar uri={u.avatar} name={u.nickname} size={40} />
+                    <Text style={styles.ringName} numberOfLines={1}>{isMe ? 'あなた' : u.nickname}</Text>
+                    <Text style={styles.ringItem} numberOfLines={1}>{node.name}</Text>
+                  </View>
+                  <Ionicons name="arrow-forward" size={14} color={colors.greenSoftBorder} style={styles.ringArrow} />
+                </React.Fragment>
+              );
+            })}
+            {/* 輪が閉じる：末端の品はあなたへ */}
             <View style={styles.ringUser}>
               <Avatar uri={currentUser.avatar} name={currentUser.nickname} size={40} />
               <Text style={styles.ringName}>あなた</Text>
+              <Text style={styles.ringItem}>（輪が閉じる）</Text>
             </View>
-          </View>
+          </ScrollView>
           <Text style={styles.ringNote}>それぞれ1回送って、1回受け取ります</Text>
         </View>
+
+        {detachedCount > 0 && (
+          <View style={styles.detachBox}>
+            <Sprout size={16} />
+            <Text style={styles.detachText}>
+              輪に入らない {detachedCount} 件は、それぞれ新しいタネとして独立します
+            </Text>
+          </View>
+        )}
 
         <View style={styles.noteBox}>
           <Ionicons name="alert-circle" size={18} color={colors.orangeDeep} />
           <Text style={styles.noteText}>収穫すると取り消せません。輪の全員に発送義務が発生します。</Text>
         </View>
-        <Button title="収穫する（交換開始）" variant="accent" onPress={() => { success(); setDone(true); }} style={{ marginTop: spacing.xl }} />
+        <Button title="収穫する（交換開始）" variant="accent" onPress={() => { success(); setDone(true); }} style={{ marginTop: spacing.lg }} />
         <PressableScale onPress={() => setTarget(null)} style={styles.cancel}>
           <Text style={styles.cancelText}>キャンセル</Text>
         </PressableScale>
@@ -158,26 +189,33 @@ const styles = StyleSheet.create({
   gatherHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.xl, marginBottom: spacing.xs },
   gatherTitle: { fontFamily: fonts.bold, fontSize: 16, color: colors.textPrimary },
   hint: { fontFamily: fonts.regular, fontSize: 12.5, color: colors.textSecondary, marginBottom: spacing.md, lineHeight: 19 },
+  hintStrong: { fontFamily: fonts.bold, color: colors.green },
   gCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.md, marginBottom: spacing.md },
   gThumb: { width: 56, height: 56 },
   gName: { fontFamily: fonts.bold, fontSize: 14.5, color: colors.textPrimary },
   gMeta: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: 3 },
   gOwner: { fontFamily: fonts.regular, fontSize: 12, color: colors.textSecondary },
-  ringChip: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: colors.greenSoft, paddingHorizontal: 8, paddingVertical: 2.5, borderRadius: radius.pill },
+  depthChip: { backgroundColor: colors.cardMuted, paddingHorizontal: 7, paddingVertical: 2, borderRadius: radius.pill },
+  depthChipText: { fontFamily: fonts.bold, fontSize: 10, color: colors.textSecondary },
+  ringChip: { flexDirection: 'row', alignItems: 'center', gap: 3, alignSelf: 'flex-start', backgroundColor: colors.greenSoft, paddingHorizontal: 8, paddingVertical: 2.5, borderRadius: radius.pill, marginTop: 5 },
   ringChipText: { fontFamily: fonts.bold, fontSize: 10.5, color: colors.green },
-  ringBox: { backgroundColor: colors.greenSoft, borderRadius: radius.card, padding: spacing.lg, marginTop: spacing.lg, alignItems: 'center' },
+  empty: { fontFamily: fonts.regular, fontSize: 13.5, lineHeight: 21, color: colors.textSecondary, textAlign: 'center', marginTop: 40 },
+  ringBox: { backgroundColor: colors.greenSoft, borderRadius: radius.card, padding: spacing.lg, marginTop: spacing.md, alignItems: 'center' },
   ringTitle: { fontFamily: fonts.bold, fontSize: 14, color: colors.greenDeep, marginBottom: spacing.md },
-  ringRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'center' },
-  ringUser: { alignItems: 'center', gap: 4, width: 54 },
-  ringName: { fontFamily: fonts.medium, fontSize: 10, color: colors.textPrimary },
+  ringRow: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 4 },
+  ringUser: { alignItems: 'center', gap: 3, width: 62 },
+  ringName: { fontFamily: fonts.bold, fontSize: 10.5, color: colors.textPrimary },
+  ringItem: { fontFamily: fonts.regular, fontSize: 9.5, color: colors.textSecondary },
   ringArrow: { marginTop: 13 },
   ringNote: { fontFamily: fonts.regular, fontSize: 11.5, color: colors.textSecondary, marginTop: spacing.md },
+  detachBox: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.bgWarm, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, padding: spacing.md, marginTop: spacing.md },
+  detachText: { flex: 1, fontFamily: fonts.medium, fontSize: 12, color: colors.textSecondary, lineHeight: 18 },
   harvestBtn: { backgroundColor: colors.orange, paddingHorizontal: 16, paddingVertical: 9, borderRadius: radius.pill },
   harvestText: { fontFamily: fonts.bold, fontSize: 13, color: colors.white },
   confirmCenter: { alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md },
   confirmTitle: { fontFamily: fonts.bold, fontSize: 20, color: colors.textPrimary, marginTop: spacing.sm },
   confirmSub: { fontFamily: fonts.regular, fontSize: 13.5, color: colors.textSecondary, textAlign: 'center', lineHeight: 21, paddingHorizontal: spacing.lg },
-  noteBox: { flexDirection: 'row', gap: spacing.sm, backgroundColor: colors.orangeSoft, borderRadius: radius.md, padding: spacing.md, marginTop: spacing.lg },
+  noteBox: { flexDirection: 'row', gap: spacing.sm, backgroundColor: colors.orangeSoft, borderRadius: radius.md, padding: spacing.md, marginTop: spacing.md },
   noteText: { flex: 1, fontFamily: fonts.medium, fontSize: 12.5, color: colors.orangeDeep, lineHeight: 19 },
   cancel: { alignItems: 'center', paddingVertical: spacing.lg },
   cancelText: { fontFamily: fonts.bold, fontSize: 15, color: colors.textSecondary },

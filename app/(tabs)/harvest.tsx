@@ -12,26 +12,28 @@ import { Badge } from '@/components/ui/Badge';
 import { Sprout } from '@/components/art/Sprout';
 import { Mikan } from '@/components/art/Mikan';
 import { LeafDecor } from '@/components/art/LeafDecor';
-import { items, MockItem } from '@/data/mock';
-
-// 自分（めたん）が植えたタネ＋デモ用に人気の種も表示
-const mySeeds: (MockItem & { tradeStatus: 'growing' | 'trading' })[] = [
-  { ...items.find((i) => i.id === 'switch')!, tradeStatus: 'growing' },
-  { ...items.find((i) => i.id === 'coffee')!, tradeStatus: 'trading' },
-  { ...items.find((i) => i.id === 'giftcard')!, tradeStatus: 'growing' },
-];
-
-/** 木全体の件数に応じた成長段階（畑の見た目に反映） */
-function growthOf(s: MockItem): { label: string; emoji: string } {
-  if (s.treeCount >= 10) return { label: 'おおきな木', emoji: '🌳' };
-  if (s.treeCount >= 4) return { label: 'すくすく成長中', emoji: '🌿' };
-  return { label: 'めばえ', emoji: '🌱' };
-}
+import { currentUser, MockItem, treeGrowth } from '@/data/mock';
+import { useTree } from '@/store/tree';
 
 export default function HarvestScreen() {
   const insets = useSafeAreaInsets();
-  const totalWater = mySeeds.reduce((a, s) => a + s.waterCount, 0);
-  const harvestable = mySeeds.filter((s) => s.tradeStatus === 'growing' && s.waterCount > 0).length;
+  const { items, treeItems } = useTree();
+
+  // 自分が植えたタネ（parentId=null）＝収穫の起点になれるもの
+  // デモの木を見せるため、自分の種が無い場合は水やりが集まっている木も表示する
+  const ownSeeds = items.filter((i) => i.parentId === null && i.ownerId === currentUser.id);
+  const demoSeeds = items
+    .filter((i) => i.parentId === null && treeItems(i.id).length > 1)
+    .slice(0, 3);
+  const mySeeds: MockItem[] = ownSeeds.length > 0 ? ownSeeds : demoSeeds;
+
+  /** その木にぶら下がっている件数（種を含む） */
+  const treeSizeOf = (s: MockItem) => treeItems(s.id).length;
+  /** 集まった水やり＝木の件数 - 種 */
+  const gatheredOf = (s: MockItem) => Math.max(0, treeSizeOf(s) - 1);
+
+  const totalWater = mySeeds.reduce((a, s) => a + gatheredOf(s), 0);
+  const harvestable = mySeeds.filter((s) => s.status === 'growing' && gatheredOf(s) > 0).length;
 
   return (
     <View style={styles.root}>
@@ -80,8 +82,10 @@ export default function HarvestScreen() {
         {/* タネ一覧 */}
         <Text style={styles.sectionTitle}>植えたタネ</Text>
         {mySeeds.map((s, i) => {
-          const g = growthOf(s);
-          const canHarvest = s.tradeStatus === 'growing' && s.waterCount > 0;
+          const size = treeSizeOf(s);
+          const gathered = gatheredOf(s);
+          const g = treeGrowth(size);
+          const canHarvest = s.status === 'growing' && gathered > 0;
           return (
             <Animated.View key={s.id} entering={FadeInDown.delay(80 + i * 70).duration(400)}>
               <PressableScale activeScale={0.98} onPress={() => router.push(`/harvest/${s.id}`)} style={[styles.card, shadows.card]}>
@@ -90,14 +94,14 @@ export default function HarvestScreen() {
                   <View style={{ flex: 1 }}>
                     <View style={styles.cardHead}>
                       <Text style={styles.name} numberOfLines={1}>{s.name}</Text>
-                      <Badge label={s.tradeStatus === 'trading' ? '取引中' : '出品中'} tone={s.tradeStatus === 'trading' ? 'orange' : 'green'} />
+                      <Badge label={s.status === 'trading' ? '取引中' : '出品中'} tone={s.status === 'trading' ? 'orange' : 'green'} />
                     </View>
                     <Text style={styles.growth}>{g.emoji} {g.label}</Text>
                     <View style={styles.metaRow}>
                       <Ionicons name="water" size={13} color={colors.green} />
-                      <Text style={styles.meta}>水やり <Text style={styles.metaNum}>{s.waterCount}</Text></Text>
+                      <Text style={styles.meta}>集まった商品 <Text style={styles.metaNum}>{gathered}</Text></Text>
                       <Sprout size={14} />
-                      <Text style={styles.meta}>木全体 <Text style={styles.metaNum}>{s.treeCount}</Text>件</Text>
+                      <Text style={styles.meta}>木全体 <Text style={styles.metaNum}>{size}</Text>件</Text>
                     </View>
                   </View>
                   <Ionicons name="chevron-forward" size={20} color={colors.textPlaceholder} />
@@ -122,7 +126,8 @@ export default function HarvestScreen() {
           <View style={{ flex: 1 }}>
             <Text style={styles.tipTitle}>収穫のしくみ</Text>
             <Text style={styles.tipBody}>
-              集まった商品からひとつ選ぶと、そこまでの一本道の全員が輪になって交換します。各自が1回送って1回受け取るだけ。
+              集まった商品からひとつ選ぶと、<Text style={styles.tipStrong}>選んだ商品までの一本道の人だけ</Text>が輪になって交換します。
+              別の枝や、その先に続く人は輪に入らず、新しいタネとして独立します。各自が1回送って1回受け取るだけ。
             </Text>
           </View>
         </Animated.View>
@@ -159,4 +164,5 @@ const styles = StyleSheet.create({
   tipIcon: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.orangeSoft, justifyContent: 'center', alignItems: 'center' },
   tipTitle: { fontFamily: fonts.bold, fontSize: 14, color: colors.textPrimary, marginBottom: 3 },
   tipBody: { fontFamily: fonts.regular, fontSize: 12.5, lineHeight: 19, color: colors.textSecondary },
+  tipStrong: { fontFamily: fonts.bold, color: colors.green },
 });

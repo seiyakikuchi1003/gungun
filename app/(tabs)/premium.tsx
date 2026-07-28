@@ -4,7 +4,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing, fonts, radius, shadows } from '@/theme';
-import { Button } from '@/components/ui/Button';
 import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { Mikan } from '@/components/art/Mikan';
@@ -35,6 +34,20 @@ export default function Premium() {
             <Text style={styles.price}>{formatPrice(settings.premiumMonthly)}</Text>
             <Text style={styles.priceUnit}>/ 月</Text>
           </View>
+
+          {/* CTAは一番上に置く（スクロールしないと登録できない状態を避ける） */}
+          <PressableScale
+            onPress={() => setConfirm(true)}
+            disabled={joined}
+            activeScale={0.97}
+            style={[styles.heroCta, shadows.button, joined && styles.heroCtaDone]}
+          >
+            <Text style={[styles.heroCtaText, joined && styles.heroCtaTextDone]}>
+              {joined ? 'プレミアム登録済み' : 'プレミアムに登録する'}
+            </Text>
+            {!joined && <Ionicons name="chevron-forward" size={17} color={colors.orangeDeep} />}
+          </PressableScale>
+          <Text style={styles.heroNote}>いつでも解約できます</Text>
         </LinearGradient>
 
         <View style={styles.features}>
@@ -50,12 +63,6 @@ export default function Premium() {
         </View>
 
         <View style={styles.ctaWrap}>
-          <Button
-            title={joined ? 'プレミアム登録済み' : 'プレミアムに登録する'}
-            variant="accent"
-            disabled={joined}
-            onPress={() => setConfirm(true)}
-          />
           <Text style={styles.note}>※ 料金・提供機能は調整中です（管理画面から変更可能）</Text>
         </View>
       </ScrollView>
@@ -96,6 +103,11 @@ const styles = StyleSheet.create({
   priceRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 4, marginTop: spacing.md },
   price: { fontFamily: fonts.black, fontSize: 32, color: colors.white },
   priceUnit: { fontFamily: fonts.bold, fontSize: 14, color: colors.white, marginBottom: 6 },
+  heroCta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, alignSelf: 'stretch', height: 52, borderRadius: radius.pill, backgroundColor: colors.white, marginTop: spacing.lg },
+  heroCtaDone: { backgroundColor: 'rgba(255,255,255,0.28)' },
+  heroCtaText: { fontFamily: fonts.black, fontSize: 16, color: colors.orangeDeep },
+  heroCtaTextDone: { color: colors.white },
+  heroNote: { fontFamily: fonts.medium, fontSize: 11.5, color: 'rgba(255,255,255,0.9)', marginTop: 8 },
   features: { paddingHorizontal: 20, marginTop: spacing.xl, gap: spacing.md },
   feature: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.lg },
   featIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#F7EAC9', justifyContent: 'center', alignItems: 'center' },
