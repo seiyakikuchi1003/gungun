@@ -49,6 +49,14 @@ const TABLES = [
   'reports', 'app_settings',
 ];
 
+// 0006 / 0007 で追加したもの。どれか欠けていると実機でエラー画面になる
+const VIEWS = ['item_cards', 'board_cards', 'profile_stats'];
+const LATE_TABLES = ['item_comments', 'admin_audit_log'];
+const RPCS = [
+  ['can_claim_login_bonus', {}],
+  ['my_profile', {}],
+];
+
 let failed = 0;
 
 console.log(`\n接続先: ${url}`);
@@ -66,6 +74,33 @@ if (missing.length === 0) {
   ng(`次のテーブルが読めません:\n     ${missing.join('\n     ')}`);
   console.log('     → SQL Editor で gungun-setup.sql を実行し直してください');
   failed++;
+}
+
+// ── 1-2. 追加ぶん（0006 / 0007）が入っているか ─────────────
+head('1-2. 追加SQL（0006 / 0007）の確認');
+{
+  const lack = [];
+  for (const v of [...VIEWS, ...LATE_TABLES]) {
+    const { error } = await db.from(v).select('*', { count: 'exact', head: true });
+    // admin_audit_log は一般ユーザーに公開していないので、権限エラーなら「ある」とみなす
+    if (error && !/permission|row-level/i.test(error.message)) lack.push(`${v}（${error.message}）`);
+  }
+  for (const [fn, args] of RPCS) {
+    const { error } = await db.rpc(fn, args);
+    if (error && /does not exist|schema cache/i.test(error.message)) lack.push(`${fn}()`);
+  }
+  // 掲示板のタグ列（0007）
+  const { error: tagErr } = await db.from('board_cards').select('tag').limit(1);
+  if (tagErr && /tag/i.test(tagErr.message)) lack.push('board_posts.tag');
+
+  if (lack.length === 0) {
+    ok('0006 / 0007 の追加ぶんが適用されています');
+  } else {
+    ng(`次が見つかりません:\n     ${lack.join('\n     ')}`);
+    console.log('     → SQL Editor で gungun-0006.sql → gungun-0007.sql を順に実行してください');
+    console.log('       （毎回、入力欄を全消ししてから貼り付ける）');
+    failed++;
+  }
 }
 
 // ── 2. アプリ設定（金額・肥料量）─────────────────────────
