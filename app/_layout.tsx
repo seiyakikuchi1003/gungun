@@ -7,6 +7,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
 import { colors } from '@/theme';
 import { AuthProvider } from '@/store/auth';
+import { AuthGate } from '@/components/AuthGate';
 import { TreeProvider } from '@/store/tree';
 import { BlocksProvider } from '@/store/blocks';
 import { LikesProvider } from '@/store/likes';
@@ -38,6 +39,7 @@ export default function RootLayout() {
             <LikesProvider>
             <NotificationsProvider>
             <StatusBar style="dark" />
+            <AuthGate>
             <Stack
               screenOptions={{
                 headerShown: false,
@@ -54,6 +56,7 @@ export default function RootLayout() {
               <Stack.Screen name="water/about" options={{ animation: 'slide_from_bottom', presentation: 'modal' }} />
               <Stack.Screen name="item/edit/[id]" options={{ animation: 'slide_from_bottom', presentation: 'modal' }} />
             </Stack>
+            </AuthGate>
             </NotificationsProvider>
             </LikesProvider>
             </BlocksProvider>

@@ -5,6 +5,7 @@ import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import { Screen } from '@/components/ui/Screen';
 import { TextField } from '@/components/ui/TextField';
 import { Button } from '@/components/ui/Button';
+import { FormError } from '@/components/ui/FormError';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { GunGunLogo } from '@/components/art/GunGunLogo';
 import { LeafDecor } from '@/components/art/LeafDecor';
@@ -13,9 +14,30 @@ import { colors, spacing, fonts } from '@/theme';
 import { useAuth } from '@/store/auth';
 
 export default function LoginScreen() {
-  const { signIn } = useAuth();
-  const [email, setEmail] = useState('demo@gungun.app');
-  const [password, setPassword] = useState('password123');
+  const { signIn, live } = useAuth();
+  // モック時だけデモ用の値を入れておく（実DB接続時は空から始める）
+  const [email, setEmail] = useState(live ? '' : 'demo@gungun.app');
+  const [password, setPassword] = useState(live ? '' : 'password123');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const onSubmit = async () => {
+    if (busy) return;
+    if (!email.trim() || !password) {
+      setError('メールアドレスとパスワードを入力してください');
+      return;
+    }
+    setError(null);
+    setBusy(true);
+    const res = await signIn(email, password);
+    setBusy(false);
+    if (res.error) {
+      setError(res.error);
+      return;
+    }
+    // 実DB接続時は AuthGate が遷移させるが、モックでも動くよう明示的に飛ばす
+    router.replace('/(tabs)');
+  };
 
   return (
     <Screen>
@@ -38,28 +60,33 @@ export default function LoginScreen() {
           </Animated.View>
 
           <Animated.View entering={FadeInDown.delay(120).duration(500)} style={styles.form}>
+            <FormError message={error} />
             <TextField
               leftIcon="mail"
               placeholder="メールアドレス"
               keyboardType="email-address"
               autoCapitalize="none"
+              autoComplete="email"
+              textContentType="emailAddress"
               value={email}
-              onChangeText={setEmail}
+              onChangeText={(t) => { setEmail(t); setError(null); }}
             />
             <TextField
               leftIcon="lock-closed"
               placeholder="パスワード"
               password
+              autoComplete="current-password"
+              textContentType="password"
               value={password}
-              onChangeText={setPassword}
+              onChangeText={(t) => { setPassword(t); setError(null); }}
+              onSubmitEditing={onSubmit}
+              returnKeyType="go"
             />
             <Button
               title="ログイン"
+              loading={busy}
               leftIcon={<Sprout size={22} color={colors.white} />}
-              onPress={() => {
-                signIn();
-                router.replace('/(tabs)');
-              }}
+              onPress={onSubmit}
               style={{ marginTop: spacing.sm }}
             />
             <PressableScale onPress={() => router.push('/(auth)/reset')} style={styles.forgot}>

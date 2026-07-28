@@ -77,6 +77,29 @@ npm run check:supabase
 
 テーブル18個・アプリ設定・デモデータ・RPC・RLS を順に確認して日本語で結果を出す。
 
+### 認証（Supabase Auth）
+
+`src/store/auth.tsx` が本物の認証。`.env` が未設定のときは従来のモックに自動フォールバックするので、
+プレビュー（Cloudflare Pages）は今までどおり誰でも触れる。
+
+| 画面 | 使う API |
+|---|---|
+| ログイン | `signInWithPassword` |
+| 新規登録 | `signUp`（`options.data.nickname` → トリガが profiles を作成） |
+| 認証コード | `verifyOtp`（type: `signup` / `recovery`）／`resend` |
+| パスワード再設定 | `resetPasswordForEmail` → コード確認 → `updateUser` |
+| 退会 | RPC `delete_own_account`（auth.users を消す。profiles は cascade） |
+
+`src/components/AuthGate.tsx` がセッションの有無で行き先を振り分ける（復元中はスピナー）。
+
+**⚠️ Supabase 側の設定が必要**（Authentication → Sign In / Providers → Email）
+
+- **開発中**：「Confirm email」を **OFF** にする。登録した瞬間にログイン状態になり、コード入力を挟まない
+- **本番**：Confirm email を ON にしたうえで、Authentication → Emails の
+  **Confirm signup / Reset password テンプレートに `{{ .Token }}` を入れる**。
+  既定のテンプレートはリンク（`{{ .ConfirmationURL }}`）のみで6桁コードが載らないため、
+  アプリのコード入力画面が使えない
+
 ### スキーマの流し方
 
 `supabase db push`（CLI をリンク済みの場合）か、`supabase/migrations/*.sql` を

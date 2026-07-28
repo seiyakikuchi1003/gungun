@@ -8,6 +8,7 @@ import { PressableScale } from '@/components/ui/PressableScale';
 import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
 import { Avatar } from '@/components/ui/Avatar';
 import { StarRating } from '@/components/ui/StarRating';
+import { FormError } from '@/components/ui/FormError';
 import { currentUser } from '@/data/mock';
 import { useAuth } from '@/store/auth';
 import { warning } from '@/lib/haptics';
@@ -35,8 +36,12 @@ function Stat({ n, label }: { n: number; label: string }) {
 
 export default function MyPage() {
   const insets = useSafeAreaInsets();
-  const { signOut } = useAuth();
+  const { signOut, deleteAccount, profile } = useAuth();
+  // ログイン中の本人の表示名。実DB接続時は profiles の値、モックでは従来どおり。
+  // ※ ID や所有判定はまだモック（currentUser.id）のまま。商品データの実DB化と一緒に切り替える。
+  const displayName = profile?.nickname ?? currentUser.nickname;
   const [sheet, setSheet] = useState<Action | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const onMenu = (m: (typeof MENU)[number]) => {
     if (m.route) { router.push(m.route as never); return; }
@@ -56,9 +61,9 @@ export default function MyPage() {
         {/* プロフィール */}
         <View style={[styles.profile, shadows.card]}>
           <View style={styles.profileTop}>
-            <Avatar uri={currentUser.avatar} name={currentUser.nickname} size={64} />
+            <Avatar uri={profile?.avatarUrl ?? currentUser.avatar} name={displayName} size={64} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.name}>{currentUser.nickname}さん</Text>
+              <Text style={styles.name}>{displayName}さん</Text>
               <View style={styles.ratingRow}>
                 <StarRating value={4.5} size={15} />
                 <Text style={styles.ratingText}>4.5（{currentUser.ratingCount}）</Text>
@@ -135,7 +140,7 @@ export default function MyPage() {
       <BottomSheetModal visible={sheet === 'logout'} onClose={() => setSheet(null)}>
         <Text style={styles.sheetTitle}>ログアウトしますか？</Text>
         <PressableScale
-          onPress={() => { setSheet(null); signOut(); router.replace('/(auth)/login'); }}
+          onPress={async () => { setSheet(null); await signOut(); router.replace('/(auth)/login'); }}
           activeScale={0.97}
           style={[styles.sheetBtn, shadows.button]}
         >
@@ -152,8 +157,16 @@ export default function MyPage() {
         <Text style={styles.sheetBody}>
           退会すると、出品・水やり・肥料などのデータがすべて削除され、元に戻せません。
         </Text>
+        <FormError message={deleteError} />
         <PressableScale
-          onPress={() => { warning(); setSheet(null); signOut(); router.replace('/(auth)/login'); }}
+          onPress={async () => {
+            warning();
+            setSheet(null);
+            // 実DB接続時はアカウントごと削除（RPC）。モックではログアウトのみ。
+            const res = await deleteAccount();
+            if (res.error) { setDeleteError(res.error); return; }
+            router.replace('/(auth)/login');
+          }}
           activeScale={0.97}
           style={[styles.sheetDanger, shadows.button]}
         >
