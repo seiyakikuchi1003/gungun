@@ -23,12 +23,13 @@ import { Mikan } from '@/components/art/Mikan';
 import { GiftBox } from '@/components/art/GiftBox';
 import { WateringCan } from '@/components/art/WateringCan';
 import { LeafDecor } from '@/components/art/LeafDecor';
-import { currentUser, howToSteps } from '@/data/mock';
+import { howToSteps } from '@/data/mock';
 import { useTree } from '@/store/tree';
 import { useBlocks } from '@/store/blocks';
 import { useNotifications } from '@/store/notifications';
 import { medium } from '@/lib/haptics';
 import { playSfx, preloadSfx } from '@/lib/sound';
+import { useMe } from '@/store/me';
 
 function HeaderIcon({ name, badge, onPress }: { name: keyof typeof Ionicons.glyphMap; badge?: boolean; onPress?: () => void }) {
   return (
@@ -46,6 +47,7 @@ const STEP_ART: Record<string, React.ReactNode> = {
 };
 
 export default function HomeScreen() {
+  const me = useMe();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const { items } = useTree();
@@ -133,7 +135,7 @@ export default function HomeScreen() {
             <View style={styles.fertBody}>
               <Sprout size={44} base />
               <View style={styles.fertNumRow}>
-                <Text style={styles.fertNum}>{currentUser.fertilizer.toLocaleString()}</Text>
+                <Text style={styles.fertNum}>{me.fertilizer.toLocaleString()}</Text>
                 <Text style={styles.fertUnit}>肥料</Text>
               </View>
             </View>

@@ -9,19 +9,20 @@ import { PressableScale } from '@/components/ui/PressableScale';
 import { Avatar } from '@/components/ui/Avatar';
 import { HeartButton } from '@/components/ui/HeartButton';
 import { ReportSheet } from '@/components/feature/ReportSheet';
-import { boardPosts, boardComments, TAG_META } from '@/data/mockSocial';
-import { getUser } from '@/data/mock';
+import { TAG_META } from '@/data/mockSocial';
+import { useBoardPost } from '@/hooks/useBoard';
+import { useMe } from '@/store/me';
 
 export default function BoardDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
-  const post = boardPosts.find((p) => p.id === id);
+  const me = useMe();
+  const { post, comments, addComment, removeComment } = useBoardPost(id ?? '');
   const [text, setText] = useState('');
-  const [comments, setComments] = useState(boardComments[id ?? ''] ?? []);
   const [report, setReport] = useState(false);
 
   if (!post) return <View style={styles.root} />;
-  const u = getUser(post.userId);
+  const u = { nickname: post.authorName, avatar: post.authorAvatar };
   const tag = TAG_META[post.tag];
 
   return (
@@ -66,7 +67,7 @@ export default function BoardDetail() {
 
         <Text style={styles.commentsTitle}>コメント {comments.length}</Text>
         {comments.map((c) => {
-          const cu = getUser(c.userId);
+          const cu = { nickname: c.authorName, avatar: c.authorAvatar };
           return (
             <View key={c.id} style={styles.comment}>
               <Avatar uri={cu.avatar} name={cu.nickname} size={36} />
@@ -96,7 +97,7 @@ export default function BoardDetail() {
             activeScale={0.9}
             onPress={() => {
               if (!text.trim()) return;
-              setComments((c) => [...c, { id: `t${c.length}`, userId: 'metan', body: text.trim(), createdAt: 'たった今' }]);
+              addComment(text);
               setText('');
             }}
             style={styles.send}

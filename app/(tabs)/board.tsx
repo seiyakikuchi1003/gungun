@@ -10,18 +10,21 @@ import { ExpandableFab } from '@/components/ui/ExpandableFab';
 import { PostCard } from '@/components/board/PostCard';
 import { PostActionSheet } from '@/components/feature/PostActionSheet';
 import { ReportSheet } from '@/components/feature/ReportSheet';
-import { boardPosts, boardTagFilters, trendingTags, type BoardPost } from '@/data/mockSocial';
-import { currentUser } from '@/data/mock';
+import { boardTagFilters, trendingTags } from '@/data/mockSocial';
+import { useBoard, type UIPost } from '@/hooks/useBoard';
 import { useBlocks } from '@/store/blocks';
+import { useMe } from '@/store/me';
 
 export default function BoardScreen() {
+  const me = useMe();
   const insets = useSafeAreaInsets();
   const { isBlocked } = useBlocks();
   const [filter, setFilter] = useState<string>('all');
   const [hidden, setHidden] = useState<string[]>([]); // 自分で削除した投稿ID
-  const [sheetPost, setSheetPost] = useState<BoardPost | null>(null);
+  const [sheetPost, setSheetPost] = useState<UIPost | null>(null);
   const [report, setReport] = useState(false);
-  const list = boardPosts.filter(
+  const { posts, loading, reload, remove } = useBoard();
+  const list = posts.filter(
     (p) =>
       (filter === 'all' || p.tag === filter) &&
       !isBlocked(p.userId) &&
@@ -88,7 +91,9 @@ export default function BoardScreen() {
           </Animated.View>
         ))}
         {list.length === 0 && (
-          <Text style={styles.empty}>表示できる投稿がありません</Text>
+          <Text style={styles.empty}>
+            {loading ? '読み込み中…' : '表示できる投稿がありません'}
+          </Text>
         )}
       </Animated.ScrollView>
 
@@ -108,9 +113,9 @@ export default function BoardScreen() {
           visible={!!sheetPost}
           onClose={() => setSheetPost(null)}
           authorId={sheetPost.userId}
-          isOwner={sheetPost.userId === currentUser.id}
+          isOwner={sheetPost.userId === me.id}
           onReport={() => setReport(true)}
-          onDelete={() => setHidden((h) => [...h, sheetPost.id])}
+          onDelete={() => { setHidden((h) => [...h, sheetPost.id]); remove(sheetPost.id); }}
         />
       )}
       <ReportSheet visible={report} onClose={() => setReport(false)} targetLabel="この投稿" />

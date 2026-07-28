@@ -12,16 +12,18 @@ import { Badge } from '@/components/ui/Badge';
 import { Sprout } from '@/components/art/Sprout';
 import { Mikan } from '@/components/art/Mikan';
 import { LeafDecor } from '@/components/art/LeafDecor';
-import { currentUser, MockItem, treeGrowth } from '@/data/mock';
+import { MockItem, treeGrowth } from '@/data/mock';
 import { useTree } from '@/store/tree';
+import { useMe } from '@/store/me';
 
 export default function HarvestScreen() {
+  const me = useMe();
   const insets = useSafeAreaInsets();
   const { items, treeItems } = useTree();
 
   // 自分が植えたタネ（parentId=null）＝収穫の起点になれるもの
   // デモの木を見せるため、自分の種が無い場合は水やりが集まっている木も表示する
-  const ownSeeds = items.filter((i) => i.parentId === null && i.ownerId === currentUser.id);
+  const ownSeeds = items.filter((i) => i.parentId === null && i.ownerId === me.id);
   const demoSeeds = items
     .filter((i) => i.parentId === null && treeItems(i.id).length > 1)
     .slice(0, 3);

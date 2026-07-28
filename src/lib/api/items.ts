@@ -1,6 +1,6 @@
 import { requireSupabase } from '@/lib/supabase';
 import type { MockItem } from '@/data/mock';
-import { ITEM_CARD_COLUMNS, toItem, type ItemCardRow } from './map';
+import { ITEM_CARD_COLUMNS, toItem, relativeTime, type ItemCardRow } from './map';
 
 /**
  * 商品（＝森のノード）の読み書き。
@@ -163,6 +163,50 @@ export async function harvest(rootId: string, targetId: string): Promise<string>
   const { data, error } = await sb.rpc('harvest', { p_root_id: rootId, p_target_id: targetId });
   if (error) throw error;
   return data as string;
+}
+
+// ── 商品へのコメント ────────────────────────────────────────
+
+export type ItemComment = {
+  id: string;
+  userId: string;
+  authorName: string;
+  authorAvatar: string;
+  body: string;
+  createdAt: string;
+};
+
+export async function fetchItemComments(itemId: string): Promise<ItemComment[]> {
+  const { data, error } = await requireSupabase()
+    .from('item_comments')
+    .select('id, user_id, body, created_at, profiles(nickname, avatar_url)')
+    .eq('item_id', itemId)
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+  return (data ?? []).map((r: any) => ({
+    id: r.id,
+    userId: r.user_id,
+    authorName: r.profiles?.nickname ?? '',
+    authorAvatar: r.profiles?.avatar_url ?? '',
+    body: r.body,
+    createdAt: relativeTime(r.created_at),
+  }));
+}
+
+export async function addItemComment(
+  itemId: string,
+  userId: string,
+  body: string
+): Promise<void> {
+  const { error } = await requireSupabase()
+    .from('item_comments')
+    .insert({ item_id: itemId, user_id: userId, body: body.trim() });
+  if (error) throw error;
+}
+
+export async function deleteItemComment(commentId: string): Promise<void> {
+  const { error } = await requireSupabase().from('item_comments').delete().eq('id', commentId);
+  if (error) throw error;
 }
 
 /** その種がすでに収穫済みか */

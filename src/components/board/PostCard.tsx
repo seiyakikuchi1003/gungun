@@ -6,12 +6,13 @@ import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { Avatar } from '@/components/ui/Avatar';
 import { HeartButton } from '@/components/ui/HeartButton';
-import { BoardPost, TAG_META } from '@/data/mockSocial';
-import { getUser } from '@/data/mock';
+import { TAG_META } from '@/data/mockSocial';
+import type { UIPost } from '@/hooks/useBoard';
 
 /** モダンなカード型の投稿。掲示板フィードの主役。 */
-export function PostCard({ post, onPress, onMore }: { post: BoardPost; onPress?: () => void; onMore?: () => void }) {
-  const u = getUser(post.userId);
+export function PostCard({ post, onPress, onMore }: { post: UIPost; onPress?: () => void; onMore?: () => void }) {
+  // 著者名・アバターは投稿の行が持っている（実DBでは UUID から引けないため）
+  const u = { nickname: post.authorName, avatar: post.authorAvatar };
   const tag = TAG_META[post.tag];
   return (
     <PressableScale onPress={onPress} activeScale={0.985} style={[styles.card, shadows.card]}>
@@ -39,8 +40,13 @@ export function PostCard({ post, onPress, onMore }: { post: BoardPost; onPress?:
 
       <Text style={styles.body}>{post.body}</Text>
 
-      {post.image != null && (
-        <Image source={post.image} style={styles.image} contentFit="cover" transition={200} />
+      {(post.image != null || post.imageUrl) && (
+        <Image
+          source={post.image ?? { uri: post.imageUrl! }}
+          style={styles.image}
+          contentFit="cover"
+          transition={200}
+        />
       )}
 
       <View style={styles.actions}>

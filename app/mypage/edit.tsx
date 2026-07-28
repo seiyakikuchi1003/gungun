@@ -8,11 +8,12 @@ import { PressableScale } from '@/components/ui/PressableScale';
 import { TextField } from '@/components/ui/TextField';
 import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
-import { currentUser } from '@/data/mock';
+import { useMe } from '@/store/me';
 
 export default function ProfileEdit() {
+  const me = useMe();
   const insets = useSafeAreaInsets();
-  const [nickname, setNickname] = useState(currentUser.nickname);
+  const [nickname, setNickname] = useState(me.nickname);
   const [bio, setBio] = useState('不要になったものを、必要な人へ🌱 気軽に水やりしてください！');
 
   return (
@@ -25,7 +26,7 @@ export default function ProfileEdit() {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
         <View style={styles.avatarWrap}>
-          <Avatar uri={currentUser.avatar} name={currentUser.nickname} size={96} />
+          <Avatar uri={me.avatar} name={me.nickname} size={96} />
           <PressableScale activeScale={0.9} style={[styles.camera, shadows.button]}>
             <Ionicons name="camera" size={18} color={colors.white} />
           </PressableScale>

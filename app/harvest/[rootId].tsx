@@ -12,9 +12,10 @@ import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
 import { Mikan } from '@/components/art/Mikan';
 import { Sprout } from '@/components/art/Sprout';
 import { Avatar } from '@/components/ui/Avatar';
-import { getUser, currentUser, MockItem } from '@/data/mock';
+import { getUser, MockItem } from '@/data/mock';
 import { useTree } from '@/store/tree';
 import { success } from '@/lib/haptics';
+import { useMe } from '@/store/me';
 
 /**
  * 収穫画面。
@@ -26,6 +27,7 @@ import { success } from '@/lib/haptics';
  * ここでは実際のツリー（parentId/rootId）から祖先ラインを引いて輪を組み立てる。
  */
 export default function HarvestDetail() {
+  const me = useMe();
   const { rootId } = useLocalSearchParams<{ rootId: string }>();
   const insets = useSafeAreaInsets();
   const { getItem, treeItems, ancestorsOf } = useTree();
@@ -121,7 +123,7 @@ export default function HarvestDetail() {
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.ringRow}>
             {path.map((node) => {
               const u = getUser(node.ownerId);
-              const isMe = node.ownerId === currentUser.id;
+              const isMe = node.ownerId === me.id;
               return (
                 <React.Fragment key={node.id}>
                   <View style={styles.ringUser}>
@@ -135,7 +137,7 @@ export default function HarvestDetail() {
             })}
             {/* 輪が閉じる：末端の品はあなたへ */}
             <View style={styles.ringUser}>
-              <Avatar uri={currentUser.avatar} name={currentUser.nickname} size={40} />
+              <Avatar uri={me.avatar} name={me.nickname} size={40} />
               <Text style={styles.ringName}>あなた</Text>
               <Text style={styles.ringItem}>（輪が閉じる）</Text>
             </View>

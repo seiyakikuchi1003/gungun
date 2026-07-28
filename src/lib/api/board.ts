@@ -10,6 +10,9 @@ export type BoardPost = {
   authorAvatar: string;
   body: string;
   imageUrl: string | null;
+  /** 交換報告／質問／雑談／お知らせ */
+  tag: 'harvest' | 'question' | 'chat' | 'notice';
+  pinned: boolean;
   createdAt: string; // 「3分前」などの表示用
   commentCount: number;
   likeCount: number;
@@ -27,7 +30,8 @@ export type BoardComment = {
 };
 
 const CARD_COLUMNS =
-  'id, user_id, author_nickname, author_avatar_url, body, image_url, created_at, comment_count, like_count';
+  'id, user_id, author_nickname, author_avatar_url, body, image_url, tag, pinned, ' +
+  'created_at, comment_count, like_count';
 
 function toPost(r: any, likedIds: Set<string>): BoardPost {
   return {
@@ -37,6 +41,8 @@ function toPost(r: any, likedIds: Set<string>): BoardPost {
     authorAvatar: r.author_avatar_url ?? '',
     body: r.body,
     imageUrl: r.image_url ?? null,
+    tag: r.tag ?? 'chat',
+    pinned: Boolean(r.pinned),
     createdAt: relativeTime(r.created_at),
     commentCount: Number(r.comment_count ?? 0),
     likeCount: Number(r.like_count ?? 0),
@@ -88,12 +94,13 @@ export async function fetchMyPosts(userId: string): Promise<BoardPost[]> {
 export async function createPost(
   userId: string,
   body: string,
+  tag: BoardPost['tag'] = 'chat',
   imageUrl?: string | null
 ): Promise<string> {
   const sb = requireSupabase();
   const { data, error } = await sb
     .from('board_posts')
-    .insert({ user_id: userId, body: body.trim(), image_url: imageUrl ?? null })
+    .insert({ user_id: userId, body: body.trim(), tag, image_url: imageUrl ?? null })
     .select('id')
     .single();
   if (error) throw error;

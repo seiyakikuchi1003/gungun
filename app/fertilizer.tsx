@@ -8,9 +8,10 @@ import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { Button } from '@/components/ui/Button';
 import { settings, formatPrice } from '@/config/settings';
-import { currentUser } from '@/data/mock';
+import { useMe } from '@/store/me';
 
 export default function Fertilizer() {
+  const me = useMe();
   const insets = useSafeAreaInsets();
   const [sel, setSel] = useState<string>(settings.chargePlans[1].id);
 
@@ -29,7 +30,7 @@ export default function Fertilizer() {
           <Text style={styles.balanceLabel}>現在の肥料</Text>
           <View style={styles.balanceRow}>
             <Ionicons name="leaf" size={22} color={colors.white} />
-            <Text style={styles.balanceNum}>{currentUser.fertilizer}</Text>
+            <Text style={styles.balanceNum}>{me.fertilizer}</Text>
             <Text style={styles.balanceUnit}>肥料</Text>
           </View>
         </LinearGradient>

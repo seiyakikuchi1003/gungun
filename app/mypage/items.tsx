@@ -9,16 +9,18 @@ import { TopTabs } from '@/components/ui/TopTabs';
 import { Thumb } from '@/components/ui/Thumb';
 import { Badge } from '@/components/ui/Badge';
 import { ItemActionSheet } from '@/components/feature/ItemActionSheet';
-import { currentUser, type MockItem } from '@/data/mock';
+import { type MockItem } from '@/data/mock';
 import { useTree } from '@/store/tree';
+import { useMe } from '@/store/me';
 
 export default function MyItems() {
+  const me = useMe();
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState('seed');
   const { items } = useTree();
   const [menuItem, setMenuItem] = useState<MockItem | null>(null);
   // 種植え＝自分の root（parentId=null）／水やり＝自分が水やりで出した子（parentId!=null）
-  const mine = items.filter((i) => i.ownerId === currentUser.id);
+  const mine = items.filter((i) => i.ownerId === me.id);
   const list = tab === 'seed' ? mine.filter((i) => i.parentId === null) : mine.filter((i) => i.parentId !== null);
 
   return (

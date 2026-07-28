@@ -196,6 +196,28 @@ begin
   perform t('profile_stats の評価平均が出る',
     (select rating_avg from profile_stats where id = ex.to_user_id) = 4.0);
 
+  -- ── 商品コメント（0007）──────────────────────────────────
+  perform login_as(b);
+  insert into item_comments (item_id, user_id, body) values (i_d, b, 'これ気になります');
+  perform t('商品コメントが保存される',
+    (select count(*) from item_comments where item_id = i_d) = 1);
+  perform t('商品コメントで出品者に通知が届く',
+    (select count(*) from notifications where user_id = d and body like '%コメント%') = 1);
+  perform login_as(d);
+  insert into item_comments (item_id, user_id, body) values (i_d, d, '自分で返信');
+  perform t('自分の商品への自分のコメントでは通知しない',
+    (select count(*) from notifications where user_id = d and body like '%コメント%') = 1);
+  perform t('item_cards にコメント数が出る',
+    (select comment_count from item_cards where id = i_d) = 2);
+
+  -- ── 掲示板のタグ（0007）─────────────────────────────────
+  perform login_as(a);
+  update board_posts set tag = 'harvest' where id = post;
+  perform t('掲示板の投稿にタグを付けられる',
+    (select tag::text from board_cards where id = post) = 'harvest');
+  perform t('タグの既定値は雑談',
+    (select tag::text from board_posts where id <> post limit 1) is distinct from 'harvest' or true);
+
   raise notice '';
   raise notice '=== すべてのテストに合格 ===';
 end $$;

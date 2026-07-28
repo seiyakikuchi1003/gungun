@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TextInput, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -9,8 +9,10 @@ import { PressableScale } from '@/components/ui/PressableScale';
 import { Avatar } from '@/components/ui/Avatar';
 import { Thumb } from '@/components/ui/Thumb';
 import { PhotoSourceSheet } from '@/components/feature/PhotoSourceSheet';
-import { currentUser } from '@/data/mock';
 import { TAG_META, BoardTag } from '@/data/mockSocial';
+import { useMe } from '@/store/me';
+import { useBoard } from '@/hooks/useBoard';
+import { FormError } from '@/components/ui/FormError';
 
 const MAX = 280;
 const TAGS: BoardTag[] = ['harvest', 'question', 'chat', 'notice'];
@@ -39,12 +41,38 @@ function CountRing({ used }: { used: number }) {
 }
 
 export default function NewPost() {
+  const me = useMe();
   const insets = useSafeAreaInsets();
   const [text, setText] = useState('');
   const [tag, setTag] = useState<BoardTag>('chat');
   const [photos, setPhotos] = useState<string[]>([]);
   const [photoSheet, setPhotoSheet] = useState(false);
-  const can = text.trim().length > 0;
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { create } = useBoard();
+  const can = text.trim().length > 0 && !busy;
+
+  const submit = async () => {
+    if (!can) return;
+    setError(null);
+    setBusy(true);
+    // 写真は1枚目だけ投稿に添える（DBの board_posts.image_url は1枚）
+    let imageUrl: string | null = null;
+    if (photos.length > 0 && me.live) {
+      try {
+        const { uploadImage } = await import('@/lib/api/storage');
+        imageUrl = await uploadImage(me.id, photos[0]);
+      } catch {
+        setBusy(false);
+        setError('写真をアップロードできませんでした');
+        return;
+      }
+    }
+    const res = await create(text, tag, imageUrl);
+    setBusy(false);
+    if (res.error) { setError(res.error); return; }
+    router.back();
+  };
 
   return (
     <View style={styles.root}>
@@ -54,19 +82,27 @@ export default function NewPost() {
           <Ionicons name="close" size={26} color={colors.textPrimary} />
         </PressableScale>
         <Text style={styles.title}>投稿する</Text>
-        <PressableScale onPress={() => can && router.back()} activeScale={0.94} style={[styles.post, shadows.button, !can && styles.postOff]}>
-          <Ionicons name="paper-plane" size={14} color={colors.white} />
-          <Text style={styles.postText}>投稿</Text>
+        <PressableScale onPress={submit} activeScale={0.94} style={[styles.post, shadows.button, !can && styles.postOff]}>
+          {busy ? (
+            <ActivityIndicator color={colors.white} size="small" />
+          ) : (
+            <>
+              <Ionicons name="paper-plane" size={14} color={colors.white} />
+              <Text style={styles.postText}>投稿</Text>
+            </>
+          )}
         </PressableScale>
       </View>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
+          {error ? <View style={{ marginBottom: 12 }}><FormError message={error} /></View> : null}
+
           {/* ユーザー＋公開範囲 */}
           <View style={styles.userRow}>
-            <Avatar uri={currentUser.avatar} name={currentUser.nickname} size={44} />
+            <Avatar uri={me.avatar} name={me.nickname} size={44} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.userName}>{currentUser.nickname}さん</Text>
+              <Text style={styles.userName}>{me.nickname}さん</Text>
               <View style={styles.publicChip}>
                 <Ionicons name="earth" size={12} color={colors.green} />
                 <Text style={styles.publicText}>みんなに公開</Text>

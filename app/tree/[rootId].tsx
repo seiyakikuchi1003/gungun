@@ -13,10 +13,12 @@ import { StarRating } from '@/components/ui/StarRating';
 import { Sprout } from '@/components/art/Sprout';
 import { TreeCanvas } from '@/components/feature/TreeCanvas';
 import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
-import { getUser, currentUser, treeGrowth } from '@/data/mock';
+import { getUser, treeGrowth } from '@/data/mock';
 import { useTree } from '@/store/tree';
+import { useMe } from '@/store/me';
 
 export default function TreeScreen() {
+  const me = useMe();
   const { rootId, new: newId } = useLocalSearchParams<{ rootId: string; new?: string }>();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -28,7 +30,7 @@ export default function TreeScreen() {
   if (!root) return <View style={styles.root} />;
 
   const owner = getUser(root.ownerId);
-  const mine = root.ownerId === currentUser.id;
+  const mine = root.ownerId === me.id;
   const rootChildren = childrenOf(root.id);
   const all = treeItems(root.id).sort((a, b) => a.depth - b.depth);
   const waterings = all.length - 1;

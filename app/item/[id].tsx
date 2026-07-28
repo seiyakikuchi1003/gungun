@@ -12,10 +12,11 @@ import { StarRating } from '@/components/ui/StarRating';
 import { Sprout } from '@/components/art/Sprout';
 import { ItemActionSheet } from '@/components/feature/ItemActionSheet';
 import { ReportSheet } from '@/components/feature/ReportSheet';
-import { getUser, currentUser, itemImageSources } from '@/data/mock';
-import { getItemComments } from '@/data/mockSocial';
+import { getUser, itemImageSources } from '@/data/mock';
 import { settings } from '@/config/settings';
 import { useTree } from '@/store/tree';
+import { useMe } from '@/store/me';
+import { useItemComments } from '@/hooks/useItemComments';
 
 function RoundBtn({ icon, onPress }: { icon: keyof typeof Ionicons.glyphMap; onPress?: () => void }) {
   return (
@@ -26,6 +27,7 @@ function RoundBtn({ icon, onPress }: { icon: keyof typeof Ionicons.glyphMap; onP
 }
 
 export default function ItemDetailScreen() {
+  const me = useMe();
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -35,7 +37,7 @@ export default function ItemDetailScreen() {
   const [menu, setMenu] = useState(false);
   const [report, setReport] = useState(false);
   const [ctext, setCtext] = useState('');
-  const [comments, setComments] = useState(() => getItemComments(id ?? ''));
+  const { comments, add: addComment, remove: removeComment } = useItemComments(id ?? '');
 
   if (!item) {
     return (
@@ -51,8 +53,8 @@ export default function ItemDetailScreen() {
   const treeThumbs = treeItems(item.rootId).filter((i) => i.id !== item.id);
   const gate = canWater(item.id);
   // すでにこの商品へ水やり済みか（自分の商品が子にいる）
-  const alreadyWatered = connected.some((c) => c.ownerId === currentUser.id);
-  const isOwner = item.ownerId === currentUser.id;
+  const alreadyWatered = connected.some((c) => c.ownerId === me.id);
+  const isOwner = item.ownerId === me.id;
   const imgH = width * 0.94;
 
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -165,19 +167,18 @@ export default function ItemDetailScreen() {
               <Text style={styles.commentCount}>{comments.length}件</Text>
             </View>
             {comments.map((c) => {
-              const cu = getUser(c.userId);
               const fromOwner = c.userId === owner.id;
-              const isMine = c.userId === currentUser.id;
+              const isMine = c.userId === me.id;
               return (
                 <View key={c.id} style={styles.comment}>
-                  <Avatar uri={cu.avatar} name={cu.nickname} size={34} />
+                  <Avatar uri={c.authorAvatar} name={c.authorName} size={34} />
                   <View style={[styles.bubble, fromOwner && styles.bubbleOwner]}>
                     <View style={styles.cHead}>
-                      <Text style={styles.cName}>{cu.nickname}{fromOwner ? '（出品者）' : ''}</Text>
+                      <Text style={styles.cName}>{c.authorName}{fromOwner ? '（出品者）' : ''}</Text>
                       <Text style={styles.cTime}>{c.createdAt}</Text>
                       {isMine && (
                         <PressableScale
-                          onPress={() => setComments((list) => list.filter((x) => x.id !== c.id))}
+                          onPress={() => removeComment(c.id)}
                           activeScale={0.8}
                           hitSlop={8}
                           style={styles.cDelete}
@@ -203,7 +204,7 @@ export default function ItemDetailScreen() {
               <PressableScale
                 onPress={() => {
                   if (!ctext.trim()) return;
-                  setComments((list) => [...list, { id: `ci${list.length}-${Date.now()}`, userId: currentUser.id, body: ctext.trim(), createdAt: 'たった今' }]);
+                  addComment(ctext);
                   setCtext('');
                 }}
                 activeScale={0.9}
