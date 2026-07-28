@@ -6,7 +6,8 @@
     "start": "expo start",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "export:web": "expo export --platform web"
+    "export:web": "expo export --platform web",
+    "check:supabase": "node scripts/check-supabase.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/m-plus-rounded-1c": "^0.4.4",

@@ -56,6 +56,32 @@ EXPO_PUBLIC_SUPABASE_URL=...
 EXPO_PUBLIC_SUPABASE_ANON_KEY=...
 ```
 
+## 開発用 Supabase プロジェクト
+
+2026-07-28 に作成。**Souzoh org とは別のアカウント**（`gungun-dev` org / 無料枠）。
+
+| 項目 | 値 |
+|---|---|
+| Project ref | `bypjhlfcqzebmukwzthi` |
+| Project URL | `https://bypjhlfcqzebmukwzthi.supabase.co` |
+| リージョン | Northeast Asia (Tokyo) |
+| ダッシュボード | https://supabase.com/dashboard/project/bypjhlfcqzebmukwzthi |
+
+キーは新形式（`sb_publishable_...` / `sb_secret_...`）。publishable は公開可、secret は絶対に共有しない。
+
+### 接続確認
+
+```bash
+npm run check:supabase
+```
+
+テーブル18個・アプリ設定・デモデータ・RPC・RLS を順に確認して日本語で結果を出す。
+
+### スキーマの流し方
+
+`supabase db push`（CLI をリンク済みの場合）か、`supabase/migrations/*.sql` を
+番号順に SQL Editor へ貼って実行する。デモデータは `supabase/seed.sql`。
+
 ## 管理画面（`admin/`）
 
 Next.js App Router + Tailwind。ユーザー／商品／通報の運営と、アプリ設定（金額・肥料量）の変更ができる。
