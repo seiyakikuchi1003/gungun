@@ -16,6 +16,7 @@ import { getUser, MockItem } from '@/data/mock';
 import { useTree } from '@/store/tree';
 import { success } from '@/lib/haptics';
 import { useMe } from '@/store/me';
+import { FormError } from '@/components/ui/FormError';
 
 /**
  * 収穫画面。
@@ -30,7 +31,9 @@ export default function HarvestDetail() {
   const me = useMe();
   const { rootId } = useLocalSearchParams<{ rootId: string }>();
   const insets = useSafeAreaInsets();
-  const { getItem, treeItems, ancestorsOf } = useTree();
+  const { getItem, treeItems, ancestorsOf, harvestSeed } = useTree();
+  const [busy, setBusy] = useState(false);
+  const [harvestError, setHarvestError] = useState<string | null>(null);
   const seed = getItem(rootId ?? '');
   const [target, setTarget] = useState<MockItem | null>(null);
   const [done, setDone] = useState(false);
@@ -158,7 +161,23 @@ export default function HarvestDetail() {
           <Ionicons name="alert-circle" size={18} color={colors.orangeDeep} />
           <Text style={styles.noteText}>収穫すると取り消せません。輪の全員に発送義務が発生します。</Text>
         </View>
-        <Button title="収穫する（交換開始）" variant="accent" onPress={() => { success(); setDone(true); }} style={{ marginTop: spacing.lg }} />
+        {harvestError ? <FormError message={harvestError} /> : null}
+        <Button
+          title="収穫する（交換開始）"
+          variant="accent"
+          loading={busy}
+          onPress={async () => {
+            if (!target || busy) return;
+            setHarvestError(null);
+            setBusy(true);
+            const res = await harvestSeed(seed.id, target.id);
+            setBusy(false);
+            if (res.error) { setHarvestError(res.error); return; }
+            success();
+            setDone(true);
+          }}
+          style={{ marginTop: spacing.lg }}
+        />
         <PressableScale onPress={() => setTarget(null)} style={styles.cancel}>
           <Text style={styles.cancelText}>キャンセル</Text>
         </PressableScale>

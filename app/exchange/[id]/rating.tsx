@@ -10,22 +10,34 @@ import { Button } from '@/components/ui/Button';
 import { StarRating } from '@/components/ui/StarRating';
 import { Avatar } from '@/components/ui/Avatar';
 import { Mikan } from '@/components/art/Mikan';
-import { trades, tradeUser } from '@/data/mockSocial';
+import { useExchange } from '@/hooks/useExchanges';
+import { FormError } from '@/components/ui/FormError';
 
 const GOOD = ['対応が丁寧', 'スムーズ', '説明通り', '発送が早い', '梱包が丁寧'];
 
 export default function RatingScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
-  const trade = trades.find((t) => t.id === id);
+  const { trade, busy, rate } = useExchange(id ?? '');
   const [score, setScore] = useState(0);
   const [tags, setTags] = useState<string[]>([]);
   const [comment, setComment] = useState('');
   const [done, setDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   if (!trade) return <View style={styles.root} />;
-  const u = tradeUser(trade);
+  const u = { nickname: trade.partnerName, avatar: trade.partnerAvatar };
   const isSend = trade.dir === 'send';
+
+  const submit = async () => {
+    if (score === 0 || busy) return;
+    setError(null);
+    // 選んだタグも本文に添えて残す（DB は comment 1本なので連結する）
+    const body = [tags.join('・'), comment.trim()].filter(Boolean).join('\n');
+    const res = await rate(score, body);
+    if (res.error) { setError(res.error); return; }
+    setDone(true);
+  };
   // 送った側→やり取りの円滑さ / 受け取った側→商品の質
   const question = isSend ? 'やり取りはスムーズでしたか？' : '商品の状態はいかがでしたか？';
 
@@ -85,7 +97,8 @@ export default function RatingScreen() {
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
-        <Button title="評価を送信する" disabled={score === 0} onPress={() => setDone(true)} />
+        {error ? <View style={{ marginBottom: 12 }}><FormError message={error} /></View> : null}
+        <Button title="評価を送信する" disabled={score === 0} loading={busy} onPress={submit} />
       </View>
     </View>
   );

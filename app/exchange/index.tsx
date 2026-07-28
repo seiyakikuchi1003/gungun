@@ -8,7 +8,7 @@ import { PressableScale } from '@/components/ui/PressableScale';
 import { TopTabs } from '@/components/ui/TopTabs';
 import { Thumb } from '@/components/ui/Thumb';
 import { Avatar } from '@/components/ui/Avatar';
-import { trades, tradeItem, tradeUser, Trade } from '@/data/mockSocial';
+import { useExchanges, type UITrade } from '@/hooks/useExchanges';
 
 /** 2ステップの進捗（発送→受取）。done は完了段階。 */
 function Steps({ labels, done, accent }: { labels: [string, string]; done: number; accent: string }) {
@@ -33,7 +33,7 @@ function Steps({ labels, done, accent }: { labels: [string, string]; done: numbe
   );
 }
 
-function actionHint(t: Trade): string {
+function actionHint(t: UITrade): string {
   if (t.dir === 'receive') return t.status === 'received' ? '取引完了・評価済み' : t.status === 'shipped' ? '届いたら受け取り報告を' : '相手の発送を待っています';
   return t.status === 'received' ? '取引完了' : t.status === 'shipped' ? '相手の受け取りを待っています' : '発送して報告しましょう';
 }
@@ -41,7 +41,8 @@ function actionHint(t: Trade): string {
 export default function ExchangeScreen() {
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<'receive' | 'send'>('receive');
-  const list = trades.filter((t) => t.dir === tab);
+  const { list: all, loading } = useExchanges();
+  const list = all.filter((t) => t.dir === tab);
   const accent = tab === 'receive' ? colors.green : colors.orange;
   const actionCount = list.filter((t) => (tab === 'receive' ? t.status === 'shipped' : t.status === 'pending')).length;
 
@@ -80,8 +81,9 @@ export default function ExchangeScreen() {
         </View>
 
         {list.map((t) => {
-          const it = tradeItem(t);
-          const u = tradeUser(t);
+          // 商品名・相手名は取引の行が持っている（実DBでは UUID から引けない）
+          const it = { name: t.itemName, image: t.itemImage ?? '', local: undefined as number | undefined };
+          const u = { nickname: t.partnerName, avatar: t.partnerAvatar };
           if (!it) return null;
           const done = t.status === 'received' ? 2 : t.status === 'shipped' ? 1 : 0;
           const labels: [string, string] = t.dir === 'receive' ? ['相手が発送', '受け取り'] : ['発送', '相手が受け取り'];

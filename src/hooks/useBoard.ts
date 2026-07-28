@@ -13,6 +13,17 @@ import * as api from '@/lib/api/board';
  * 画面は BoardPost 型（mockSocial のもの）のまま使えるよう詰め替える。
  * DB 側の投稿は著者名・アバターを行に持っているので、それを添えて返す。
  */
+/** 画面が使うコメント型。モックのアバターは require の数値なので string だけでは足りない */
+export type UIComment = {
+  id: string;
+  postId: string;
+  userId: string;
+  authorName: string;
+  authorAvatar: string | number;
+  body: string;
+  createdAt: string;
+};
+
 export type UIPost = BoardPost & {
   authorName: string;
   authorAvatar: string | number;
@@ -123,14 +134,32 @@ export function useBoardPost(postId: string) {
   const live = isSupabaseEnabled;
   const me = useMe();
   const [post, setPost] = useState<UIPost | null>(null);
-  const [comments, setComments] = useState<api.BoardComment[]>([]);
+  const [comments, setComments] = useState<UIComment[]>([]);
   const [loading, setLoading] = useState(live);
 
   const load = useCallback(async () => {
     if (!live) {
-      const { getUser } = await import('@/data/mock');
+      const [{ getUser }, { boardComments }] = await Promise.all([
+        import('@/data/mock'),
+        import('@/data/mockSocial'),
+      ]);
       const p = mockPosts.find((x) => x.id === postId) ?? null;
       setPost(p ? mockToUIPost(p, getUser) : null);
+      // モックの初期コメントにも著者名を添える（画面が getUser を使わなくなったため）
+      setComments(
+        (boardComments[postId] ?? []).map((c) => {
+          const u = getUser(c.userId);
+          return {
+            id: c.id,
+            postId,
+            userId: c.userId,
+            authorName: u.nickname,
+            authorAvatar: u.avatar,
+            body: c.body,
+            createdAt: c.createdAt,
+          };
+        })
+      );
       setLoading(false);
       return;
     }
@@ -162,7 +191,7 @@ export function useBoardPost(postId: string) {
             postId,
             userId: me.id,
             authorName: me.nickname,
-            authorAvatar: typeof me.avatar === 'string' ? me.avatar : '',
+            authorAvatar: me.avatar,
             body: text,
             createdAt: 'たった今',
           },

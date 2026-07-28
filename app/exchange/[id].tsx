@@ -8,22 +8,22 @@ import { PressableScale } from '@/components/ui/PressableScale';
 import { Thumb } from '@/components/ui/Thumb';
 import { Button } from '@/components/ui/Button';
 import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
-import { trades, tradeItem, tradeUser, chatByTrade, ChatMsg } from '@/data/mockSocial';
+import { useExchange } from '@/hooks/useExchanges';
+import { FormError } from '@/components/ui/FormError';
 
 export default function ExchangeDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
-  const trade = trades.find((t) => t.id === id);
-  const [status, setStatus] = useState(trade?.status ?? 'pending');
-  const [msgs, setMsgs] = useState<ChatMsg[]>(chatByTrade[id ?? ''] ?? [
-    { id: 's', mine: false, body: '収穫が成立しました。取引を進めましょう🌱', time: '', system: true },
-  ]);
+  const { trade, messages: msgs, busy, error, send, markShipped, markReceived } = useExchange(id ?? '');
   const [text, setText] = useState('');
   const [report, setReport] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   if (!trade) return <View style={styles.root} />;
-  const it = tradeItem(trade)!;
-  const u = tradeUser(trade);
+  const status = trade.status;
+  // 商品名・相手名は取引の行が持っている（実DBでは UUID から引けない）
+  const it = { name: trade.itemName, image: trade.itemImage ?? '', local: undefined as number | undefined };
+  const u = { nickname: trade.partnerName, avatar: trade.partnerAvatar };
   const isSend = trade.dir === 'send';
   const accent = isSend ? colors.orange : colors.green;
 
@@ -62,7 +62,7 @@ export default function ExchangeDetail() {
               <View style={[styles.bubble, m.mine ? styles.mine : styles.theirs]}>
                 <Text style={[styles.msgText, m.mine && { color: colors.white }]}>{m.body}</Text>
               </View>
-              {m.time ? <Text style={styles.msgTime}>{m.time}</Text> : null}
+              {m.createdAt ? <Text style={styles.msgTime}>{m.createdAt}</Text> : null}
             </View>
           )
         )}
@@ -86,7 +86,7 @@ export default function ExchangeDetail() {
             activeScale={0.9}
             onPress={() => {
               if (!text.trim()) return;
-              setMsgs((m) => [...m, { id: `n${m.length}`, mine: true, body: text.trim(), time: 'たった今' }]);
+              send(text);
               setText('');
             }}
             style={[styles.send, { backgroundColor: accent }]}
@@ -107,18 +107,16 @@ export default function ExchangeDetail() {
             {isSend ? '相手に発送完了の通知が届きます。' : '受け取り報告をすると、相手に通知が届き、評価に進みます。'}
           </Text>
         </View>
+        {actionError ? <FormError message={actionError} /> : null}
         <Button
           title={isSend ? '発送完了を報告' : '受け取りを報告'}
           variant={isSend ? 'accent' : 'primary'}
-          onPress={() => {
+          loading={busy}
+          onPress={async () => {
+            setActionError(null);
+            const res = isSend ? await markShipped() : await markReceived();
+            if (res.error) { setActionError(res.error); return; }
             setReport(false);
-            if (isSend) {
-              setStatus('shipped');
-              setMsgs((m) => [...m, { id: 'sysS', mine: false, body: 'あなたが発送完了を報告しました', time: '', system: true }]);
-            } else {
-              setStatus('received');
-              setMsgs((m) => [...m, { id: 'sysR', mine: false, body: 'あなたが受け取りを報告しました', time: '', system: true }]);
-            }
           }}
           style={{ marginTop: spacing.lg }}
         />
