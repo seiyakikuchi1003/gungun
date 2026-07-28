@@ -22,7 +22,7 @@ export default function ExchangeDetail() {
   if (!trade) return <View style={styles.root} />;
   const status = trade.status;
   // 商品名・相手名は取引の行が持っている（実DBでは UUID から引けない）
-  const it = { name: trade.itemName, image: trade.itemImage ?? '', local: undefined as number | undefined };
+  const it = { name: trade.itemName, image: trade.itemImage ?? '', local: trade.itemLocal };
   const u = { nickname: trade.partnerName, avatar: trade.partnerAvatar };
   const isSend = trade.dir === 'send';
   const accent = isSend ? colors.orange : colors.green;

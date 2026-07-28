@@ -17,6 +17,8 @@ export type UITrade = Trade & {
   /** system メッセージ用（モックの ChatMsg と揃える） */
   itemName: string;
   itemImage: string | null;
+  /** モックのローカル画像（require の数値）。実DBでは undefined */
+  itemLocal?: number;
   partnerName: string;
   partnerAvatar: string | number;
   /** 自分が送る側か */
@@ -56,6 +58,7 @@ function mockToUITrade(t: Trade): UITrade {
     ...t,
     itemName: item?.name ?? '',
     itemImage: item?.image ?? null,
+    itemLocal: item?.local,
     partnerName: user?.nickname ?? '',
     partnerAvatar: user?.avatar ?? '',
     iAmSender: t.dir === 'send',

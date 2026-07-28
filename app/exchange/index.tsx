@@ -82,7 +82,7 @@ export default function ExchangeScreen() {
 
         {list.map((t) => {
           // 商品名・相手名は取引の行が持っている（実DBでは UUID から引けない）
-          const it = { name: t.itemName, image: t.itemImage ?? '', local: undefined as number | undefined };
+          const it = { name: t.itemName, image: t.itemImage ?? '', local: t.itemLocal };
           const u = { nickname: t.partnerName, avatar: t.partnerAvatar };
           if (!it) return null;
           const done = t.status === 'received' ? 2 : t.status === 'shipped' ? 1 : 0;
