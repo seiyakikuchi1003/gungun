@@ -12,11 +12,24 @@ end $$;
 create schema if not exists auth;
 create schema if not exists storage;
 
+-- 実 Supabase の auth.users に近い列構成（seed_demo.sql が流せるように）
 create table if not exists auth.users (
   id uuid primary key default gen_random_uuid(),
+  instance_id uuid,
+  aud text default 'authenticated',
+  role text default 'authenticated',
   email text unique,
+  encrypted_password text,
+  email_confirmed_at timestamptz,
+  raw_app_meta_data jsonb default '{}'::jsonb,
   raw_user_meta_data jsonb default '{}'::jsonb,
-  created_at timestamptz default now()
+  is_super_admin boolean default false,
+  confirmation_token text default '',
+  recovery_token text default '',
+  email_change_token_new text default '',
+  email_change text default '',
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
 );
 
 -- 「いま誰としてログインしているか」をセッション変数で切り替えられるようにする
