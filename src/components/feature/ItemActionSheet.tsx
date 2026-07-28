@@ -5,6 +5,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
 import { PressableScale } from '@/components/ui/PressableScale';
+import { FormError } from '@/components/ui/FormError';
 import { useTree } from '@/store/tree';
 import { useBlocks } from '@/store/blocks';
 import { getUser } from '@/data/mock';
@@ -31,6 +32,7 @@ export function ItemActionSheet({ visible, onClose, item, isOwner, onReport, onD
   const { deleteItem } = useTree();
   const { block } = useBlocks();
   const [mode, setMode] = useState<'menu' | 'confirmDelete' | 'confirmBlock'>('menu');
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const owner = getUser(item.ownerId);
 
   const close = () => {
@@ -38,9 +40,10 @@ export function ItemActionSheet({ visible, onClose, item, isOwner, onReport, onD
     setTimeout(() => setMode('menu'), 250);
   };
 
-  const doDelete = () => {
+  const doDelete = async () => {
     warning();
-    deleteItem(item.id);
+    const res = await deleteItem(item.id);
+    if (res.error) { setDeleteError(res.error); return; }
     close();
     onDeleted?.();
   };
@@ -93,8 +96,9 @@ export function ItemActionSheet({ visible, onClose, item, isOwner, onReport, onD
               : 'この操作は取り消せません。'
           }
           confirmLabel="削除する"
+          error={deleteError}
           onConfirm={doDelete}
-          onCancel={() => setMode('menu')}
+          onCancel={() => { setDeleteError(null); setMode('menu'); }}
         />
       )}
 
@@ -137,12 +141,14 @@ function Confirm({
   title,
   body,
   confirmLabel,
+  error,
   onConfirm,
   onCancel,
 }: {
   title: string;
   body: string;
   confirmLabel: string;
+  error?: string | null;
   onConfirm: () => void;
   onCancel: () => void;
 }) {
@@ -150,6 +156,7 @@ function Confirm({
     <View style={styles.confirm}>
       <Text style={styles.confirmTitle}>{title}</Text>
       <Text style={styles.confirmBody}>{body}</Text>
+      {error ? <View style={{ marginBottom: spacing.md }}><FormError message={error} /></View> : null}
       <PressableScale onPress={onConfirm} activeScale={0.97} style={[styles.danger, shadows.button]}>
         <Text style={styles.dangerText}>{confirmLabel}</Text>
       </PressableScale>

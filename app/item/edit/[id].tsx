@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, ActivityIndicator } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -8,7 +8,9 @@ import { PressableScale } from '@/components/ui/PressableScale';
 import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
 import { Thumb } from '@/components/ui/Thumb';
 import { PhotoSourceSheet } from '@/components/feature/PhotoSourceSheet';
-import { categories, conditions, currentUser } from '@/data/mock';
+import { categories, conditions } from '@/data/mock';
+import { useMe } from '@/store/me';
+import { FormError } from '@/components/ui/FormError';
 import { success } from '@/lib/haptics';
 import { useTree } from '@/store/tree';
 
@@ -20,6 +22,7 @@ export default function EditItemScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const { getItem, updateItem } = useTree();
+  const me = useMe();
   const item = getItem(id ?? '');
 
   // 既存の写真（URI優先。ローカル画像しかない場合はサムネのみ表示できないので空で開始）
@@ -31,20 +34,26 @@ export default function EditItemScreen() {
   const [condition, setCondition] = useState(item?.condition ?? '');
   const [picker, setPicker] = useState<PickerKey>(null);
   const [photoSheet, setPhotoSheet] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   if (!item) {
     return <View style={styles.notFound}><Text style={styles.notFoundText}>商品が見つかりません</Text></View>;
   }
   // 念のため他人の商品は編集不可
-  if (item.ownerId !== currentUser.id) {
+  if (item.ownerId !== me.id) {
     return <View style={styles.notFound}><Text style={styles.notFoundText}>この出品は編集できません</Text></View>;
   }
 
-  const canSave = name.trim().length > 0 && condition.length > 0 && photos.length > 0;
+  const canSave = name.trim().length > 0 && condition.length > 0 && photos.length > 0 && !busy;
 
-  const save = () => {
+  const save = async () => {
     if (!canSave) return;
-    updateItem(item.id, { name, category, condition, description: desc, photos });
+    setError(null);
+    setBusy(true);
+    const res = await updateItem(item.id, { name, category, condition, description: desc, photos });
+    setBusy(false);
+    if (res.error) { setError(res.error); return; }
     success();
     router.back();
   };
@@ -113,9 +122,16 @@ export default function EditItemScreen() {
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+        {error ? <View style={{ marginBottom: 10 }}><FormError message={error} /></View> : null}
         <PressableScale onPress={save} disabled={!canSave} activeScale={0.97} style={[styles.saveBtn, shadows.button, !canSave && styles.saveBtnOff]}>
-          <Ionicons name="checkmark" size={20} color={colors.white} />
-          <Text style={styles.saveText}>変更を保存</Text>
+          {busy ? (
+            <ActivityIndicator color={colors.white} />
+          ) : (
+            <>
+              <Ionicons name="checkmark" size={20} color={colors.white} />
+              <Text style={styles.saveText}>変更を保存</Text>
+            </>
+          )}
         </PressableScale>
       </View>
 

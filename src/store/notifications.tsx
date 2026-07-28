@@ -1,33 +1,79 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { notifications as seed, type Notif } from '@/data/mockSocial';
+import { isSupabaseEnabled } from '@/lib/supabase';
+import { useMe } from '@/store/me';
+import * as api from '@/lib/api/notifications';
 
 /**
- * 通知の既読状態を保持する（モック）。
- * 個別タップで既読、まとめて既読も可能。ホームのベルの赤ドットは未読数に連動。
- * ネイティブ化時は Supabase の notifications.read_at に置き換える。
+ * 通知。実DB接続時は `notifications` テーブルを読み、既読は read_at に書く。
+ *
+ * 画面は従来の Notif 型のまま使えるよう詰め替える。
+ * DB の body は完成した文（「〜に水やりがありました」）なので、
+ * モックのように「{actor}さん」を前置しない（actorId を空にして判別させる）。
  */
 type NotificationsState = {
   list: Notif[];
   unreadCount: number;
   markRead: (id: string) => void;
   markAllRead: () => void;
+  refresh: () => Promise<void>;
 };
 
 const NotificationsContext = createContext<NotificationsState | null>(null);
 
-export function NotificationsProvider({ children }: { children: React.ReactNode }) {
-  const [list, setList] = useState<Notif[]>(() => seed.map((n) => ({ ...n })));
+function toNotif(n: api.AppNotification): Notif {
+  return {
+    id: n.id,
+    type: n.type,
+    body: n.body,
+    createdAt: n.createdAt,
+    read: n.read,
+    today: /分前|時間前|たった今/.test(n.createdAt),
+    // DB の body は主語を含む完成文なので actor は付けない
+    actorId: undefined,
+  };
+}
 
-  const markRead = useCallback((id: string) => {
-    setList((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
-  }, []);
+export function NotificationsProvider({ children }: { children: React.ReactNode }) {
+  const live = isSupabaseEnabled;
+  const me = useMe();
+  const [list, setList] = useState<Notif[]>(() => (live ? [] : seed.map((n) => ({ ...n }))));
+
+  const refresh = useCallback(async () => {
+    if (!live || !me.live) return;
+    try {
+      setList((await api.fetchNotifications(me.id)).map(toNotif));
+    } catch {
+      // 取れなくても画面は動かす（0件表示になるだけ）
+    }
+  }, [live, me.live, me.id]);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  const markRead = useCallback(
+    (id: string) => {
+      setList((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+      if (live && me.live) api.markRead([id]).catch(() => {});
+    },
+    [live, me.live]
+  );
+
   const markAllRead = useCallback(() => {
     setList((prev) => prev.map((n) => ({ ...n, read: true })));
-  }, []);
+    if (live && me.live) api.markRead().catch(() => {});
+  }, [live, me.live]);
 
   const value = useMemo<NotificationsState>(
-    () => ({ list, unreadCount: list.filter((n) => !n.read).length, markRead, markAllRead }),
-    [list, markRead, markAllRead]
+    () => ({
+      list,
+      unreadCount: list.filter((n) => !n.read).length,
+      markRead,
+      markAllRead,
+      refresh,
+    }),
+    [list, markRead, markAllRead, refresh]
   );
   return <NotificationsContext.Provider value={value}>{children}</NotificationsContext.Provider>;
 }

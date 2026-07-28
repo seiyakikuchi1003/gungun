@@ -12,13 +12,16 @@ import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
 import { Thumb } from '@/components/ui/Thumb';
 import { Sprout } from '@/components/art/Sprout';
 import { PhotoSourceSheet } from '@/components/feature/PhotoSourceSheet';
+import { FormError } from '@/components/ui/FormError';
 import { categories, conditions } from '@/data/mock';
 import { success } from '@/lib/haptics';
+import { useTree } from '@/store/tree';
 
 type PickerKey = 'category' | 'condition' | null;
 
 export default function PlantSeedScreen() {
   const insets = useSafeAreaInsets();
+  const { plantSeed } = useTree();
   const [photos, setPhotos] = useState<string[]>([]);
   const [name, setName] = useState('');
   const [desc, setDesc] = useState('');
@@ -26,6 +29,25 @@ export default function PlantSeedScreen() {
   const [condition, setCondition] = useState('目立った傷や汚れなし');
   const [picker, setPicker] = useState<PickerKey>(null);
   const [photoSheet, setPhotoSheet] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const formOk = name.trim().length > 0 && photos.length > 0;
+
+  const submit = async () => {
+    if (busy) return;
+    if (!formOk) {
+      setError(photos.length === 0 ? '写真を1枚以上追加してください' : '商品名を入力してください');
+      return;
+    }
+    setError(null);
+    setBusy(true);
+    const res = await plantSeed({ name, category, condition, description: desc, photos });
+    setBusy(false);
+    if (res.error) { setError(res.error); return; }
+    success();
+    router.back();
+  };
 
   return (
     <View style={styles.root}>
@@ -108,10 +130,12 @@ export default function PlantSeedScreen() {
 
       {/* 送信ボタン */}
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+        {error ? <View style={{ marginBottom: 10 }}><FormError message={error} /></View> : null}
         <Button
           title="タネを植える"
+          loading={busy}
           leftIcon={<Sprout size={22} color={colors.white} />}
-          onPress={() => { success(); router.back(); }}
+          onPress={submit}
         />
       </View>
 

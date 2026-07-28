@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, ActivityIndicator } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -24,7 +24,7 @@ type PickerKey = 'category' | 'condition' | null;
 export default function WaterScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
-  const { getItem, canWater, water, fertilizer } = useTree();
+  const { getItem, canWater, water, fertilizer, settings: appSettings, live } = useTree();
   const target = getItem(id ?? '');
 
   const [photos, setPhotos] = useState<string[]>([]);
@@ -34,6 +34,7 @@ export default function WaterScreen() {
   const [condition, setCondition] = useState('');
   const [picker, setPicker] = useState<PickerKey>(null);
   const [photoSheet, setPhotoSheet] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   if (!target) {
     return (
@@ -43,17 +44,21 @@ export default function WaterScreen() {
 
   const owner = getUser(target.ownerId);
   const gate = canWater(target.id);
-  const cost = settings.waterCost;
+  // 水やり単価は DB（app_settings）から。未接続時はモックの既定値
+  const cost = live ? appSettings.waterCost : settings.waterCost;
   const formOk = name.trim().length > 0 && condition.length > 0 && photos.length > 0;
-  const canSubmit = gate.ok && formOk;
+  const canSubmit = gate.ok && formOk && !busy;
 
-  const submit = () => {
+  const submit = async () => {
     if (!canSubmit) return;
-    const created = water(target.id, { name, category, condition, description: desc, photos });
+    setBusy(true);
+    // 実DB接続時は写真のアップロードとRPCが走るため少し待つ
+    const created = await water(target.id, { name, category, condition, description: desc, photos });
+    setBusy(false);
     if (created) {
       success(); // 水やり成立の「タタン♪」
       playSfx('chime'); // ピロン↑
-      router.replace({ pathname: '/tree/[rootId]', params: { rootId: target.rootId, new: created.id } });
+      router.replace({ pathname: '/tree/[rootId]', params: { rootId: created.rootId, new: created.id } });
     }
   };
 
@@ -171,8 +176,14 @@ export default function WaterScreen() {
       {/* 水やりするボタン */}
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
         <PressableScale onPress={submit} disabled={!canSubmit} activeScale={0.97} style={[styles.waterBtn, shadows.button, !canSubmit && styles.waterBtnOff]}>
-          <Ionicons name="water" size={20} color={colors.white} />
-          <Text style={styles.waterText}>水やりする</Text>
+          {busy ? (
+            <ActivityIndicator color={colors.white} />
+          ) : (
+            <>
+              <Ionicons name="water" size={20} color={colors.white} />
+              <Text style={styles.waterText}>水やりする</Text>
+            </>
+          )}
         </PressableScale>
         <Text style={styles.footerHint}>水やりすると、あなたの商品がこの木の子として出品されます</Text>
       </View>
