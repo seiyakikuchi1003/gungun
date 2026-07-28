@@ -50,16 +50,26 @@ export default async function ItemsPage({
     );
   }
 
+  // item_cards ビューは owner_nickname を含むので profiles を join せずに済む
+  // （items ↔ profiles を直接 embed すると Supabase の FK 推論が曖昧になり
+  //   "more than one relationship found" で失敗する）。
+  // ただし item_cards は status='deleted' を除外する view なので、
+  // 「削除済み」を見たいときだけ items を直で引く。
   const { data: items, error: dbError } = await rows((db) => {
-    let query = db
-      .from('items')
-      .select('id, name, category, condition, status, parent_id, root_id, depth, created_at, profiles(nickname)')
-      .order('created_at', { ascending: false })
-      .limit(100);
+    const wantsDeleted = f === 'deleted';
+    let query = wantsDeleted
+      ? db
+          .from('items')
+          .select('id, name, category, condition, status, parent_id, root_id, depth, created_at, user_id')
+          .eq('status', 'deleted')
+      : db
+          .from('item_cards')
+          .select('id, name, category, condition, status, parent_id, root_id, depth, created_at, user_id, owner_nickname');
 
+    query = query.order('created_at', { ascending: false }).limit(100);
     if (q) query = query.ilike('name', `%${q}%`);
     if (f === 'seed') query = query.is('parent_id', null);
-    else if (f !== 'all') query = query.eq('status', f);
+    else if (f !== 'all' && f !== 'deleted') query = query.eq('status', f);
     return query;
   });
 
@@ -104,7 +114,7 @@ export default async function ItemsPage({
             {items.map((it: any) => (
               <tr key={it.id}>
                 <td className="td font-bold">{it.name}</td>
-                <td className="td text-muted whitespace-nowrap">{it.profiles?.nickname ?? '—'}</td>
+                <td className="td text-muted whitespace-nowrap">{it.owner_nickname ?? '—'}</td>
                 <td className="td text-muted">{it.category}</td>
                 <td className="td">{it.parent_id === null ? '種' : `${it.depth}段目`}</td>
                 <td className="td text-muted text-xs font-mono">{shortId(it.root_id)}</td>

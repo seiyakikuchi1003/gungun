@@ -38,9 +38,11 @@ export default async function DashboardPage() {
 
   const [{ data: recentItems }, { data: recentUsers }] = await Promise.all([
     rows((db) =>
+      // item_cards ビュー経由で owner_nickname を取る
+      // （items ↔ profiles の直接 embed は FK が曖昧になり失敗する）
       db
-        .from('items')
-        .select('id, name, category, status, created_at, profiles(nickname)')
+        .from('item_cards')
+        .select('id, name, category, status, created_at, owner_nickname')
         .order('created_at', { ascending: false })
         .limit(8)
     ),
@@ -87,7 +89,7 @@ export default async function DashboardPage() {
               {recentItems.map((it: any) => (
                 <tr key={it.id}>
                   <td className="td font-bold">{it.name}</td>
-                  <td className="td text-muted whitespace-nowrap">{it.profiles?.nickname ?? '—'}</td>
+                  <td className="td text-muted whitespace-nowrap">{it.owner_nickname ?? '—'}</td>
                   <td className="td text-muted text-xs whitespace-nowrap">{jst(it.created_at)}</td>
                 </tr>
               ))}
