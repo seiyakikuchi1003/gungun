@@ -1,23 +1,30 @@
-import { Alert, Platform } from 'react-native';
+import { Alert, Linking, Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 
 /**
  * 写真の取得ヘルパー。
  * - takePhoto(): その場でカメラを起動して1枚撮影
  * - pickFromLibrary(): 写真ライブラリから選択（複数可）
- * 権限が拒否された場合は案内を出して null を返す。
+ *
+ * ★呼び出し側の注意：モーダル（BottomSheetModal など）が開いている間に呼ぶと
+ *   iOS では画面が出ない。閉じ切ってから呼ぶこと（PhotoSourceSheet 参照）。
  */
 
 function denied(kind: 'カメラ' | '写真') {
   Alert.alert(
-    `${kind}へのアクセスが必要です`,
-    `設定 > ぐんぐん から${kind}のアクセスを許可してください。`,
+    `${kind}へのアクセスが許可されていません`,
+    `「設定」アプリ → ぐんぐん から${kind}のアクセスを許可してください。`,
+    [
+      { text: 'あとで', style: 'cancel' },
+      { text: '設定を開く', onPress: () => Linking.openSettings().catch(() => {}) },
+    ]
   );
 }
 
 export async function takePhoto(): Promise<string[] | null> {
   // Web にはカメラ起動 API がないためライブラリにフォールバック
   if (Platform.OS === 'web') return pickFromLibrary();
+
   const perm = await ImagePicker.requestCameraPermissionsAsync();
   if (!perm.granted) {
     denied('カメラ');
@@ -33,8 +40,10 @@ export async function takePhoto(): Promise<string[] | null> {
 }
 
 export async function pickFromLibrary(): Promise<string[] | null> {
+  // iOS の「選択した写真のみ」設定でも選べるよう、granted だけで判断せず
+  // limited（一部のみ許可）でもピッカーを開く
   const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (!perm.granted) {
+  if (!perm.granted && perm.accessPrivileges !== 'limited') {
     denied('写真');
     return null;
   }
