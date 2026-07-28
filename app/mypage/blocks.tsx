@@ -8,10 +8,12 @@ import { PressableScale } from '@/components/ui/PressableScale';
 import { Avatar } from '@/components/ui/Avatar';
 import { getUser } from '@/data/mock';
 import { useBlocks } from '@/store/blocks';
+import { isSupabaseEnabled } from '@/lib/supabase';
 
 export default function Blocks() {
   const insets = useSafeAreaInsets();
-  const { blocked, unblock } = useBlocks();
+  const { blocked, blockedUsers, unblock } = useBlocks();
+  const live = isSupabaseEnabled;
 
   return (
     <View style={styles.root}>
@@ -31,7 +33,11 @@ export default function Blocks() {
           </View>
         ) : (
           blocked.map((id) => {
-            const u = getUser(id);
+            // 実DB接続時は名前・アバターを blocks の取得結果から引く（UUID から引けないため）
+            const dbUser = blockedUsers.find((x) => x.id === id);
+            const u = live
+              ? { nickname: dbUser?.nickname ?? '(不明なユーザー)', avatar: dbUser?.avatarUrl ?? '' }
+              : getUser(id);
             return (
               <View key={id} style={[styles.row, shadows.soft]}>
                 <Avatar uri={u.avatar} name={u.nickname} size={44} />

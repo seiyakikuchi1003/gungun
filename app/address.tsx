@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -8,10 +8,51 @@ import { PressableScale } from '@/components/ui/PressableScale';
 import { TextField } from '@/components/ui/TextField';
 import { Button } from '@/components/ui/Button';
 import { NoticeBox } from '@/components/ui/NoticeBox';
+import { FormError } from '@/components/ui/FormError';
+import { useMe } from '@/store/me';
+import { isSupabaseEnabled } from '@/lib/supabase';
+import { fetchAddress, saveAddress } from '@/lib/api/profile';
 
 export default function Address() {
   const insets = useSafeAreaInsets();
+  const me = useMe();
   const [f, setF] = useState({ last: '', first: '', phone: '', postal: '', pref: '', city: '', street: '', building: '' });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // 既に登録済みなら読み込んで初期表示にする
+  useEffect(() => {
+    if (!isSupabaseEnabled || !me.live) return;
+    let alive = true;
+    fetchAddress(me.id)
+      .then((a) => {
+        if (!alive || !a) return;
+        setF({
+          last: a.lastName, first: a.firstName, phone: a.phone, postal: a.postalCode,
+          pref: a.prefecture, city: a.city, street: a.street, building: a.building,
+        });
+      })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [me.live, me.id]);
+
+  const submit = async () => {
+    if (busy) return;
+    if (!isSupabaseEnabled || !me.live) { router.back(); return; }
+    setError(null);
+    setBusy(true);
+    try {
+      await saveAddress(me.id, {
+        lastName: f.last, firstName: f.first, phone: f.phone, postalCode: f.postal,
+        prefecture: f.pref, city: f.city, street: f.street, building: f.building,
+      });
+      router.back();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '保存できませんでした');
+    } finally {
+      setBusy(false);
+    }
+  };
   const set = (k: keyof typeof f) => (v: string) => setF((s) => ({ ...s, [k]: v }));
   const ok = f.last && f.first && f.phone && f.postal && f.pref && f.city && f.street;
 
@@ -44,7 +85,8 @@ export default function Address() {
       </KeyboardAvoidingView>
 
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
-        <Button title="保存する" disabled={!ok} onPress={() => router.back()} />
+        {error ? <View style={{ marginBottom: 10 }}><FormError message={error} /></View> : null}
+        <Button title="保存する" disabled={!ok} loading={busy} onPress={submit} />
       </View>
     </View>
   );

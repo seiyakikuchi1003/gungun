@@ -30,6 +30,7 @@ import { useNotifications } from '@/store/notifications';
 import { medium } from '@/lib/haptics';
 import { playSfx, preloadSfx } from '@/lib/sound';
 import { useMe } from '@/store/me';
+import { useLoginBonus } from '@/hooks/useLoginBonus';
 
 function HeaderIcon({ name, badge, onPress }: { name: keyof typeof Ionicons.glyphMap; badge?: boolean; onPress?: () => void }) {
   return (
@@ -53,7 +54,7 @@ export default function HomeScreen() {
   const { items } = useTree();
   const { isBlocked } = useBlocks();
   const { unreadCount } = useNotifications();
-  const [claimed, setClaimed] = useState(false);
+  const { claimed, busy: bonusBusy, amount: bonusAmount, claim } = useLoginBonus();
   const [showBonus, setShowBonus] = useState(false);
   React.useEffect(() => { preloadSfx(); }, []); // 初回再生の遅延を減らす
 
@@ -146,12 +147,12 @@ export default function HomeScreen() {
             <Text style={styles.infoLabel}>ログインボーナス</Text>
             <View style={styles.bonusBody}>
               <GiftBox size={46} />
-              <Text style={styles.bonusValue}>毎日{'\n'}+40肥料</Text>
+              <Text style={styles.bonusValue}>毎日{'\n'}+{bonusAmount}肥料</Text>
             </View>
             <PressableScale
-              onPress={() => { setClaimed(true); setShowBonus(true); }}
+              onPress={async () => { await claim(); setShowBonus(true); }}
               activeScale={0.95}
-              disabled={claimed}
+              disabled={claimed || bonusBusy}
             >
               <LinearGradient
                 colors={claimed ? ['#D9D3C6', '#CFC8BA'] : ['#F7B23F', colors.orangeDeep]}

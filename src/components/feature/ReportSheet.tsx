@@ -5,12 +5,19 @@ import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { success } from '@/lib/haptics';
+import { FormError } from '@/components/ui/FormError';
+import { useMe } from '@/store/me';
+import { isSupabaseEnabled } from '@/lib/supabase';
+import { submitReport, type ReportTarget } from '@/lib/api/social';
 
 type Props = {
   visible: boolean;
   onClose: () => void;
   /** 何を通報するか（見出しに使う） */
   targetLabel?: string;
+  /** 通報先。実DB接続時はこれが揃っていれば reports に保存する */
+  targetType?: ReportTarget;
+  targetId?: string;
 };
 
 const REASONS = [
@@ -24,12 +31,15 @@ const REASONS = [
 /**
  * 通報シート（商品・投稿で共通）。
  * 理由を選び「その他」なら自由記述、送信すると受付完了を表示する。
- * ネイティブ化時は Supabase `reports` テーブルへ INSERT する。
+ * 実DB接続時は `reports` テーブルに保存し、管理画面の「通報」に出る。
  */
-export function ReportSheet({ visible, onClose, targetLabel = 'この内容' }: Props) {
+export function ReportSheet({ visible, onClose, targetLabel = 'この内容', targetType, targetId }: Props) {
+  const me = useMe();
   const [reason, setReason] = useState<string | null>(null);
   const [detail, setDetail] = useState('');
   const [done, setDone] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const close = () => {
     onClose();
@@ -37,8 +47,23 @@ export function ReportSheet({ visible, onClose, targetLabel = 'この内容' }: 
     setTimeout(() => { setReason(null); setDetail(''); setDone(false); }, 250);
   };
 
-  const submit = () => {
-    if (!reason) return;
+  const submit = async () => {
+    if (!reason || busy) return;
+    // 理由＋自由記述をまとめて1つの文にする（DB の reason は1カラム）
+    const body = reason === 'その他' && detail.trim() ? `その他: ${detail.trim()}` : reason;
+
+    if (isSupabaseEnabled && me.live && targetType && targetId) {
+      setError(null);
+      setBusy(true);
+      try {
+        await submitReport(me.id, targetType, targetId, body);
+      } catch (e) {
+        setBusy(false);
+        setError(e instanceof Error ? e.message : '送信できませんでした');
+        return;
+      }
+      setBusy(false);
+    }
     success();
     setDone(true);
   };
@@ -90,13 +115,14 @@ export function ReportSheet({ visible, onClose, targetLabel = 'この内容' }: 
               style={[styles.input, { outlineStyle: 'none' } as object]}
             />
           )}
+          {error ? <FormError message={error} /> : null}
           <PressableScale
             onPress={submit}
-            disabled={!reason}
+            disabled={!reason || busy}
             activeScale={0.97}
             style={[styles.submit, shadows.button, !reason && styles.submitOff]}
           >
-            <Text style={styles.submitText}>通報する</Text>
+            <Text style={styles.submitText}>{busy ? '送信中…' : '通報する'}</Text>
           </PressableScale>
         </>
       )}

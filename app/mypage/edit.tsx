@@ -9,19 +9,45 @@ import { TextField } from '@/components/ui/TextField';
 import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
 import { useMe } from '@/store/me';
+import { FormError } from '@/components/ui/FormError';
+import { useAuth } from '@/store/auth';
+import { isSupabaseEnabled } from '@/lib/supabase';
+import { updateProfile } from '@/lib/api/profile';
 
 export default function ProfileEdit() {
   const me = useMe();
   const insets = useSafeAreaInsets();
+  const { reloadProfile, profile } = useAuth();
   const [nickname, setNickname] = useState(me.nickname);
-  const [bio, setBio] = useState('不要になったものを、必要な人へ🌱 気軽に水やりしてください！');
+  const [bio, setBio] = useState(profile?.bio ?? '不要になったものを、必要な人へ🌱 気軽に水やりしてください！');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const save = async () => {
+    if (busy) return;
+    if (!nickname.trim()) { setError('ニックネームを入力してください'); return; }
+    if (!isSupabaseEnabled || !me.live) { router.back(); return; }
+    setError(null);
+    setBusy(true);
+    try {
+      await updateProfile(me.id, { nickname, bio });
+      await reloadProfile();
+      router.back();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '保存できませんでした');
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <View style={styles.root}>
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <PressableScale onPress={() => router.back()} activeScale={0.9}><Text style={styles.cancel}>キャンセル</Text></PressableScale>
         <Text style={styles.hTitle}>プロフィール編集</Text>
-        <PressableScale onPress={() => router.back()} activeScale={0.94}><Text style={styles.save}>保存</Text></PressableScale>
+        <PressableScale onPress={save} activeScale={0.94} disabled={busy}>
+          <Text style={styles.save}>{busy ? '保存中…' : '保存'}</Text>
+        </PressableScale>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
@@ -31,6 +57,8 @@ export default function ProfileEdit() {
             <Ionicons name="camera" size={18} color={colors.white} />
           </PressableScale>
         </View>
+
+        {error ? <View style={{ marginBottom: 12 }}><FormError message={error} /></View> : null}
 
         <View style={styles.form}>
           <TextField label="ニックネーム" value={nickname} onChangeText={setNickname} />

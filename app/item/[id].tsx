@@ -258,7 +258,7 @@ export default function ItemDetailScreen() {
         onReport={() => setReport(true)}
         onDeleted={() => router.back()}
       />
-      <ReportSheet visible={report} onClose={() => setReport(false)} targetLabel="この出品" />
+      <ReportSheet visible={report} onClose={() => setReport(false)} targetLabel="この出品" targetType="item" targetId={item.id} />
     </View>
   );
 }

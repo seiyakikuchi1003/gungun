@@ -7,7 +7,9 @@ import { colors, spacing, fonts, shadows } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { TopTabs } from '@/components/ui/TopTabs';
 import { PostRow } from '@/components/ui/PostRow';
-import { boardPosts } from '@/data/mockSocial';
+import { useBoard } from '@/hooks/useBoard';
+import { useMe } from '@/store/me';
+import { isSupabaseEnabled } from '@/lib/supabase';
 
 const myComments = [
   { id: 'mc1', on: 'さくらさんの投稿', body: 'おめでとうございます！自分も頑張ります🌱', time: '8分前' },
@@ -17,7 +19,12 @@ const myComments = [
 export default function MyPosts() {
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState('posts');
-  const mine = boardPosts.filter((p) => p.userId === 'metan' || p.id === 'p1');
+  const me = useMe();
+  const { posts } = useBoard();
+  // 実DB接続時は自分の投稿だけ。モックでは従来のデモ用の絞り込みを維持
+  const mine = isSupabaseEnabled
+    ? posts.filter((p) => p.userId === me.id)
+    : posts.filter((p) => p.userId === 'metan' || p.id === 'p1');
 
   return (
     <View style={styles.root}>

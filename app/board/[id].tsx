@@ -37,7 +37,7 @@ export default function BoardDetail() {
         </PressableScale>
       </View>
 
-      <ReportSheet visible={report} onClose={() => setReport(false)} targetLabel="この投稿" />
+      <ReportSheet visible={report} onClose={() => setReport(false)} targetLabel="この投稿" targetType="board_post" targetId={post.id} />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
         {/* 投稿カード */}

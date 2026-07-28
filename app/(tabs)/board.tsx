@@ -118,7 +118,7 @@ export default function BoardScreen() {
           onDelete={() => { setHidden((h) => [...h, sheetPost.id]); remove(sheetPost.id); }}
         />
       )}
-      <ReportSheet visible={report} onClose={() => setReport(false)} targetLabel="この投稿" />
+      <ReportSheet visible={report} onClose={() => setReport(false)} targetLabel="この投稿" targetType="board_post" targetId={sheetPost?.id ?? ''} />
     </View>
   );
 }
