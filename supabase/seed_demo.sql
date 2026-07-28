@@ -98,27 +98,27 @@ insert into items (id, user_id, name, description, category, condition) values
    'AirPods Pro（第2世代）', '純正ケース付き。動作良好。', 'スマホ・家電', '目立った傷や汚れなし');
 
 -- ── 商品画像 ─────────────────────────────────────────────
--- プレビュー配信のURLを使う（プレビューに置いてある実写真）
+-- GitHub の raw URL を使う（リポジトリと一緒に画像も管理される。永続的で無料）
 insert into item_images (item_id, url, sort_order) values
-  ('b1000000-0000-4000-8000-000000000001', 'https://gungun-preview.pages.dev/assets/assets/products/speaker.jpg', 0),
-  ('b1000000-0000-4000-8000-000000000002', 'https://gungun-preview.pages.dev/assets/assets/products/bag.jpg', 0),
-  ('b1000000-0000-4000-8000-000000000003', 'https://gungun-preview.pages.dev/assets/assets/products/coffee.jpg', 0),
-  ('b1000000-0000-4000-8000-000000000004', 'https://gungun-preview.pages.dev/assets/assets/products/giftcard.jpg', 0),
-  ('b1000000-0000-4000-8000-000000000005', 'https://gungun-preview.pages.dev/assets/assets/products/camera.jpg', 0),
-  ('b1000000-0000-4000-8000-000000000006', 'https://gungun-preview.pages.dev/assets/assets/products/books.jpg', 0),
-  ('b1000000-0000-4000-8000-000000000007', 'https://gungun-preview.pages.dev/assets/assets/products/watch.jpg', 0),
-  ('b1000000-0000-4000-8000-000000000010', 'https://gungun-preview.pages.dev/assets/assets/products/switch.jpg', 0),
-  ('b1000000-0000-4000-8000-000000000011', 'https://gungun-preview.pages.dev/assets/assets/products/perfume.jpg', 0),
-  ('b1000000-0000-4000-8000-000000000012', 'https://gungun-preview.pages.dev/assets/assets/products/airpods.jpg', 0);
+  ('b1000000-0000-4000-8000-000000000001', 'https://raw.githubusercontent.com/seiyakikuchi1003/gungun/main/assets/products/speaker.jpg', 0),
+  ('b1000000-0000-4000-8000-000000000002', 'https://raw.githubusercontent.com/seiyakikuchi1003/gungun/main/assets/products/bag.jpg', 0),
+  ('b1000000-0000-4000-8000-000000000003', 'https://raw.githubusercontent.com/seiyakikuchi1003/gungun/main/assets/products/coffee.jpg', 0),
+  ('b1000000-0000-4000-8000-000000000004', 'https://raw.githubusercontent.com/seiyakikuchi1003/gungun/main/assets/products/giftcard.jpg', 0),
+  ('b1000000-0000-4000-8000-000000000005', 'https://raw.githubusercontent.com/seiyakikuchi1003/gungun/main/assets/products/camera.jpg', 0),
+  ('b1000000-0000-4000-8000-000000000006', 'https://raw.githubusercontent.com/seiyakikuchi1003/gungun/main/assets/products/books.jpg', 0),
+  ('b1000000-0000-4000-8000-000000000007', 'https://raw.githubusercontent.com/seiyakikuchi1003/gungun/main/assets/products/watch.jpg', 0),
+  ('b1000000-0000-4000-8000-000000000010', 'https://raw.githubusercontent.com/seiyakikuchi1003/gungun/main/assets/products/switch.jpg', 0),
+  ('b1000000-0000-4000-8000-000000000011', 'https://raw.githubusercontent.com/seiyakikuchi1003/gungun/main/assets/products/perfume.jpg', 0),
+  ('b1000000-0000-4000-8000-000000000012', 'https://raw.githubusercontent.com/seiyakikuchi1003/gungun/main/assets/products/airpods.jpg', 0);
 
 -- ── 掲示板の投稿 ─────────────────────────────────────────
 insert into board_posts (id, user_id, body, tag, image_url, pinned, created_at) values
   ('d1000000-0000-4000-8000-000000000001', '00000000-0000-0000-0000-0000000000a3',
    'はじめてぐんぐんで交換成立しました🌱 ずっと眠っていたバッグが、欲しかったカメラに。わらしべ長者みたいで本当に楽しい…！みなさんの水やり待ってます〜',
-   'harvest', 'https://gungun-preview.pages.dev/assets/assets/products/bag.jpg', true, now() - interval '10 minutes'),
+   'harvest', 'https://raw.githubusercontent.com/seiyakikuchi1003/gungun/main/assets/products/bag.jpg', true, now() - interval '10 minutes'),
   ('d1000000-0000-4000-8000-000000000002', '00000000-0000-0000-0000-0000000000a5',
    'Nintendo Switch のタネを植えました🎮 ゲーム好きな方、ぜひ水やりしてください！交換の輪を広げましょう。',
-   'chat', 'https://gungun-preview.pages.dev/assets/assets/products/switch.jpg', false, now() - interval '1 hour'),
+   'chat', 'https://raw.githubusercontent.com/seiyakikuchi1003/gungun/main/assets/products/switch.jpg', false, now() - interval '1 hour'),
   ('d1000000-0000-4000-8000-000000000003', '00000000-0000-0000-0000-0000000000a1',
    'カメラが欲しいのですが、どんな商品を植えると水やりされやすいですか？おすすめのカテゴリなどあれば教えてください🙏',
    'question', null, false, now() - interval '3 hours');
