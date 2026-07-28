@@ -107,7 +107,8 @@ if (!root) {
     .from('items').select('id, name, depth').eq('root_id', root.id)
     .order('depth', { ascending: false }).limit(1).single();
 
-  const { data: path, error: rErr } = await db.rpc('get_ancestors', { p_item_id: leaf?.id });
+  // 引数名は 0002_functions.sql の定義どおり target_id（他の RPC は p_ 始まりなので注意）
+  const { data: path, error: rErr } = await db.rpc('get_ancestors', { target_id: leaf?.id });
   if (rErr) {
     ng(`get_ancestors を呼べません: ${rErr.message}`);
     failed++;
