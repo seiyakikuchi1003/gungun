@@ -57,6 +57,16 @@ export default function LoginScreen() {
           <Animated.View entering={FadeIn.duration(500)} style={styles.header}>
             <GunGunLogo size={46} />
             <Text style={styles.tagline}>いらないものが、ほしいものに。</Text>
+            {/* 開発中だけ、実DBに繋がっているかを表示する。
+                .env が読めていないと黙ってモックで動いてしまい、
+                「登録したのに反映されない」と紛らわしいため。 */}
+            {__DEV__ && (
+              <View style={[styles.modeChip, live ? styles.modeLive : styles.modeMock]}>
+                <Text style={[styles.modeText, live ? styles.modeTextLive : styles.modeTextMock]}>
+                  {live ? '● 実データ（Supabase）' : '○ モックデータ（.env 未読込）'}
+                </Text>
+              </View>
+            )}
           </Animated.View>
 
           <Animated.View entering={FadeInDown.delay(120).duration(500)} style={styles.form}>
@@ -118,6 +128,17 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     letterSpacing: 0.5,
   },
+  modeChip: {
+    marginTop: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 999,
+  },
+  modeLive: { backgroundColor: colors.greenSoft },
+  modeMock: { backgroundColor: colors.orangeSoft },
+  modeText: { fontFamily: fonts.bold, fontSize: 11.5 },
+  modeTextLive: { color: colors.greenDeep },
+  modeTextMock: { color: colors.orangeDeep },
   form: { gap: spacing.lg },
   forgot: { alignSelf: 'center', marginTop: spacing.lg },
   forgotText: { fontFamily: fonts.bold, fontSize: 14, color: colors.green },
