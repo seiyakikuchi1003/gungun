@@ -12,19 +12,25 @@ import { settings as fallback } from '@/config/settings';
 export type AppSettings = {
   waterCost: number;
   dailyLoginBonus: number;
+  dailyLoginBonusPremium: number;
   firstSeedFree: boolean;
   premiumMonthly: number | null;
   seedPriceYen: number | null;
   maxImagesPerItem: number;
+  termsOfService: string;
+  privacyPolicy: string;
 };
 
 export const defaultSettings: AppSettings = {
   waterCost: fallback.waterCost,
   dailyLoginBonus: fallback.dailyLoginBonus,
+  dailyLoginBonusPremium: fallback.dailyLoginBonusPremium,
   firstSeedFree: fallback.firstSeedFree,
   premiumMonthly: fallback.premiumMonthly,
   seedPriceYen: null,
   maxImagesPerItem: 4,
+  termsOfService: '',
+  privacyPolicy: '',
 };
 
 function num(v: unknown, d: number): number {
@@ -37,9 +43,14 @@ export async function fetchSettings(): Promise<AppSettings> {
   if (error) throw error;
 
   const map = new Map<string, unknown>((data ?? []).map((r: any) => [r.key, r.value]));
+  const text = (v: unknown, d: string) => (typeof v === 'string' ? v : d);
   return {
     waterCost: num(map.get('water_cost'), defaultSettings.waterCost),
     dailyLoginBonus: num(map.get('daily_login_bonus'), defaultSettings.dailyLoginBonus),
+    dailyLoginBonusPremium: num(
+      map.get('daily_login_bonus_premium'),
+      defaultSettings.dailyLoginBonusPremium
+    ),
     firstSeedFree: map.has('first_seed_free')
       ? Boolean(map.get('first_seed_free'))
       : defaultSettings.firstSeedFree,
@@ -48,5 +59,7 @@ export async function fetchSettings(): Promise<AppSettings> {
       : defaultSettings.premiumMonthly,
     seedPriceYen: map.has('seed_price_yen') ? num(map.get('seed_price_yen'), 0) : null,
     maxImagesPerItem: num(map.get('max_images_per_item'), defaultSettings.maxImagesPerItem),
+    termsOfService: text(map.get('terms_of_service'), defaultSettings.termsOfService),
+    privacyPolicy: text(map.get('privacy_policy'), defaultSettings.privacyPolicy),
   };
 }

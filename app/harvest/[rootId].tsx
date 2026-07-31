@@ -15,6 +15,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { getUser, MockItem } from '@/data/mock';
 import { useTree } from '@/store/tree';
 import { success } from '@/lib/haptics';
+import { playSfx } from '@/lib/sound';
 import { useMe } from '@/store/me';
 import { FormError } from '@/components/ui/FormError';
 
@@ -174,6 +175,7 @@ export default function HarvestDetail() {
             setBusy(false);
             if (res.error) { setHarvestError(res.error); return; }
             success();
+            playSfx('chime'); // 収穫成立の「ピロン↑」
             setDone(true);
           }}
           style={{ marginTop: spacing.lg }}

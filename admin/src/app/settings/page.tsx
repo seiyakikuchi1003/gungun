@@ -13,11 +13,17 @@ export const dynamic = 'force-dynamic';
  */
 const KNOWN: Record<string, { label: string; hint: string }> = {
   water_cost: { label: '水やり1回の肥料', hint: '「ほしい！」を送るときに消費する肥料の量' },
-  daily_login_bonus: { label: 'ログインボーナス', hint: '1日1回もらえる肥料の量' },
+  daily_login_bonus: { label: 'ログインボーナス（通常）', hint: '通常会員が1日1回もらえる肥料の量' },
+  daily_login_bonus_premium: {
+    label: 'ログインボーナス（プレミアム）',
+    hint: 'プレミアム会員が1日1回もらえる肥料の量（2026-07-28 MTGで復活）',
+  },
   first_seed_free: { label: '初回の種を無料にする', hint: 'true / false' },
   premium_price_yen: { label: 'プレミアム月額（円）', hint: 'ストア表示に使う金額' },
   seed_price_yen: { label: '種の出品料（円）', hint: '2回目以降の出品にかかる金額' },
   max_images_per_item: { label: '商品画像の上限枚数', hint: '出品時にアップロードできる枚数' },
+  terms_of_service: { label: '利用規約 本文', hint: 'アプリ内の規約表示に使う。改行そのまま' },
+  privacy_policy: { label: 'プライバシーポリシー 本文', hint: 'アプリ内のポリシー表示に使う' },
 };
 
 async function saveAction(formData: FormData) {

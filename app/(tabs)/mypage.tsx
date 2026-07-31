@@ -20,6 +20,8 @@ const MENU: { icon: keyof typeof Ionicons.glyphMap; label: string; route?: strin
   { icon: 'chatbox-ellipses-outline', label: '掲示板投稿履歴', route: '/mypage/posts' },
   { icon: 'ban-outline', label: 'ブロックリスト', route: '/mypage/blocks' },
   { icon: 'information-circle-outline', label: 'ぐんぐんについて', action: 'about' },
+  { icon: 'document-text-outline', label: '利用規約', route: '/mypage/terms' },
+  { icon: 'shield-checkmark-outline', label: 'プライバシーポリシー', route: '/mypage/privacy' },
   { icon: 'mail-outline', label: 'お問い合わせ', action: 'contact' },
   { icon: 'exit-outline', label: 'ログアウト', action: 'logout' },
   { icon: 'trash-outline', label: '退会', action: 'withdraw', danger: true },

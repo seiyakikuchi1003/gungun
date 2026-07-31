@@ -47,7 +47,9 @@ export default function RatingScreen() {
         <Animated.View entering={ZoomIn.springify().damping(11)}><Mikan size={120} /></Animated.View>
         <Animated.Text entering={FadeIn.delay(150)} style={styles.doneTitle}>評価を送信しました！</Animated.Text>
         <Animated.Text entering={FadeIn.delay(250)} style={styles.doneSub}>取引完了です。ありがとうございました🌱</Animated.Text>
-        <Button title="取引一覧へ戻る" onPress={() => router.replace('/exchange')} style={{ marginTop: spacing['2xl'], width: '80%' }} />
+        <View style={styles.doneCta}>
+          <Button title="取引一覧へ戻る" onPress={() => router.replace('/exchange')} />
+        </View>
       </View>
     );
   }
@@ -123,6 +125,9 @@ const styles = StyleSheet.create({
   comment: { backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.lg, minHeight: 100, textAlignVertical: 'top', fontFamily: fonts.regular, fontSize: 14.5, color: colors.textPrimary },
   footer: { paddingHorizontal: 20, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: colors.divider },
   doneWrap: { justifyContent: 'center', alignItems: 'center', padding: 30 },
-  doneTitle: { fontFamily: fonts.bold, fontSize: 21, color: colors.textPrimary, marginTop: spacing.lg },
-  doneSub: { fontFamily: fonts.regular, fontSize: 14, color: colors.textSecondary, textAlign: 'center', marginTop: spacing.sm },
+  doneTitle: { fontFamily: fonts.bold, fontSize: 21, color: colors.textPrimary, marginTop: spacing.lg, textAlign: 'center' },
+  doneSub: { fontFamily: fonts.regular, fontSize: 14, color: colors.textSecondary, textAlign: 'center', marginTop: spacing.sm, lineHeight: 22 },
+  // 2026-07-28 MTG：ボタンずれ対策。80%幅を、Button の fullWidth（alignSelf:stretch）
+  // に干渉させないよう、ラッパー View で幅を決めてから Button を置く。
+  doneCta: { width: '80%', marginTop: spacing['2xl'] },
 });

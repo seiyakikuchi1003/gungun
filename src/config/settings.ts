@@ -10,6 +10,8 @@ export const settings = {
   waterCost: 200,
   // ログインボーナス
   dailyLoginBonus: 40,
+  // プレミアム会員のログインボーナス（2026-07-28 MTG で復活）
+  dailyLoginBonusPremium: 80,
   // 最初の種植えは無料
   firstSeedFree: true,
 

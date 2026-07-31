@@ -32,15 +32,16 @@ export default function TreeScreen() {
   const owner = getUser(root.ownerId);
   const mine = root.ownerId === me.id;
   const rootChildren = childrenOf(root.id);
-  const all = treeItems(root.id).sort((a, b) => a.depth - b.depth);
+  // 木のノード全部（root＋子孫）。順序は付けない（ツリー表示側で親子順に並べる）
+  const all = treeItems(root.id);
   const waterings = all.length - 1;
   const branches = rootChildren.length;
   const harvestable = mine && waterings > 0 ? 1 : 0;
   const justWatered = !!newId;
   const cardW = width - 40;
-  // 成長段階（木に属する総数で決まる）と、次の段階までの進捗
+  // 成長段階（木に属する総数で決まる）と、次の段階までの進捗（MAXの概念はない）
   const growth = treeGrowth(all.length);
-  const progress = growth.next ? Math.min((all.length - growth.min) / (growth.next - growth.min), 1) : 1;
+  const progress = Math.min((all.length - growth.min) / Math.max(1, growth.next - growth.min), 1);
 
   // ツリーをシェア（OSの共有シート。Webは navigator.share → クリップボードの順にフォールバック）
   const shareTree = async () => {
@@ -117,11 +118,9 @@ export default function TreeScreen() {
         <View style={[styles.growthCard, shadows.soft]}>
           <View style={styles.growthHead}>
             <Text style={styles.growthLabel}>{growth.emoji} {growth.label}</Text>
-            {growth.next ? (
-              <Text style={styles.growthNext}>次の成長まであと {growth.next - all.length}</Text>
-            ) : (
-              <Text style={styles.growthMax}>MAX まで育ちました！</Text>
-            )}
+            <Text style={styles.growthNext}>
+              次の目安まであと {Math.max(0, growth.next - all.length)}
+            </Text>
           </View>
           <View style={styles.growthTrack}>
             <View style={[styles.growthFill, { width: `${Math.round(progress * 100)}%` }]} />
@@ -170,38 +169,16 @@ export default function TreeScreen() {
         </PressableScale>
 
         {showAll && (
-          <Animated.View entering={FadeIn.duration(250)} style={{ gap: spacing.sm }}>
-            {all.map((it) => {
-              const u = getUser(it.ownerId);
-              const parent = it.parentId ? getItem(it.parentId) : null;
-              const isNew = it.id === newId;
-              const indent = Math.min(it.depth, 3) * 18;
-              return (
-                <View key={it.id} style={{ marginLeft: indent }}>
-                  {it.depth > 0 && (
-                    <Text style={styles.chainHint} numberOfLines={1}>
-                      ↳ {parent ? `${parent.name}に水やり` : '水やり'}
-                    </Text>
-                  )}
-                  <PressableScale activeScale={0.98} onPress={() => router.push(`/item/${it.id}`)} style={[styles.allRow, shadows.soft, isNew && styles.allRowNew]}>
-                    {it.depth > 0 && <View style={styles.branchMark} />}
-                    <Thumb source={it.local} uri={it.image} style={styles.allThumb} radius={10} markSize={18} />
-                    <View style={{ flex: 1 }}>
-                      <View style={styles.allTop}>
-                        <Text style={styles.allName} numberOfLines={1}>{it.name}</Text>
-                        {isNew && <View style={styles.newTag}><Text style={styles.newTagText}>NEW</Text></View>}
-                      </View>
-                      <View style={styles.allMeta}>
-                        <Avatar uri={u.avatar} name={u.nickname} size={15} />
-                        <Text style={styles.allOwner}>{u.nickname}さん</Text>
-                        <Text style={styles.allSub}>水やり{it.waterCount}</Text>
-                      </View>
-                    </View>
-                    <Badge label={it.depth === 0 ? '元の種' : `${it.depth}段目`} tone={it.depth === 0 ? 'green' : 'orange'} />
-                  </PressableScale>
-                </View>
-              );
-            })}
+          <Animated.View entering={FadeIn.duration(250)} style={{ gap: spacing.xs }}>
+            <BranchNode
+              node={root}
+              depth={0}
+              highlightId={newId ?? null}
+              childrenOf={childrenOf}
+              canWater={canWater}
+              onOpen={(it) => router.push(`/item/${it.id}`)}
+              onWater={(it) => router.push(`/water/${it.id}`)}
+            />
           </Animated.View>
         )}
       </ScrollView>
@@ -249,6 +226,101 @@ function Stat({ num, label, accent }: { num: number; label: string; accent?: boo
     <View style={styles.stat}>
       <Text style={[styles.statNum, accent && { color: colors.orange }]}>{num}</Text>
       <Text style={styles.statLabel}>{label}</Text>
+    </View>
+  );
+}
+
+/**
+ * 水やりの連鎖を「多分岐で崩れない」形で表示する再帰ツリー。
+ * 2026-07-28 MTG：一本線ではなく、各ノードに「＋水やり」ボタンを置き、
+ * 分岐先にも水やりできる（can_water 不可なら理由を出してボタン無効）。
+ * ノードが多い枝は初期折りたたみにして、画面の破綻を防ぐ。
+ */
+const INITIAL_VISIBLE = 3;
+const MAX_INDENT = 5;
+
+type BranchProps = {
+  node: import('@/data/mock').MockItem;
+  depth: number;
+  highlightId: string | null;
+  childrenOf: (id: string) => import('@/data/mock').MockItem[];
+  canWater: (id: string) => { ok: true } | { ok: false; reason: string };
+  onOpen: (it: import('@/data/mock').MockItem) => void;
+  onWater: (it: import('@/data/mock').MockItem) => void;
+};
+
+function BranchNode({ node, depth, highlightId, childrenOf, canWater, onOpen, onWater }: BranchProps) {
+  const kids = childrenOf(node.id);
+  const [expanded, setExpanded] = useState(depth < 2 && kids.length <= INITIAL_VISIBLE * 2);
+  const shown = expanded ? kids : kids.slice(0, INITIAL_VISIBLE);
+  const hidden = kids.length - shown.length;
+  const owner = getUser(node.ownerId);
+  const isNew = node.id === highlightId;
+  const gate = canWater(node.id);
+  const indent = Math.min(depth, MAX_INDENT) * 14;
+
+  return (
+    <View style={{ marginLeft: indent }}>
+      {depth > 0 && <View style={styles.branchLine} />}
+
+      <PressableScale
+        activeScale={0.98}
+        onPress={() => onOpen(node)}
+        style={[styles.branchRow, shadows.soft, isNew && styles.allRowNew]}
+      >
+        <Thumb source={node.local} uri={node.image} style={styles.branchThumb} radius={10} markSize={16} />
+        <View style={{ flex: 1 }}>
+          <View style={styles.allTop}>
+            <Text style={styles.allName} numberOfLines={1}>{node.name}</Text>
+            {isNew && <View style={styles.newTag}><Text style={styles.newTagText}>NEW</Text></View>}
+          </View>
+          <View style={styles.allMeta}>
+            <Avatar uri={owner.avatar} name={owner.nickname} size={14} />
+            <Text style={styles.allOwner}>{owner.nickname}さん</Text>
+            <Text style={styles.allSub}>水やり{node.waterCount}</Text>
+            {kids.length > 0 && <Text style={styles.branchDot}>・枝 {kids.length}</Text>}
+          </View>
+        </View>
+        <Badge
+          label={depth === 0 ? '元の種' : `${depth}段目`}
+          tone={depth === 0 ? 'green' : 'orange'}
+        />
+      </PressableScale>
+
+      {/* この枝に「＋水やり」する */}
+      <PressableScale
+        activeScale={gate.ok ? 0.95 : 1}
+        onPress={() => { if (gate.ok) onWater(node); }}
+        disabled={!gate.ok}
+        style={[styles.plusRow, !gate.ok && styles.plusRowOff]}
+      >
+        <View style={[styles.plusIcon, !gate.ok && styles.plusIconOff]}>
+          <Ionicons name={gate.ok ? 'add' : 'lock-closed'} size={13} color={colors.white} />
+        </View>
+        <Text style={[styles.plusText, !gate.ok && styles.plusTextOff]} numberOfLines={1}>
+          {gate.ok ? 'この枝に水やりする' : gate.reason}
+        </Text>
+      </PressableScale>
+
+      {shown.map((c) => (
+        <BranchNode
+          key={c.id}
+          node={c}
+          depth={depth + 1}
+          highlightId={highlightId}
+          childrenOf={childrenOf}
+          canWater={canWater}
+          onOpen={onOpen}
+          onWater={onWater}
+        />
+      ))}
+
+      {hidden > 0 && (
+        <PressableScale activeScale={0.97} onPress={() => setExpanded(true)} style={styles.moreBranch}>
+          <Ionicons name="chevron-down" size={14} color={colors.green} />
+          <Text style={styles.moreBranchText}>この枝の続きを見る（あと {hidden}）</Text>
+        </PressableScale>
+      )}
     </View>
   );
 }
@@ -304,6 +376,18 @@ const styles = StyleSheet.create({
   allRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.md },
   allRowNew: { borderWidth: 1.5, borderColor: colors.orange },
   branchMark: { position: 'absolute', left: -12, top: '50%', width: 12, height: 2, backgroundColor: colors.greenSoftBorder },
+  branchLine: { position: 'absolute', left: -8, top: -4, bottom: 0, width: 2, backgroundColor: colors.greenSoftBorder, borderRadius: 1 },
+  branchRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.card, borderRadius: radius.card, padding: 10, marginTop: 4 },
+  branchThumb: { width: 40, height: 40 },
+  branchDot: { fontFamily: fonts.medium, fontSize: 11, color: colors.textPlaceholder },
+  plusRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingLeft: 8, paddingVertical: 4, marginTop: 2, marginBottom: 6 },
+  plusRowOff: { opacity: 0.55 },
+  plusIcon: { width: 18, height: 18, borderRadius: 9, backgroundColor: colors.waterBlue, justifyContent: 'center', alignItems: 'center' },
+  plusIconOff: { backgroundColor: colors.textPlaceholder },
+  plusText: { fontFamily: fonts.bold, fontSize: 11.5, color: colors.waterBlue, flexShrink: 1 },
+  plusTextOff: { color: colors.textSecondary },
+  moreBranch: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 6, paddingLeft: 8, marginBottom: 4 },
+  moreBranchText: { fontFamily: fonts.bold, fontSize: 11.5, color: colors.green },
   chainHint: { fontFamily: fonts.medium, fontSize: 11, color: colors.textSecondary, marginBottom: 3, marginLeft: 2 },
   allThumb: { width: 46, height: 46 },
   allTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },

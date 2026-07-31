@@ -9,18 +9,22 @@ import { PressableScale } from '@/components/ui/PressableScale';
 import { Mikan } from '@/components/art/Mikan';
 import { settings, formatPrice } from '@/config/settings';
 import { success } from '@/lib/haptics';
+import { useTree } from '@/store/tree';
 
-const FEATURES: { icon: keyof typeof Ionicons.glyphMap; title: string; desc: string }[] = [
-  { icon: 'gift', title: 'ログインボーナス増量', desc: '毎日もらえる肥料がアップ' },
-  { icon: 'list', title: '欲しいものリスト公開', desc: '植えた種に「欲しいもの」を掲示できる' },
-  { icon: 'flash', title: '出品がもっと快適に', desc: '水やりの肥料消費をサポート' },
-  { icon: 'ribbon', title: 'プレミアムバッジ', desc: 'プロフィールに特別バッジを表示' },
-];
+function makeFeatures(bonus: number): { icon: keyof typeof Ionicons.glyphMap; title: string; desc: string }[] {
+  return [
+    { icon: 'gift', title: 'ログインボーナス増量', desc: `毎日${bonus}肥料もらえる（通常より増量）` },
+    { icon: 'list', title: '欲しいものリスト公開', desc: '植えた種に「欲しいもの」を掲示できる' },
+    { icon: 'ribbon', title: 'プレミアムバッジ', desc: 'プロフィールに特別バッジを表示' },
+  ];
+}
 
 export default function Premium() {
   const insets = useSafeAreaInsets();
   const [confirm, setConfirm] = useState(false);
   const [joined, setJoined] = useState(false);
+  const { settings: appSettings } = useTree();
+  const FEATURES = makeFeatures(appSettings.dailyLoginBonusPremium);
   return (
     <View style={styles.root}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: 170 }}>

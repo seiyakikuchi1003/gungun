@@ -19,11 +19,12 @@ export function useLoginBonus() {
   const { settings } = useTree();
   const [claimed, setClaimed] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [amount, setAmount] = useState(settings.dailyLoginBonus);
+  const defaultAmount = me.isPremium ? settings.dailyLoginBonusPremium : settings.dailyLoginBonus;
+  const [amount, setAmount] = useState(defaultAmount);
 
   useEffect(() => {
-    setAmount(settings.dailyLoginBonus);
-  }, [settings.dailyLoginBonus]);
+    setAmount(defaultAmount);
+  }, [defaultAmount]);
 
   // 起動時に「今日受け取れるか」を確認する
   useEffect(() => {

@@ -79,12 +79,16 @@ type TreeState = {
 };
 
 /**
- * parentId ポインタから rootId / depth を再計算する（モック用）。
- * 実DBではトリガと detach_children が同じことをする。
+ * parentId ポインタから rootId / depth / waterCount / treeCount を再計算する（モック用）。
+ * 実DBではトリガと detach_children ＋ item_cards ビューが同じことをする。
+ * 2026-07-28 MTG：目のアイコン＋数字は「子ノード数」に一致させる。
  */
 function recomputeTree(pool: MockItem[]): MockItem[] {
   const byId = new Map(pool.map((i) => [i.id, i]));
-  return pool.map((i) => {
+
+  // 1) 各ノードの root/depth を親ポインタから確定
+  const meta = new Map<string, { rootId: string; depth: number }>();
+  for (const i of pool) {
     let cur = i;
     let depth = 0;
     let guard = 0;
@@ -93,8 +97,27 @@ function recomputeTree(pool: MockItem[]): MockItem[] {
       depth += 1;
       guard += 1;
     }
-    if (i.rootId === cur.id && i.depth === depth) return i;
-    return { ...i, rootId: cur.id, depth };
+    meta.set(i.id, { rootId: cur.id, depth });
+  }
+
+  // 2) 子ノード数を集計（水やり数 = 直接の子）
+  const childCount = new Map<string, number>();
+  for (const i of pool) {
+    if (i.parentId) childCount.set(i.parentId, (childCount.get(i.parentId) ?? 0) + 1);
+  }
+  // 3) 木の総数（同じ rootId のノード数）
+  const treeSize = new Map<string, number>();
+  for (const i of pool) {
+    const r = meta.get(i.id)!.rootId;
+    treeSize.set(r, (treeSize.get(r) ?? 0) + 1);
+  }
+
+  return pool.map((i) => {
+    const m = meta.get(i.id)!;
+    const wc = childCount.get(i.id) ?? 0;
+    const tc = treeSize.get(m.rootId) ?? 1;
+    if (i.rootId === m.rootId && i.depth === m.depth && i.waterCount === wc && i.treeCount === tc) return i;
+    return { ...i, rootId: m.rootId, depth: m.depth, waterCount: wc, treeCount: tc };
   });
 }
 
@@ -118,7 +141,9 @@ export function TreeProvider({ children }: { children: React.ReactNode }) {
   const live = isSupabaseEnabled;
   const myId = live ? (profile?.id ?? null) : currentUser.id;
 
-  const [pool, setPool] = useState<MockItem[]>(() => (live ? [] : [...seedPool]));
+  // モックの初期プールは waterCount / treeCount がデザイン用に手打ちされているため、
+  // 実際の子ノード数と一致するよう再計算してから使う（2026-07-28 MTG）。
+  const [pool, setPool] = useState<MockItem[]>(() => (live ? [] : recomputeTree([...seedPool])));
   const [mockFertilizer, setMockFertilizer] = useState<number>(currentUser.fertilizer);
   const [lastWateredId, setLastWateredId] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(live);
@@ -203,7 +228,7 @@ export function TreeProvider({ children }: { children: React.ReactNode }) {
           depth: 0,
         };
         item.rootId = item.id;
-        setPool((prev) => prev.concat(item));
+        setPool((prev) => recomputeTree(prev.concat(item)));
         return { error: null };
       }
       if (!myId) return { error: 'ログインしてください' };
@@ -243,11 +268,7 @@ export function TreeProvider({ children }: { children: React.ReactNode }) {
           rootId: target.rootId,
           depth: target.depth + 1,
         };
-        setPool((prev) =>
-          prev
-            .map((i) => (i.id === target.id ? { ...i, waterCount: i.waterCount + 1 } : i))
-            .concat(child)
-        );
+        setPool((prev) => recomputeTree(prev.concat(child)));
         setMockFertilizer((f) => f - fallbackSettings.waterCost);
         setLastWateredId(child.id);
         return child;
@@ -271,7 +292,35 @@ export function TreeProvider({ children }: { children: React.ReactNode }) {
 
   const harvestSeed = useCallback(
     async (rootId: string, targetId: string) => {
-      if (!live) return { id: 'mock-harvest', error: null };
+      if (!live) {
+        // モックでも「苗木機能」＝収穫パス外の枝を新しい種として独立させる
+        // （2026-07-28 MTG）。DBの harvest_unchecked + detach_children と同じ挙動。
+        setPool((prev) => {
+          // root → target の一本道
+          const byId = new Map(prev.map((i) => [i.id, i] as const));
+          const path: string[] = [];
+          let cur = byId.get(targetId);
+          while (cur) {
+            path.unshift(cur.id);
+            cur = cur.parentId ? byId.get(cur.parentId) : undefined;
+          }
+          if (path[0] !== rootId) return prev;
+          const pathSet = new Set(path);
+          // パス上のノード以外で「親がパス上のもの」＝切り離される子 → parentId=null
+          const next = prev.map((i) => {
+            if (pathSet.has(i.id)) {
+              // パス上は取引中に
+              return { ...i, status: 'trading' as const };
+            }
+            if (i.parentId && pathSet.has(i.parentId)) {
+              return { ...i, parentId: null };
+            }
+            return i;
+          });
+          return recomputeTree(next);
+        });
+        return { id: 'mock-harvest', error: null };
+      }
       try {
         const id = await api.harvest(rootId, targetId);
         await refresh();
@@ -322,13 +371,11 @@ export function TreeProvider({ children }: { children: React.ReactNode }) {
         setPool((prev) => {
           const target = prev.find((i) => i.id === id);
           if (!target) return prev;
-          let next = prev.map((i) => (i.parentId === id ? { ...i, parentId: null } : i));
-          if (target.parentId) {
-            next = next.map((i) =>
-              i.id === target.parentId ? { ...i, waterCount: Math.max(0, i.waterCount - 1) } : i
-            );
-          }
-          return recomputeTree(next.filter((i) => i.id !== id));
+          // 子ノードは新しい種として独立させる（parentId=null）＝ SPEC 3-3 と同じ
+          const next = prev
+            .map((i) => (i.parentId === id ? { ...i, parentId: null } : i))
+            .filter((i) => i.id !== id);
+          return recomputeTree(next);
         });
         return { error: null };
       }

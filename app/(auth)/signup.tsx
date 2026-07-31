@@ -97,8 +97,20 @@ export default function SignupScreen() {
                 {agree && <Ionicons name="checkmark" size={18} color={colors.white} />}
               </View>
               <Text style={styles.agreeText}>
-                <Text style={styles.link}>利用規約</Text>と
-                <Text style={styles.link}>プライバシーポリシー</Text>に同意する
+                <Text
+                  style={styles.link}
+                  onPress={(e) => { e.stopPropagation(); router.push('/mypage/terms'); }}
+                >
+                  利用規約
+                </Text>
+                と
+                <Text
+                  style={styles.link}
+                  onPress={(e) => { e.stopPropagation(); router.push('/mypage/privacy'); }}
+                >
+                  プライバシーポリシー
+                </Text>
+                に同意する
               </Text>
             </Pressable>
 
