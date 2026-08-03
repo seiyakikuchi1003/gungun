@@ -12,12 +12,19 @@ set -euo pipefail
 grep -q 'EXPO_PUBLIC_SUPABASE_URL=.\+' .env || { echo ".env の EXPO_PUBLIC_SUPABASE_URL が空です"; exit 1; }
 
 rm -rf dist-live
-npx expo export --platform web --output-dir dist-live
+# --clear は必須。Metro のキャッシュには前回ビルド時に埋め込まれた
+# EXPO_PUBLIC_* の値が残るため、付けないと .env の変更が反映されない。
+npx expo export --platform web --output-dir dist-live --clear
 node scripts/inject-web-fonts.mjs dist-live
 
 # シークレットキーが混ざっていないか最後に確認（publishable キーだけが入るのが正しい）
-if grep -rq "sb_secret_" dist-live/_expo 2>/dev/null; then
+#
+# supabase-js 自身がキー形式の判定コードとして `startsWith("sb_secret_")` という
+# 文字列を持っているため、"sb_secret_" の有無だけでは判定できない。
+# 実キーの形（プレフィックス＋10文字以上のキー文字列）に一致するものだけを探す。
+if grep -rqE 'sb_secret_[A-Za-z0-9_-]{10,}' dist-live/_expo 2>/dev/null; then
   echo "⚠ ビルド成果物に secret key が含まれています。中止します。"
+  echo "   .env に sb_secret_... を入れていないか確認してください（アプリ側は publishable key だけ）。"
   exit 1
 fi
 

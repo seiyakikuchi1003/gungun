@@ -57,13 +57,15 @@ export default function LoginScreen() {
           <Animated.View entering={FadeIn.duration(500)} style={styles.header}>
             <GunGunLogo size={46} />
             <Text style={styles.tagline}>いらないものが、ほしいものに。</Text>
-            {/* 開発中だけ、実DBに繋がっているかを表示する。
-                .env が読めていないと黙ってモックで動いてしまい、
-                「登録したのに反映されない」と紛らわしいため。 */}
-            {__DEV__ && (
+            {/* 実DBに繋がっている版だけバッジを出す。
+                デモ用（モック）と実データ用でURLが2つあり、見た目が同じなので
+                「触ったのに保存されない／消えない」の切り分けに使う。
+                モック時は何も出さないので、先方デモの邪魔にはならない。
+                開発中は .env の読み込み漏れに気づけるよう、モックでも出す。 */}
+            {(live || __DEV__) && (
               <View style={[styles.modeChip, live ? styles.modeLive : styles.modeMock]}>
                 <Text style={[styles.modeText, live ? styles.modeTextLive : styles.modeTextMock]}>
-                  {live ? '● 実データ（Supabase）' : '○ モックデータ（.env 未読込）'}
+                  {live ? '● 実データ（Supabase）に接続中' : '○ モックデータ（.env 未読込）'}
                 </Text>
               </View>
             )}
