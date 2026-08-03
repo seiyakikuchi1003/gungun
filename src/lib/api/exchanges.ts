@@ -1,5 +1,5 @@
 import { requireSupabase } from '@/lib/supabase';
-import { relativeTime } from './map';
+import { relativeTime, DELETED_USER_NAME } from './map';
 import type { ExchangeStatus } from '@/types/db';
 
 /** 玉突き交換（発送・受取・メッセージ・評価）。 */
@@ -50,7 +50,7 @@ function toExchange(r: any, me: string): Exchange {
     itemImage: thumb,
     fromUserId: r.from_user_id,
     toUserId: r.to_user_id,
-    partnerName: partner?.nickname ?? '',
+    partnerName: partner?.nickname ?? DELETED_USER_NAME,
     partnerAvatar: partner?.avatar_url ?? null,
     iAmSender,
     status: r.status,

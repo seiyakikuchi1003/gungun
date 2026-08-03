@@ -30,7 +30,7 @@ npx expo start       # QRを Expo Go で読む（SDK 54）
 | API レイヤ | **完成**。`src/lib/api/` が全機能ぶん実装済み |
 | ストア | **完成**。`isSupabaseEnabled` で実DB／モックを自動切替 |
 | 認証 | **完成**（Supabase Auth）。登録・ログイン・コード認証・再設定・退会 |
-| DB 設計 | **完成**。0001〜0008。Phase-1 テスト17項目をローカルPostgresで全PASS |
+| DB 設計 | **完成**。0001〜0009。ローカルPostgresで113項目のテスト全PASS |
 | DB 設置 | **未適用**。`gungun-dev` にまだ流していない ← いちばん最初にやること |
 | 管理画面 | **完成**・デプロイ済み。アクセス制限だけ未設定 |
 | メール送信（Resend） | **未着手** |
@@ -98,11 +98,13 @@ Stripe で外部決済すると審査で弾かれるリスクがあるため、*
 
 ## C. 実装として残っているもの
 
+DB 側の受け皿は 0009 で用意済み。残っているのはアプリ／サーバ側の実装。
+
 | # | 内容 | 補足 |
 |---|---|---|
 | C-1 | **メール送信（Resend）** | いまは Supabase 標準のメール。差出人・文面を自社にするなら Resend を SMTP に設定 |
-| C-2 | **プッシュ通知** | `expo-notifications` 未導入。`notifications` テーブルは既にある。トークン保存 → 送信の2段階 |
-| C-3 | **課金の実装** | 方式の確定待ち（上記 B-3）。いまは残高に反映するだけのモック |
+| C-2 | **プッシュ通知** | DB：`push_tokens` と `notifications_to_push` は 0009 で用意済み。<br>残り：`expo-notifications` 導入 → 起動時に `register_push_token()` → 送信ワーカー（キューを読んで送り、`pushed_at` を埋める） |
+| C-3 | **課金の実装** | DB：`purchases` と `redeem_purchase()`（冪等）は 0009 で用意済み。<br>残り：方式の確定（上記 B-3）→ StoreKit 導入 → **レシート検証サーバ**（Edge Function か管理画面の API） |
 | C-4 | **型の自動生成** | `supabase gen types typescript` で `src/types/db.ts` を実DBから生成 |
 | C-5 | **プレミアムの中身** | 「欲しいものリスト公開」が画面だけ。v1に入れるか要相談 |
 
@@ -137,7 +139,7 @@ Stripe で外部決済すると審査で弾かれるリスクがあるため、*
 
 | # | 内容 |
 |---|---|
-| F-1 | 既存160人の移行（Click版 → Supabase）＋再ログイン案内メール（仕様書 Phase 10） |
+| F-1 | 既存160人の移行（Click版 → Supabase）＋再ログイン案内メール（仕様書 Phase 10）<br>DB：`legacy_users` に名簿を入れれば、その人が登録した時点で自動で紐づく（0009）。<br>残り：旧データの書き出しと投入、案内メールの送信 |
 | F-2 | 独自ドメインの取得と設定 |
 | F-3 | PR #3 のマージ |
 | F-4 | Cloudflare Pages の `gungun-app` プロジェクトが使われていない残骸。整理する |
@@ -170,6 +172,20 @@ bash scripts/deploy-live.sh      # 実DB接続版 → gungun-dev-app
 node scripts/audit-responsive.mjs   # 全ルート × 4幅で崩れを検出
 node scripts/audit-buttons.mjs      # 全ルートのボタンを押して無反応を検出
 ```
+
+### DB のテスト
+
+ローカル Postgres にマイグレーションを流して、仕様どおり動くかを確認する。
+
+```bash
+bash supabase/tests/run.sh                  # 既定ポート 55432
+PGPORT_TEST=5455 bash supabase/tests/run.sh  # ポートを変えたいとき
+```
+
+- `01_app_test.sql` … 仕様書 Phase-1 の項目（種植え・水やりの親子付け・can_water の4条件・
+  収穫の玉突きの輪・枝の独立・肥料の消費と台帳・通知）
+- `0009_test.sql` … プレミアムの期限切れ、課金の二重付与防止、プッシュトークンの付け替え、
+  移行台帳の自動紐づけ、**退会（外部キーで失敗しないこと）**
 
 `audit-buttons.mjs` は色の変化も状態の指紋に含めるので、選択チップを誤検知しない。
 戻るボタンは `history.pushState` で遷移させている都合上「無反応」に出るが、実機では正常。

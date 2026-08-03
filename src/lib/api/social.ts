@@ -1,4 +1,5 @@
 import { requireSupabase } from '@/lib/supabase';
+import { DELETED_USER_NAME } from './map';
 
 /** 商品のお気に入り・ブロック・通報。 */
 
@@ -40,7 +41,7 @@ export async function fetchBlocks(userId: string): Promise<BlockedUser[]> {
   if (error) throw error;
   return (data ?? []).map((r: any) => ({
     id: r.blocked_id,
-    nickname: r.profiles?.nickname ?? '',
+    nickname: r.profiles?.nickname ?? DELETED_USER_NAME,
     avatarUrl: r.profiles?.avatar_url ?? null,
   }));
 }

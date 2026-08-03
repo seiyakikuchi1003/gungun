@@ -8,6 +8,15 @@ import type { MockItem, MockUser } from '@/data/mock';
  * こうすると「モックのまま動く」「実DBでも動く」を1つの画面コードで両立できる。
  */
 
+/**
+ * 退会したユーザーの表示名。
+ *
+ * 退会すると profiles の行が消え、取引・評価・投稿から参照が NULL になる
+ * （相手の履歴を壊さないため、行そのものは残す設計）。
+ * 名前欄が空だと壊れて見えるので、全画面でこの文言に揃える。
+ */
+export const DELETED_USER_NAME = '退会したユーザー';
+
 /** item_cards ビューの1行 */
 export type ItemCardRow = {
   id: string;
