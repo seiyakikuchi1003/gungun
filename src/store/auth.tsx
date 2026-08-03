@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase, isSupabaseEnabled } from '@/lib/supabase';
+import { registerForPush, unregisterCurrentPush } from '@/lib/push';
 
 /**
  * 認証ストア。
@@ -120,14 +121,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     supabase.auth.getSession().then(({ data }) => {
       if (!alive) return;
       setSession(data.session);
-      if (data.session) fetchProfile(data.session.user.id).finally(() => setReady(true));
-      else setReady(true);
+      if (data.session) {
+        fetchProfile(data.session.user.id).finally(() => setReady(true));
+        // 端末のプッシュ通知トークンを登録（Web・シミュレータでは何もしない）
+        registerForPush();
+      } else {
+        setReady(true);
+      }
     });
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s);
-      if (s) fetchProfile(s.user.id);
-      else setProfile(null);
+      if (s) {
+        fetchProfile(s.user.id);
+        if (event === 'SIGNED_IN') registerForPush();
+      } else {
+        setProfile(null);
+      }
     });
 
     return () => {
@@ -222,10 +232,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
 
       signOut: async () => {
+        // ★ サインアウトより前に外す（RPC が auth.uid() を使うため）
+        await unregisterCurrentPush();
         await db.auth.signOut();
       },
 
       deleteAccount: async () => {
+        await unregisterCurrentPush();
         const { error } = await db.rpc('delete_own_account');
         if (error) return { error: jp(error.message) };
         await db.auth.signOut();

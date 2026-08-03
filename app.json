@@ -15,7 +15,12 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "app.gungun.ios"
+      "bundleIdentifier": "app.gungun.ios",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
+      }
     },
     "web": {
       "bundler": "metro",
@@ -38,6 +43,13 @@
         {
           "photosPermission": "商品の写真を選ぶために写真ライブラリへのアクセスを許可してください。",
           "cameraPermission": "商品の写真を撮影するためにカメラへのアクセスを許可してください。"
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/android-icon-monochrome.png",
+          "color": "#2C8547"
         }
       ]
     ],

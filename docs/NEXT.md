@@ -34,7 +34,7 @@ npx expo start       # QRを Expo Go で読む（SDK 54）
 | DB 設置 | **未適用**。`gungun-dev` にまだ流していない ← いちばん最初にやること |
 | 管理画面 | **完成**・デプロイ済み。アクセス制限だけ未設定 |
 | メール送信（Resend） | **未着手** |
-| プッシュ通知 | **未着手** |
+| プッシュ通知 | アプリ側・DB側・送信ワーカーは**実装済み**。EASビルドと実機確認が残り（`docs/PUSH.md`） |
 | 課金 | **未着手**（画面だけ。要・方式の確定） |
 | ネイティブ化 / 審査 | **未着手** |
 
@@ -103,7 +103,7 @@ DB 側の受け皿は 0009 で用意済み。残っているのはアプリ／�
 | # | 内容 | 補足 |
 |---|---|---|
 | C-1 | **メール送信（Resend）** | いまは Supabase 標準のメール。差出人・文面を自社にするなら Resend を SMTP に設定 |
-| C-2 | **プッシュ通知** | DB：`push_tokens` と `notifications_to_push` は 0009 で用意済み。<br>残り：`expo-notifications` 導入 → 起動時に `register_push_token()` → 送信ワーカー（キューを読んで送り、`pushed_at` を埋める） |
+| C-2 | ~~**プッシュ通知**~~ | **実装済み**。アプリ側（登録・解除・タップ遷移）、送信ワーカー（Edge Function）、DB すべて完了。<br>残り：`npx eas init` でプロジェクトID → development build → iOS のプッシュ証明書 → Edge Function のデプロイと Cron 設定 → **実機で通す**。手順は [`PUSH.md`](./PUSH.md) |
 | C-3 | **課金の実装** | DB：`purchases` と `redeem_purchase()`（冪等）は 0009 で用意済み。<br>残り：方式の確定（上記 B-3）→ StoreKit 導入 → **レシート検証サーバ**（Edge Function か管理画面の API） |
 | C-4 | **型の自動生成** | `supabase gen types typescript` で `src/types/db.ts` を実DBから生成 |
 | C-5 | **プレミアムの中身** | 「欲しいものリスト公開」が画面だけ。v1に入れるか要相談 |
@@ -114,7 +114,7 @@ DB 側の受け皿は 0009 で用意済み。残っているのはアプリ／�
 
 | # | 内容 |
 |---|---|
-| D-1 | `eas.json` を作成し EAS Build を通す（未着手） |
+| D-1 | `eas.json` は作成済み（development / preview / production）。<br>残り：`npx eas init` → `npx eas build --profile development --platform ios` を通す |
 | D-2 | Apple Developer Program 登録 → App Store Connect にアプリ作成 |
 | D-3 | アイコン・スプラッシュの最終版（いまは仮素材） |
 | D-4 | 審査用素材：スクリーンショット、説明文、キーワード、サポートURL |

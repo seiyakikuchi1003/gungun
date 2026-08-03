@@ -3,7 +3,9 @@
   "compilerOptions": {
     "strict": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": [
+        "./src/*"
+      ]
     }
   },
   "include": [
@@ -15,6 +17,7 @@
   "exclude": [
     "node_modules",
     "dist",
-    "admin"
+    "admin",
+    "supabase/functions"
   ]
 }

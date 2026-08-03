@@ -13,6 +13,8 @@ import { TreeProvider } from '@/store/tree';
 import { BlocksProvider } from '@/store/blocks';
 import { LikesProvider } from '@/store/likes';
 import { NotificationsProvider } from '@/store/notifications';
+import { configureNotificationHandler } from '@/lib/push';
+import { usePushNavigation } from '@/hooks/usePushNavigation';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -35,6 +37,14 @@ export default function RootLayout() {
   useEffect(() => {
     if (ready) SplashScreen.hideAsync().catch(() => {});
   }, [ready]);
+
+  // 通知が届いたときの見せ方（起動中でもバナーを出す）。Web では何もしない
+  useEffect(() => {
+    configureNotificationHandler();
+  }, []);
+
+  // プッシュ通知をタップしたら該当ページへ飛ばす
+  usePushNavigation();
 
   if (!ready) return null;
 

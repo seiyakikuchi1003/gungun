@@ -9,6 +9,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { NOTIF_ICON, NotificationType, Notif } from '@/data/mockSocial';
 import { getUser } from '@/data/mock';
 import { useNotifications } from '@/store/notifications';
+import { notificationRoute } from '@/lib/notificationRoute';
 
 const TONE: Record<NotificationType, string> = {
   watered: colors.green,
@@ -18,29 +19,6 @@ const TONE: Record<NotificationType, string> = {
   message: colors.green,
   board_comment: colors.premium,
 };
-
-/**
- * 通知の種類ごとの遷移先（要件定義 第11章「通知タップで該当ページに遷移する」）。
- * relatedId が無い通知（古いデータなど）は、種類に応じた一覧へ寄せる。
- */
-function destinationOf(n: Notif): string {
-  const id = n.relatedId;
-  switch (n.type) {
-    case 'watered':
-      // 水やりされた＝自分の商品に子が付いた。その商品の木を見せる
-      return id ? `/tree/${id}` : '/(tabs)/harvest';
-    case 'harvested':
-      return id ? `/harvest/${id}` : '/(tabs)/harvest';
-    case 'shipped':
-    case 'received':
-    case 'message':
-      return id ? `/exchange/${id}` : '/exchange';
-    case 'board_comment':
-      return id ? `/board/${id}` : '/(tabs)/board';
-    default:
-      return '/(tabs)';
-  }
-}
 
 function Row({ n, onPress }: { n: Notif; onPress: () => void }) {
   const actor = n.actorId ? getUser(n.actorId) : null;
@@ -73,7 +51,7 @@ export default function Notifications() {
   // タップしたら既読にして、その通知が指す画面へ飛ぶ
   const open = (n: Notif) => {
     if (!n.read) markRead(n.id);
-    router.push(destinationOf(n) as never);
+    router.push(notificationRoute(n.type, n.relatedId) as never);
   };
 
   return (
