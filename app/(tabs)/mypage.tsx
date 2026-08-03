@@ -12,6 +12,7 @@ import { FormError } from '@/components/ui/FormError';
 import { currentUser } from '@/data/mock';
 import { useAuth } from '@/store/auth';
 import { useTree } from '@/store/tree';
+import { useMe } from '@/store/me';
 import { warning } from '@/lib/haptics';
 
 type Action = 'about' | 'contact' | 'logout' | 'withdraw';
@@ -41,7 +42,12 @@ export default function MyPage() {
   const insets = useSafeAreaInsets();
   const { signOut, deleteAccount, profile } = useAuth();
   // 肥料残高は tree ストアが持つ（水やり・チャージで増減する実際の値）
-  const { fertilizer } = useTree();
+  const { fertilizer, items } = useTree();
+  const me = useMe();
+  const mine = items.filter((i) => i.ownerId === me.id);
+  const planted = mine.filter((i) => i.parentId === null).length;
+  const watered = mine.filter((i) => i.parentId !== null).length;
+  const exchanging = mine.filter((i) => i.status === 'trading').length;
   // ログイン中の本人の表示名。実DB接続時は profiles の値、モックでは従来どおり。
   // ※ ID や所有判定はまだモック（currentUser.id）のまま。商品データの実DB化と一緒に切り替える。
   const displayName = profile?.nickname ?? currentUser.nickname;
@@ -79,12 +85,13 @@ export default function MyPage() {
             </PressableScale>
           </View>
           <Text style={styles.bio}>不要になったものを、必要な人へ🌱 気軽に水やりしてください！</Text>
+          {/* 固定値ではなく実データから数える（収穫タブの件数と食い違わないように） */}
           <View style={styles.stats}>
-            <Stat n={2} label="植えたタネ" />
+            <Stat n={planted} label="植えたタネ" />
             <View style={styles.statDivider} />
-            <Stat n={7} label="水やり" />
+            <Stat n={watered} label="水やり" />
             <View style={styles.statDivider} />
-            <Stat n={3} label="収穫" />
+            <Stat n={exchanging} label="取引中" />
           </View>
         </View>
 

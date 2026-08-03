@@ -8,17 +8,22 @@ import { PressableScale } from '@/components/ui/PressableScale';
 import { ItemCard } from '@/components/ui/ItemCard';
 import { Thumb } from '@/components/ui/Thumb';
 import { Sprout } from '@/components/art/Sprout';
-import { getItem, getUser, items } from '@/data/mock';
+import { getUser } from '@/data/mock';
+import { useTree } from '@/store/tree';
 
 export default function RootDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
+  const { getItem, treeItems, childrenOf } = useTree();
   const seed = getItem(id ?? '');
   const cardW = (width - 20 * 2 - 12) / 2;
   if (!seed) return <View style={styles.root} />;
   const owner = getUser(seed.ownerId);
-  const connected = items.filter((i) => i.id !== seed.id).slice(0, seed.treeCount);
+  // 同じ木にぶら下がっている商品だけを出す（以前は先頭N件を無関係に並べていた）
+  const connected = treeItems(seed.id).filter((i) => i.id !== seed.id);
+  const gathered = connected.length;
+  const directWaterings = childrenOf(seed.id).length;
 
   return (
     <View style={styles.root}>
@@ -43,12 +48,12 @@ export default function RootDetail() {
 
         <View style={styles.treeStat}>
           <View style={styles.treeStatItem}>
-            <Text style={styles.treeNum}>{Math.max(0, seed.treeCount - 1)}</Text>
+            <Text style={styles.treeNum}>{gathered}</Text>
             <Text style={styles.treeLabel}>集まった商品</Text>
           </View>
           <View style={styles.treeDivider} />
           <View style={styles.treeStatItem}>
-            <Text style={styles.treeNum}>{seed.waterCount}</Text>
+            <Text style={styles.treeNum}>{directWaterings}</Text>
             <Text style={styles.treeLabel}>直接の水やり</Text>
           </View>
         </View>

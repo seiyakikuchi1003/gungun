@@ -66,12 +66,23 @@ const LIST_BUTTONS = () => {
  * モーダル（シート・ピッカー）は React Native Web が #root の外に描くことがあるため、
  * body 全体の文字と要素数を見る。
  */
-const SNAPSHOT = () =>
-  [
+const SNAPSHOT = () => {
+  // 選択チップやラジオは「色だけ変わる」ので、文字と要素数だけでは変化を拾えない。
+  // 画面内の背景色・枠線色もまとめて指紋にする。
+  let paint = '';
+  document.querySelectorAll('#root div,#root svg').forEach((el) => {
+    const r = el.getBoundingClientRect();
+    if (r.width < 8 || r.height < 8) return;
+    const cs = getComputedStyle(el);
+    paint += `${cs.backgroundColor}${cs.borderColor}${cs.opacity};`;
+  });
+  return [
     location.pathname,
     document.body.innerText.replace(/\s+/g, ' ').slice(0, 1500),
     document.querySelectorAll('*').length,
+    paint,
   ].join('||');
+};
 
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 390, height: 844 } });

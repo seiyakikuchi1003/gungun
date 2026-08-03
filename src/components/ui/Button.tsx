@@ -77,7 +77,7 @@ export function Button({
         ? ([colors.green, colors.greenDeep] as const)
         : ([colors.orange, colors.orangeDeep] as const);
     return (
-      <PressableScale onPress={isDisabled ? undefined : onPress} style={[base, shadows.button]}>
+      <PressableScale disabled={isDisabled} onPress={onPress} style={[base, shadows.button]}>
         <LinearGradient
           colors={grad}
           start={{ x: 0, y: 0 }}
@@ -92,7 +92,8 @@ export function Button({
   if (variant === 'outline') {
     return (
       <PressableScale
-        onPress={isDisabled ? undefined : onPress}
+        disabled={isDisabled}
+        onPress={onPress}
         style={[base, styles.outline]}
       >
         {content}
@@ -102,7 +103,7 @@ export function Button({
 
   // text
   return (
-    <PressableScale onPress={isDisabled ? undefined : onPress} style={[styles.textBtn, style]}>
+    <PressableScale disabled={isDisabled} onPress={onPress} style={[styles.textBtn, isDisabled && { opacity: 0.5 }, style]}>
       {content}
     </PressableScale>
   );
