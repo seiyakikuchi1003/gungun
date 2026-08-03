@@ -1,3 +1,5 @@
+export const runtime = "edge";
+
 import Link from 'next/link';
 import { Shell, NotConnected } from '@/components/Shell';
 import { countOf, isConnected, rows } from '@/lib/supabase';

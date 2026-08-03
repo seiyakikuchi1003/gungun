@@ -5,3 +5,6 @@ out/
 
 # TypeScript
 *.tsbuildinfo
+
+# Cloudflare Pages / next-on-pages ビルド出力
+.vercel/

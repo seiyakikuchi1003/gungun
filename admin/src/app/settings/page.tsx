@@ -1,3 +1,5 @@
+export const runtime = "edge";
+
 import { redirect } from 'next/navigation';
 import { Shell, NotConnected } from '@/components/Shell';
 import { Banner } from '@/components/Banner';
