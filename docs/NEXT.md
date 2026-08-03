@@ -39,7 +39,7 @@ npm run device            # 実機（Expo Go）で開く。QRをカメラで読�
 | 認証 | **完成**（Supabase Auth）。登録・ログイン・コード認証・再設定・退会 |
 | DB 設計 | **完成**。0001〜0009。ローカルPostgresで113項目のテスト全PASS |
 | DB 設置 | **未適用**。`gungun-dev` にまだ流していない ← いちばん最初にやること |
-| 管理画面 | **完成**・デプロイ済み。アクセス制限だけ未設定 |
+| 管理画面 | **完成**・デプロイ済み・パスワード設定済み |
 | メール送信（Resend） | **未着手** |
 | プッシュ通知 | アプリ側・DB側・送信ワーカーは**実装済み**。EASビルドと実機確認が残り（`docs/PUSH.md`） |
 | 課金 | **未着手**（画面だけ。要・方式の確定） |
@@ -76,9 +76,17 @@ npm run device            # 実機（Expo Go）
 画像アップロード（Storage の `item-images` バケット）もここで初めて実データを通る。
 確認する順番と、DB のどこを見ればよいかは [`DEVICE-PREVIEW.md`](./DEVICE-PREVIEW.md)。
 
-### A-4. 管理画面にアクセス制限をかける
+### A-4. 管理画面のパスワードを自分のものに変える
 
-`ADMIN_PASSWORD` が未設定だと誰でも開ける。加えて Cloudflare Access を推奨（`admin/README.md`）。
+`ADMIN_PASSWORD` は設定済み（2026-08-03。未設定のまま公開URLに出ていたのを検知して対応）。
+いま入っているのは自動生成した仮のものなので、**先方にお渡しする前に差し替えてください**。
+
+Cloudflare Pages → gungun-admin → Settings → Variables → `ADMIN_PASSWORD` を編集 →
+Deployments → Retry deployment。
+
+- コード側は fail closed にしてある。`ADMIN_PASSWORD` 未設定のとき、localhost 以外からの
+  アクセスは 503 で閉じる（裏に service_role キーがあるため、素通しにしない）
+- さらに固めるなら Cloudflare Access（`admin/README.md`）
 
 ---
 
