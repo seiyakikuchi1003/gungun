@@ -72,10 +72,10 @@ export function ReportSheet({ visible, onClose, targetLabel = 'この内容', ta
     <BottomSheetModal visible={visible} onClose={close}>
       {done ? (
         <View style={styles.doneWrap}>
-          <View style={styles.doneIcon}>
+          <View style={[styles.doneIcon, { alignSelf: 'center' }]}>
             <Ionicons name="checkmark" size={30} color={colors.white} />
           </View>
-          <Text style={styles.doneTitle}>通報を受け付けました</Text>
+          <Text style={[styles.doneTitle, { textAlign: 'center' }]}>通報を受け付けました</Text>
           <Text style={styles.doneNote}>
             ご報告ありがとうございます。運営が内容を確認します。
           </Text>
@@ -144,7 +144,9 @@ const styles = StyleSheet.create({
   submit: { height: 54, borderRadius: radius.pill, backgroundColor: colors.orangeDeep, justifyContent: 'center', alignItems: 'center', marginTop: spacing.lg },
   submitOff: { backgroundColor: colors.textPlaceholder, opacity: 0.6 },
   submitText: { fontFamily: fonts.bold, fontSize: 16, color: colors.white },
-  doneWrap: { alignItems: 'center', paddingVertical: spacing.md },
+  // alignItems:'center' だと中のボタンが内容幅まで縮んでしまうので、
+  // テキストだけ中央寄せにしてボタンは stretch のままにする（stretch が既定）
+  doneWrap: { paddingVertical: spacing.md },
   doneIcon: { width: 60, height: 60, borderRadius: 30, backgroundColor: colors.green, justifyContent: 'center', alignItems: 'center', marginBottom: spacing.md },
   doneTitle: { fontFamily: fonts.bold, fontSize: 17, color: colors.textPrimary },
   doneNote: { fontFamily: fonts.medium, fontSize: 13, lineHeight: 20, color: colors.textSecondary, textAlign: 'center', marginTop: 6, marginBottom: spacing.lg },
