@@ -40,3 +40,6 @@ gungun-preview.html
 shots-audit/
 shots-water/
 shots-tree/
+
+# 実DB接続ビルドの出力（dist と同じく成果物なのでコミットしない）
+dist-live/

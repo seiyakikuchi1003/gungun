@@ -19,13 +19,15 @@
  *
  * 使い方:
  *   npx expo export --platform web
- *   node scripts/inject-web-fonts.mjs
+ *   node scripts/inject-web-fonts.mjs            # 出力先を変えたときは第1引数で指定
  *   npx wrangler pages deploy dist --project-name=... --branch=...
  */
 import { readFileSync, writeFileSync, readdirSync, statSync, mkdirSync, copyFileSync } from 'node:fs';
 import { join, basename } from 'node:path';
 
-const DIST = 'dist';
+// 出力先はコマンドライン引数で切り替えられる（既定は dist）
+//   node scripts/inject-web-fonts.mjs dist-live
+const DIST = process.argv[2] ?? 'dist';
 const HTML = `${DIST}/index.html`;
 const SAFE_DIR = `${DIST}/fonts`;
 
