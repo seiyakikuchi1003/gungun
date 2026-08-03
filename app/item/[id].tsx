@@ -49,7 +49,6 @@ export default function ItemDetailScreen() {
   const owner = getUser(item.ownerId);
   const imgs = itemImageSources(item);
   const connected = childrenOf(item.id); // この商品に水やりした商品（＝子ノード）
-  const treeCount = treeItems(item.rootId).length;
   const treeThumbs = treeItems(item.rootId).filter((i) => i.id !== item.id);
   const gate = canWater(item.id);
   // すでにこの商品へ水やり済みか（自分の商品が子にいる）
@@ -141,14 +140,15 @@ export default function ItemDetailScreen() {
                 {treeThumbs.slice(0, 3).map((c, i) => (
                   <Thumb key={c.id} source={c.local} uri={c.image} style={[styles.treeThumb, { marginLeft: i === 0 ? 0 : -14 }]} radius={10} markSize={18} />
                 ))}
-                {treeCount > 4 && (
+                {treeThumbs.length > 3 && (
                   <View style={[styles.treeMore, { marginLeft: -14 }]}>
-                    <Text style={styles.treeMoreText}>+{treeCount - 4}</Text>
+                    <Text style={styles.treeMoreText}>+{treeThumbs.length - 3}</Text>
                   </View>
                 )}
               </View>
+              {/* サムネと同じ「この商品以外でつながっている数」を出す */}
               <View style={styles.treeCountBox}>
-                <Text style={styles.treeCount}>{treeCount}</Text>
+                <Text style={styles.treeCount}>{treeThumbs.length}</Text>
                 <Text style={styles.treeCountUnit}>件</Text>
               </View>
             </View>

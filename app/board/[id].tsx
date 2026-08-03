@@ -93,14 +93,15 @@ export default function BoardDetail() {
             placeholderTextColor={colors.textPlaceholder}
             style={styles.input}
           />
+          {/* 空のときは押せないことが見て分かるように薄くする */}
           <PressableScale
             activeScale={0.9}
+            disabled={!text.trim()}
             onPress={() => {
-              if (!text.trim()) return;
               addComment(text);
               setText('');
             }}
-            style={styles.send}
+            style={[styles.send, !text.trim() && { opacity: 0.4 }]}
           >
             <Ionicons name="arrow-up" size={20} color={colors.white} />
           </PressableScale>

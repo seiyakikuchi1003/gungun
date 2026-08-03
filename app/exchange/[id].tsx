@@ -82,14 +82,15 @@ export default function ExchangeDetail() {
         )}
         <View style={styles.inputRow}>
           <TextInput value={text} onChangeText={setText} placeholder="メッセージを入力" placeholderTextColor={colors.textPlaceholder} style={styles.input} />
+          {/* 空のときは押せないことが見て分かるように薄くする */}
           <PressableScale
             activeScale={0.9}
+            disabled={!text.trim()}
             onPress={() => {
-              if (!text.trim()) return;
               send(text);
               setText('');
             }}
-            style={[styles.send, { backgroundColor: accent }]}
+            style={[styles.send, { backgroundColor: accent }, !text.trim() && { opacity: 0.4 }]}
           >
             <Ionicons name="arrow-up" size={20} color={colors.white} />
           </PressableScale>
