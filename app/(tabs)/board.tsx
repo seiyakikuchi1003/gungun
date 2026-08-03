@@ -8,6 +8,7 @@ import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { ExpandableFab } from '@/components/ui/ExpandableFab';
 import { PostCard } from '@/components/board/PostCard';
+import { Toast } from '@/components/ui/Toast';
 import { PostActionSheet } from '@/components/feature/PostActionSheet';
 import { ReportSheet } from '@/components/feature/ReportSheet';
 import { boardTagFilters, trendingTags } from '@/data/mockSocial';
@@ -25,6 +26,7 @@ export default function BoardScreen() {
   const [report, setReport] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const [toast, setToast] = useState<string | null>(null);
   const { posts, loading, reload, remove } = useBoard();
   const q = query.trim().replace(/^#/, '').toLowerCase();
   const list = posts.filter(
@@ -123,7 +125,7 @@ export default function BoardScreen() {
 
         {list.map((p, i) => (
           <Animated.View key={p.id} entering={FadeInDown.delay(80 + i * 60).duration(400)}>
-            <PostCard post={p} onPress={() => router.push(`/board/${p.id}`)} onMore={() => setSheetPost(p)} />
+            <PostCard post={p} onPress={() => router.push(`/board/${p.id}`)} onMore={() => setSheetPost(p)} onCopied={() => setToast('投稿をコピーしました')} />
           </Animated.View>
         ))}
         {list.length === 0 && (
@@ -155,6 +157,7 @@ export default function BoardScreen() {
         />
       )}
       <ReportSheet visible={report} onClose={() => setReport(false)} targetLabel="この投稿" targetType="board_post" targetId={sheetPost?.id ?? ''} />
+      <Toast message={toast} onHide={() => setToast(null)} />
     </View>
   );
 }

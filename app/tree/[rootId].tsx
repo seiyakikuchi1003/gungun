@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, useWindowDimensions, Share, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, useWindowDimensions } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -14,6 +14,8 @@ import { Sprout } from '@/components/art/Sprout';
 import { TreeCanvas } from '@/components/feature/TreeCanvas';
 import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
 import { getUser } from '@/data/mock';
+import { shareText } from '@/lib/share';
+import { Toast } from '@/components/ui/Toast';
 import { useTree } from '@/store/tree';
 import { useMe } from '@/store/me';
 
@@ -25,6 +27,7 @@ export default function TreeScreen() {
   const { getItem, childrenOf, treeItems, canWater } = useTree();
   const [showAll, setShowAll] = useState(true);
   const [pickWater, setPickWater] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
 
   const root = getItem(rootId ?? '');
   if (!root) return <View style={styles.root} />;
@@ -42,20 +45,10 @@ export default function TreeScreen() {
   const justWatered = !!newId;
   const cardW = width - 40;
 
-  // ツリーをシェア（OSの共有シート。Webは navigator.share → クリップボードの順にフォールバック）
+  // ツリーをシェア。Web はクリップボードに入るだけで画面が変わらないので短く知らせる
   const shareTree = async () => {
-    const message = `「${root.name}」の木に${waterings}件の水やりが集まっています！ #ぐんぐん`;
-    try {
-      if (Platform.OS === 'web') {
-        const nav = globalThis.navigator as Navigator | undefined;
-        if (nav?.share) await nav.share({ text: message });
-        else await nav?.clipboard?.writeText(message);
-      } else {
-        await Share.share({ message });
-      }
-    } catch {
-      // ユーザーがキャンセルした場合など。何もしない
-    }
+    const res = await shareText(`「${root.name}」の木に${waterings}件の水やりが集まっています！ #ぐんぐん`);
+    if (res === 'copied') setToast('リンクをコピーしました');
   };
 
   return (
@@ -208,6 +201,7 @@ export default function TreeScreen() {
           })}
         </ScrollView>
       </BottomSheetModal>
+      <Toast message={toast} onHide={() => setToast(null)} />
     </View>
   );
 }

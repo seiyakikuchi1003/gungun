@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Share } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, spacing, fonts, radius, shadows } from '@/theme';
@@ -8,16 +8,18 @@ import { Avatar } from '@/components/ui/Avatar';
 import { HeartButton } from '@/components/ui/HeartButton';
 import { TAG_META } from '@/data/mockSocial';
 import type { UIPost } from '@/hooks/useBoard';
+import { shareText } from '@/lib/share';
 
 /** モダンなカード型の投稿。掲示板フィードの主役。 */
-export function PostCard({ post, onPress, onMore }: { post: UIPost; onPress?: () => void; onMore?: () => void }) {
+export function PostCard({ post, onPress, onMore, onCopied }: { post: UIPost; onPress?: () => void; onMore?: () => void; onCopied?: () => void }) {
   // 著者名・アバターは投稿の行が持っている（実DBでは UUID から引けないため）
   const u = { nickname: post.authorName, avatar: post.authorAvatar };
   const tag = TAG_META[post.tag];
 
-  /** 投稿の本文を共有（Web では共有シート非対応の場合があるので握りつぶす） */
-  const share = () => {
-    Share.share({ message: `${u.nickname}さんの投稿（ぐんぐん）\n\n${post.body}` }).catch(() => {});
+  /** 投稿の本文を共有。Web でコピーになったときは呼び出し側に知らせる */
+  const share = async () => {
+    const res = await shareText(`${u.nickname}さんの投稿（ぐんぐん）\n\n${post.body}`);
+    if (res === 'copied') onCopied?.();
   };
 
   return (

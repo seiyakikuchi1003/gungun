@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, useWindowDimensions, NativeSyntheticEvent, NativeScrollEvent, Share, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, useWindowDimensions, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -16,6 +16,8 @@ import { getUser, itemImageSources } from '@/data/mock';
 import { settings } from '@/config/settings';
 import { useTree } from '@/store/tree';
 import { useMe } from '@/store/me';
+import { shareText } from '@/lib/share';
+import { Toast } from '@/components/ui/Toast';
 import { useItemComments } from '@/hooks/useItemComments';
 
 function RoundBtn({ icon, onPress }: { icon: keyof typeof Ionicons.glyphMap; onPress?: () => void }) {
@@ -37,6 +39,7 @@ export default function ItemDetailScreen() {
   const [menu, setMenu] = useState(false);
   const [report, setReport] = useState(false);
   const [ctext, setCtext] = useState('');
+  const [toast, setToast] = useState<string | null>(null);
   const { comments, add: addComment, remove: removeComment } = useItemComments(id ?? '');
 
   if (!item) {
@@ -61,18 +64,9 @@ export default function ItemDetailScreen() {
   };
 
   const share = async () => {
-    const message = `「${item.name}」を見つけました！ #ぐんぐん`;
-    try {
-      if (Platform.OS === 'web') {
-        const nav = globalThis.navigator as Navigator | undefined;
-        if (nav?.share) await nav.share({ text: message });
-        else await nav?.clipboard?.writeText(message);
-      } else {
-        await Share.share({ message });
-      }
-    } catch {
-      /* キャンセル時など無視 */
-    }
+    // Web はクリップボードに入るだけで画面が変わらないので、短く知らせる
+    const res = await shareText(`「${item.name}」を見つけました！ #ぐんぐん`);
+    if (res === 'copied') setToast('リンクをコピーしました');
   };
 
   return (
@@ -259,6 +253,7 @@ export default function ItemDetailScreen() {
         onDeleted={() => router.back()}
       />
       <ReportSheet visible={report} onClose={() => setReport(false)} targetLabel="この出品" targetType="item" targetId={item.id} />
+      <Toast message={toast} onHide={() => setToast(null)} />
     </View>
   );
 }
