@@ -95,7 +95,7 @@ export default async function SettingsPage({
             {settings.length === 0 && (
               <tr>
                 <td className="td text-muted" colSpan={4}>
-                  設定がありません。<code className="px-1 bg-cream rounded">supabase/migrations</code> を適用してください。
+                  設定がありません。<code className="px-1 bg-cream rounded">supabase/apply_all.sql</code> を Supabase の SQL Editor で実行してください。
                 </td>
               </tr>
             )}
