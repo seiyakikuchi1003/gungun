@@ -8,9 +8,16 @@
 cd ~/gungun
 git checkout claude/app-design-mockup-9f1vtu
 git pull
-npm install
-npx expo start       # QRを Expo Go で読む（SDK 54）
+npm install               # 依存が増えています
+npm run check:supabase    # DB につながるか確認
+npm run device            # 実機（Expo Go）で開く。QRをカメラで読む
 ```
+
+実機で確認する手順の詳細は [`DEVICE-PREVIEW.md`](./DEVICE-PREVIEW.md)。
+
+> **実機配信はクラウドの作業環境からはできません。** Expo のホスト（`expo.dev` /
+> `exp.host` / ngrok）へ出られないため、`--tunnel` も EAS Update も使えません。
+> 上のコマンドは菊池さんの Mac で実行してください。
 
 | URL | 接続先 | 用途 |
 |---|---|---|
@@ -60,8 +67,14 @@ Authentication → Sign In / Providers → Email
 
 ### A-3. 実データで通し確認
 
-出品 → 水やり → 収穫 → 取引 → 評価 を2アカウントで一周する。
+```bash
+npm run check:supabase    # 先にこれが全部 ✓ になること
+npm run device            # 実機（Expo Go）
+```
+
+出品 → 水やり → 収穫 → 取引 → 評価 → 退会 を2アカウントで一周する。
 画像アップロード（Storage の `item-images` バケット）もここで初めて実データを通る。
+確認する順番と、DB のどこを見ればよいかは [`DEVICE-PREVIEW.md`](./DEVICE-PREVIEW.md)。
 
 ### A-4. 管理画面にアクセス制限をかける
 

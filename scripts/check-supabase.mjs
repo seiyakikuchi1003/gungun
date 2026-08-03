@@ -49,13 +49,18 @@ const TABLES = [
   'reports', 'app_settings',
 ];
 
-// 0006 / 0007 で追加したもの。どれか欠けていると実機でエラー画面になる
+// 0006 以降で追加したもの。どれか欠けていると実機でエラー画面になる
 const VIEWS = ['item_cards', 'board_cards', 'profile_stats'];
 const LATE_TABLES = ['item_comments', 'admin_audit_log'];
 const RPCS = [
   ['can_claim_login_bonus', {}],
   ['my_profile', {}],
 ];
+
+// 0008 / 0009 で追加したもの
+const V_0008 = ['item_water_counts', 'sapling_items'];
+const T_0009 = ['purchases', 'push_tokens', 'legacy_users'];
+const V_0009 = ['notifications_to_push', 'legacy_migration_status'];
 
 let failed = 0;
 
@@ -97,9 +102,63 @@ head('1-2. 追加SQL（0006 / 0007）の確認');
     ok('0006 / 0007 の追加ぶんが適用されています');
   } else {
     ng(`次が見つかりません:\n     ${lack.join('\n     ')}`);
-    console.log('     → SQL Editor で gungun-0006.sql → gungun-0007.sql を順に実行してください');
-    console.log('       （毎回、入力欄を全消ししてから貼り付ける）');
+    console.log('     → SQL Editor で supabase/apply_all.sql を実行してください');
     failed++;
+  }
+}
+
+// ── 1-3. 0008 / 0009 が入っているか ────────────────────────
+head('1-3. 追加SQL（0008 / 0009）の確認');
+{
+  const lack = [];
+  for (const v of [...V_0008, ...T_0009, ...V_0009]) {
+    const { error } = await db.from(v).select('*', { count: 'exact', head: true });
+    // legacy_users はアプリから読めない設計（ポリシー無し）。権限エラーなら「ある」とみなす
+    if (error && !/permission|row-level/i.test(error.message)) lack.push(`${v}（${error.message}）`);
+  }
+
+  // プレミアムの期限（0009）
+  const { error: pmErr } = await db.from('profiles').select('premium_until').limit(1);
+  if (pmErr && /premium_until/i.test(pmErr.message)) lack.push('profiles.premium_until');
+
+  // 通知の送信済みフラグ（0009）
+  const { error: puErr } = await db.from('notifications').select('pushed_at').limit(1);
+  if (puErr && /pushed_at/i.test(puErr.message)) lack.push('notifications.pushed_at');
+
+  // 出品の更新日時（0009）
+  const { error: upErr } = await db.from('items').select('updated_at').limit(1);
+  if (upErr && /updated_at/i.test(upErr.message)) lack.push('items.updated_at');
+
+  if (lack.length === 0) {
+    ok('0008 / 0009 の追加ぶんが適用されています');
+  } else {
+    ng(`次が見つかりません:\n     ${lack.join('\n     ')}`);
+    console.log('     → SQL Editor で supabase/apply_all.sql を実行してください');
+    failed++;
+  }
+}
+
+// ── 1-4. 課金の付与がアプリから呼べないこと（重要）──────────
+head('1-4. 課金の安全性の確認');
+{
+  // 未ログイン（anon）で redeem_purchase が呼べてしまうと、誰でも肥料を増やせる
+  const { error } = await db.rpc('redeem_purchase', {
+    p_user: '00000000-0000-0000-0000-000000000000',
+    p_platform: 'ios',
+    p_kind: 'fertilizer',
+    p_product_id: 'check',
+    p_transaction_id: `check-${Date.now()}`,
+    p_fertilizer: 1,
+  });
+  if (!error) {
+    ng('アプリ側から redeem_purchase が呼べてしまいます（誰でも肥料を増やせる状態）');
+    console.log('     → 0009 の grant/revoke が適用されていません');
+    failed++;
+  } else if (/does not exist|schema cache/i.test(error.message)) {
+    ng('redeem_purchase が見つかりません（0009 が未適用）');
+    failed++;
+  } else {
+    ok(`アプリからは課金の付与を呼べません（${error.message.slice(0, 40)}…）`);
   }
 }
 
@@ -167,7 +226,8 @@ if (aErr) {
 // ── まとめ ───────────────────────────────────────────
 console.log('');
 if (failed === 0) {
-  console.log('\x1b[32m\x1b[1m すべて正常です。アプリを実データに繋げられます。\x1b[0m\n');
+  console.log('\x1b[32m\x1b[1m すべて正常です。アプリを実データに繋げられます。\x1b[0m');
+  console.log(' 実機で見る:  bash scripts/setup-device-preview.sh\n');
 } else {
   console.log(`\x1b[31m\x1b[1m ${failed} 件の問題が見つかりました。上のメッセージを確認してください。\x1b[0m\n`);
   process.exitCode = 1;

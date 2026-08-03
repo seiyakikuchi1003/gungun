@@ -8,7 +8,9 @@
     "web": "expo start --web",
     "export:web": "expo export --platform web",
     "check:supabase": "node scripts/check-supabase.mjs",
-    "check:auth": "node scripts/check-auth.mjs"
+    "check:auth": "node scripts/check-auth.mjs",
+    "device": "bash scripts/setup-device-preview.sh",
+    "device:mock": "bash scripts/setup-device-preview.sh --mock"
   },
   "dependencies": {
     "@expo-google-fonts/m-plus-rounded-1c": "^0.4.4",
