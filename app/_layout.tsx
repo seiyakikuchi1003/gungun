@@ -18,9 +18,8 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function RootLayout() {
   // 角丸ゴシック M PLUS Rounded 1c（使用文字だけにサブセット化）。
-  // Ionicons.font はネイティブでは自動リンクされるが、Web ではここで読み込まないと
-  // すべてのアイコンが「⊠」（未グリフ）で表示される。
-  const [loaded] = useFonts({
+  // Ionicons.font はネイティブでは自動リンクされるが、Web では明示ロードが要る。
+  const [loaded, fontError] = useFonts({
     MPLUSRounded1c_400Regular: require('../assets/fonts/MPLUSRounded1c-Regular.ttf'),
     MPLUSRounded1c_500Medium: require('../assets/fonts/MPLUSRounded1c-Medium.ttf'),
     MPLUSRounded1c_700Bold: require('../assets/fonts/MPLUSRounded1c-Bold.ttf'),
@@ -28,11 +27,16 @@ export default function RootLayout() {
     ...Ionicons.font,
   });
 
-  useEffect(() => {
-    if (loaded) SplashScreen.hideAsync().catch(() => {});
-  }, [loaded]);
+  // フォントの取得に失敗しても画面は出す。
+  // 1つでも読めないと `loaded` が永久に false になり、真っ白なページになるため
+  // （Web ビルドでアイコンフォントが 404 になったときに実際に起きた）。
+  const ready = loaded || Boolean(fontError);
 
-  if (!loaded) return null;
+  useEffect(() => {
+    if (ready) SplashScreen.hideAsync().catch(() => {});
+  }, [ready]);
+
+  if (!ready) return null;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
