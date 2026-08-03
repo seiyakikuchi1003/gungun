@@ -170,9 +170,8 @@ export default function TreeScreen() {
 
         {showAll && (
           <Animated.View entering={FadeIn.duration(250)} style={{ gap: spacing.xs }}>
-            <BranchNode
-              node={root}
-              depth={0}
+            <BranchList
+              root={root}
               highlightId={newId ?? null}
               childrenOf={childrenOf}
               canWater={canWater}
@@ -231,17 +230,34 @@ function Stat({ num, label, accent }: { num: number; label: string; accent?: boo
 }
 
 /**
- * 水やりの連鎖を「多分岐で崩れない」形で表示する再帰ツリー。
- * 2026-07-28 MTG：一本線ではなく、各ノードに「＋水やり」ボタンを置き、
- * 分岐先にも水やりできる（can_water 不可なら理由を出してボタン無効）。
- * ノードが多い枝は初期折りたたみにして、画面の破綻を防ぐ。
+ * 水やりの連鎖（2026-07-28 MTG 対応）。
+ *
+ * めたん様の指摘：連鎖は無制限に伸びるので、全部を一本線で出すと破綻する。
+ * → 木は分岐構造として見せつつ、深くなっても画面が崩れないようにする。
+ *
+ * 実装上いちばん大事な点：**入れ子の View にしない**。
+ * 階層ごとに marginLeft を持つ View を入れ子にすると、深さぶんインデントが
+ * 加算されて 5〜6 段目でカードが画面外へ出てしまう（実際にそうなっていた）。
+ * DFS で 1 次元の配列に潰してから、インデントは Math.min(depth, N) で
+ * 頭打ちにした「フラットなリスト」として描く。これなら何段深くなっても
+ * 横幅は絶対に溢れない。
  */
-const INITIAL_VISIBLE = 3;
-const MAX_INDENT = 5;
+const INITIAL_VISIBLE = 3;   // 1つの親に対して最初に見せる子の数
+const MAX_INDENT_STEP = 4;   // インデントの頭打ち（これ以上深くても右にずれない）
+const INDENT_PX = 12;
 
-type BranchProps = {
-  node: import('@/data/mock').MockItem;
+type Row = {
+  item: import('@/data/mock').MockItem;
   depth: number;
+  childCount: number;
+  /** この行の下に「あと N 件」の続きがある場合の件数 */
+  hiddenSiblings: number;
+  /** hiddenSiblings を展開するためのキー（親のID） */
+  parentId: string | null;
+};
+
+type BranchListProps = {
+  root: import('@/data/mock').MockItem;
   highlightId: string | null;
   childrenOf: (id: string) => import('@/data/mock').MockItem[];
   canWater: (id: string) => { ok: true } | { ok: false; reason: string };
@@ -249,78 +265,100 @@ type BranchProps = {
   onWater: (it: import('@/data/mock').MockItem) => void;
 };
 
-function BranchNode({ node, depth, highlightId, childrenOf, canWater, onOpen, onWater }: BranchProps) {
-  const kids = childrenOf(node.id);
-  const [expanded, setExpanded] = useState(depth < 2 && kids.length <= INITIAL_VISIBLE * 2);
-  const shown = expanded ? kids : kids.slice(0, INITIAL_VISIBLE);
-  const hidden = kids.length - shown.length;
-  const owner = getUser(node.ownerId);
-  const isNew = node.id === highlightId;
-  const gate = canWater(node.id);
-  const indent = Math.min(depth, MAX_INDENT) * 14;
+function BranchList({ root, highlightId, childrenOf, canWater, onOpen, onWater }: BranchListProps) {
+  // 「もっと見る」を押した親のIDを覚えておく
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
+
+  // DFS でフラット化する。循環があっても止まるよう visited を持つ。
+  const rows: Row[] = [];
+  const visited = new Set<string>();
+
+  const walk = (node: import('@/data/mock').MockItem, depth: number, hiddenSiblings: number, parentId: string | null) => {
+    if (visited.has(node.id)) return;
+    visited.add(node.id);
+
+    const kids = childrenOf(node.id);
+    rows.push({ item: node, depth, childCount: kids.length, hiddenSiblings, parentId });
+
+    const showAllKids = expanded.has(node.id) || kids.length <= INITIAL_VISIBLE;
+    const shown = showAllKids ? kids : kids.slice(0, INITIAL_VISIBLE);
+    const hidden = kids.length - shown.length;
+
+    shown.forEach((k, i) => {
+      // 最後に出す子にだけ「あと N 件」を持たせる
+      walk(k, depth + 1, i === shown.length - 1 ? hidden : 0, node.id);
+    });
+  };
+
+  walk(root, 0, 0, null);
 
   return (
-    <View style={{ marginLeft: indent }}>
-      {depth > 0 && <View style={styles.branchLine} />}
+    <View style={{ gap: 2 }}>
+      {rows.map(({ item, depth, childCount, hiddenSiblings, parentId }) => {
+        const owner = getUser(item.ownerId);
+        const isNew = item.id === highlightId;
+        const gate = canWater(item.id);
+        const indent = Math.min(depth, MAX_INDENT_STEP) * INDENT_PX;
+        // 頭打ちを超えた深さは「⋯」で表す（右にずらさずに深さを示す）
+        const overflowDepth = depth > MAX_INDENT_STEP;
 
-      <PressableScale
-        activeScale={0.98}
-        onPress={() => onOpen(node)}
-        style={[styles.branchRow, shadows.soft, isNew && styles.allRowNew]}
-      >
-        <Thumb source={node.local} uri={node.image} style={styles.branchThumb} radius={10} markSize={16} />
-        <View style={{ flex: 1 }}>
-          <View style={styles.allTop}>
-            <Text style={styles.allName} numberOfLines={1}>{node.name}</Text>
-            {isNew && <View style={styles.newTag}><Text style={styles.newTagText}>NEW</Text></View>}
+        return (
+          <View key={item.id} style={{ marginLeft: indent }}>
+            <PressableScale
+              activeScale={0.98}
+              onPress={() => onOpen(item)}
+              style={[styles.branchRow, shadows.soft, isNew && styles.allRowNew]}
+            >
+              {depth > 0 && <View style={styles.branchTick} />}
+              <Thumb source={item.local} uri={item.image} style={styles.branchThumb} radius={10} markSize={16} />
+
+              <View style={styles.branchBody}>
+                <View style={styles.allTop}>
+                  <Text style={styles.allName} numberOfLines={1}>{item.name}</Text>
+                  {isNew && <View style={styles.newTag}><Text style={styles.newTagText}>NEW</Text></View>}
+                </View>
+                <View style={styles.allMeta}>
+                  <Avatar uri={owner.avatar} name={owner.nickname} size={14} />
+                  <Text style={styles.allOwner} numberOfLines={1}>{owner.nickname}さん</Text>
+                  <Text style={styles.allSub}>水やり{item.waterCount}</Text>
+                  {childCount > 0 && <Text style={styles.branchDot}>枝{childCount}</Text>}
+                </View>
+              </View>
+
+              <Badge
+                label={depth === 0 ? '元の種' : `${overflowDepth ? '⋯' : ''}${depth}段`}
+                tone={depth === 0 ? 'green' : 'orange'}
+              />
+            </PressableScale>
+
+            {/* この枝に「＋水やり」する（分岐先にも水やりできる） */}
+            <PressableScale
+              activeScale={gate.ok ? 0.95 : 1}
+              onPress={() => { if (gate.ok) onWater(item); }}
+              disabled={!gate.ok}
+              style={[styles.plusRow, !gate.ok && styles.plusRowOff]}
+            >
+              <View style={[styles.plusIcon, !gate.ok && styles.plusIconOff]}>
+                <Ionicons name={gate.ok ? 'add' : 'lock-closed'} size={13} color={colors.white} />
+              </View>
+              <Text style={[styles.plusText, !gate.ok && styles.plusTextOff]} numberOfLines={1}>
+                {gate.ok ? 'この枝に水やりする' : gate.reason}
+              </Text>
+            </PressableScale>
+
+            {hiddenSiblings > 0 && parentId && (
+              <PressableScale
+                activeScale={0.97}
+                onPress={() => setExpanded((s) => new Set(s).add(parentId))}
+                style={styles.moreBranch}
+              >
+                <Ionicons name="chevron-down" size={14} color={colors.green} />
+                <Text style={styles.moreBranchText}>この枝の続きを見る（あと {hiddenSiblings}）</Text>
+              </PressableScale>
+            )}
           </View>
-          <View style={styles.allMeta}>
-            <Avatar uri={owner.avatar} name={owner.nickname} size={14} />
-            <Text style={styles.allOwner}>{owner.nickname}さん</Text>
-            <Text style={styles.allSub}>水やり{node.waterCount}</Text>
-            {kids.length > 0 && <Text style={styles.branchDot}>・枝 {kids.length}</Text>}
-          </View>
-        </View>
-        <Badge
-          label={depth === 0 ? '元の種' : `${depth}段目`}
-          tone={depth === 0 ? 'green' : 'orange'}
-        />
-      </PressableScale>
-
-      {/* この枝に「＋水やり」する */}
-      <PressableScale
-        activeScale={gate.ok ? 0.95 : 1}
-        onPress={() => { if (gate.ok) onWater(node); }}
-        disabled={!gate.ok}
-        style={[styles.plusRow, !gate.ok && styles.plusRowOff]}
-      >
-        <View style={[styles.plusIcon, !gate.ok && styles.plusIconOff]}>
-          <Ionicons name={gate.ok ? 'add' : 'lock-closed'} size={13} color={colors.white} />
-        </View>
-        <Text style={[styles.plusText, !gate.ok && styles.plusTextOff]} numberOfLines={1}>
-          {gate.ok ? 'この枝に水やりする' : gate.reason}
-        </Text>
-      </PressableScale>
-
-      {shown.map((c) => (
-        <BranchNode
-          key={c.id}
-          node={c}
-          depth={depth + 1}
-          highlightId={highlightId}
-          childrenOf={childrenOf}
-          canWater={canWater}
-          onOpen={onOpen}
-          onWater={onWater}
-        />
-      ))}
-
-      {hidden > 0 && (
-        <PressableScale activeScale={0.97} onPress={() => setExpanded(true)} style={styles.moreBranch}>
-          <Ionicons name="chevron-down" size={14} color={colors.green} />
-          <Text style={styles.moreBranchText}>この枝の続きを見る（あと {hidden}）</Text>
-        </PressableScale>
-      )}
+        );
+      })}
     </View>
   );
 }
@@ -377,7 +415,11 @@ const styles = StyleSheet.create({
   allRowNew: { borderWidth: 1.5, borderColor: colors.orange },
   branchMark: { position: 'absolute', left: -12, top: '50%', width: 12, height: 2, backgroundColor: colors.greenSoftBorder },
   branchLine: { position: 'absolute', left: -8, top: -4, bottom: 0, width: 2, backgroundColor: colors.greenSoftBorder, borderRadius: 1 },
+  // 子であることを示す短い横棒（親からぶら下がっている見た目をつくる）
+  branchTick: { position: 'absolute', left: -8, top: '50%', width: 8, height: 2, backgroundColor: colors.greenSoftBorder },
   branchRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.card, borderRadius: radius.card, padding: 10, marginTop: 4 },
+  // flexShrink を効かせて、深い階層でも中身が縦積みにならないようにする
+  branchBody: { flex: 1, minWidth: 0 },
   branchThumb: { width: 40, height: 40 },
   branchDot: { fontFamily: fonts.medium, fontSize: 11, color: colors.textPlaceholder },
   plusRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingLeft: 8, paddingVertical: 4, marginTop: 2, marginBottom: 6 },
@@ -395,6 +437,6 @@ const styles = StyleSheet.create({
   newTag: { backgroundColor: colors.orange, paddingHorizontal: 6, paddingVertical: 1, borderRadius: radius.pill },
   newTagText: { fontFamily: fonts.black, fontSize: 8, color: colors.white },
   allMeta: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 },
-  allOwner: { fontFamily: fonts.medium, fontSize: 11.5, color: colors.textSecondary },
+  allOwner: { fontFamily: fonts.medium, fontSize: 11.5, color: colors.textSecondary, flexShrink: 1 },
   allSub: { fontFamily: fonts.medium, fontSize: 11, color: colors.textPlaceholder },
 });
