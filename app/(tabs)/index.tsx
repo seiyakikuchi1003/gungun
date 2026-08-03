@@ -232,7 +232,7 @@ export default function HomeScreen() {
       />
 
       {/* ログインボーナスのスタンプカレンダー */}
-      <LoginBonusSheet visible={showBonus} claimedToday={claimed} onClose={() => setShowBonus(false)} />
+      <LoginBonusSheet visible={showBonus} claimedToday={claimed} amount={bonusAmount} onClose={() => setShowBonus(false)} />
     </View>
   );
 }

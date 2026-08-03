@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Sprout } from '@/components/art/Sprout';
 import { Mikan } from '@/components/art/Mikan';
 import { LeafDecor } from '@/components/art/LeafDecor';
-import { MockItem, treeGrowth } from '@/data/mock';
+import { MockItem } from '@/data/mock';
 import { useTree } from '@/store/tree';
 import { useMe } from '@/store/me';
 
@@ -86,7 +86,6 @@ export default function HarvestScreen() {
         {mySeeds.map((s, i) => {
           const size = treeSizeOf(s);
           const gathered = gatheredOf(s);
-          const g = treeGrowth(size);
           const canHarvest = s.status === 'growing' && gathered > 0;
           return (
             <Animated.View key={s.id} entering={FadeInDown.delay(80 + i * 70).duration(400)}>
@@ -98,7 +97,7 @@ export default function HarvestScreen() {
                       <Text style={styles.name} numberOfLines={1}>{s.name}</Text>
                       <Badge label={s.status === 'trading' ? '取引中' : '出品中'} tone={s.status === 'trading' ? 'orange' : 'green'} />
                     </View>
-                    <Text style={styles.growth}>{g.emoji} {g.label}</Text>
+                    <Text style={styles.growth}>この木の商品 {size}点</Text>
                     <View style={styles.metaRow}>
                       <Ionicons name="water" size={13} color={colors.green} />
                       <Text style={styles.meta}>集まった商品 <Text style={styles.metaNum}>{gathered}</Text></Text>

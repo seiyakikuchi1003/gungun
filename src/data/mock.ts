@@ -165,22 +165,21 @@ export function treeItems(pool: MockItem[], rootId: string): MockItem[] {
 }
 
 /**
- * 木の成長段階。木に属する商品数（root＋子孫）が増えるほど育つ。
- * TreeCanvas の見た目と、マイツリーの成長メーターで共用。
+ * 木のイラストの見た目の段階だけを返す（TreeCanvas 専用）。
  *
- * 2026-07-28 MTG：連鎖は無制限のため「MAX」の概念はない。stage 3 も上限ではなく
- * 「立派に育っている状態」を表す見た目のマイルストーンとして扱う。next も常に埋める。
+ * 2026-07-28 MTG（めたん様）：
+ *   「大きな木」「MAX まで育ちました」という表現は、1つのタネにいくつでも
+ *   商品が結びつく以上、何を基準に大小を言っているのかが不明瞭なので無くす。
+ *   ただし木の図そのものは残す。
+ * → ラベル・絵文字・「次の段階まであとN」といった大小の表現はすべて廃止し、
+ *   ここではイラストの描き分けに使う段階だけを返す。UI に文言は出さない。
  */
-export type TreeGrowth = { stage: 0 | 1 | 2 | 3; label: string; emoji: string; min: number; next: number };
-export function treeGrowth(size: number): TreeGrowth {
-  if (size >= 6) {
-    // 6 以上は 3 段目のまま。「次の育ち」までの目安として 3 ずつ増やす
-    const next = Math.max(9, Math.ceil((size + 1) / 3) * 3);
-    return { stage: 3, label: 'おおきな木', emoji: '🌳', min: 6, next };
-  }
-  if (size >= 4) return { stage: 2, label: '成長中の木', emoji: '🌿', min: 4, next: 6 };
-  if (size >= 2) return { stage: 1, label: 'わか木', emoji: '🌱', min: 2, next: 4 };
-  return { stage: 0, label: 'めばえ', emoji: '🌰', min: 1, next: 2 };
+export type TreeVisual = { stage: 0 | 1 | 2 | 3 };
+export function treeVisual(size: number): TreeVisual {
+  if (size >= 6) return { stage: 3 };
+  if (size >= 4) return { stage: 2 };
+  if (size >= 2) return { stage: 1 };
+  return { stage: 0 };
 }
 
 /** target 自身から root までの祖先ライン（target を含む）。 */
