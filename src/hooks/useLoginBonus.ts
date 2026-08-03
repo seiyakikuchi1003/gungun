@@ -16,7 +16,7 @@ export function useLoginBonus() {
   const live = isSupabaseEnabled;
   const me = useMe();
   const { reloadProfile } = useAuth();
-  const { settings } = useTree();
+  const { settings, addFertilizer } = useTree();
   const [claimed, setClaimed] = useState(false);
   const [busy, setBusy] = useState(false);
   const defaultAmount = me.isPremium ? settings.dailyLoginBonusPremium : settings.dailyLoginBonus;
@@ -41,6 +41,7 @@ export function useLoginBonus() {
     if (claimed || busy) return { amount: 0, error: null };
     if (!live || !me.live) {
       setClaimed(true);
+      addFertilizer(amount); // 未接続時も残高が増えるところまで見せる
       return { amount, error: null };
     }
     setBusy(true);
@@ -55,7 +56,7 @@ export function useLoginBonus() {
     } finally {
       setBusy(false);
     }
-  }, [claimed, busy, live, me.live, amount, reloadProfile]);
+  }, [claimed, busy, live, me.live, amount, reloadProfile, addFertilizer]);
 
   return { claimed, busy, amount, claim };
 }

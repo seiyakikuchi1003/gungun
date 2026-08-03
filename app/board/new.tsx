@@ -16,6 +16,8 @@ import { FormError } from '@/components/ui/FormError';
 
 const MAX = 280;
 const TAGS: BoardTag[] = ['harvest', 'question', 'chat', 'notice'];
+/** ツールバーの顔文字ボタンから挿し込める絵文字 */
+const EMOJI = ['🌱', '🌳', '🍊', '💧', '🎉', '😊', '🙏', '✨', '📦', '❤️'];
 
 /** 文字数の円形カウンター。 */
 function CountRing({ used }: { used: number }) {
@@ -47,6 +49,7 @@ export default function NewPost() {
   const [tag, setTag] = useState<BoardTag>('chat');
   const [photos, setPhotos] = useState<string[]>([]);
   const [photoSheet, setPhotoSheet] = useState(false);
+  const [emojiOpen, setEmojiOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { create } = useBoard();
@@ -162,15 +165,31 @@ export default function NewPost() {
         </ScrollView>
 
         {/* ツールバー */}
-        <View style={[styles.toolbar, { paddingBottom: Math.max(insets.bottom, 10) }, shadows.sheet]}>
-          <PressableScale activeScale={0.9} style={styles.tool} onPress={() => photos.length < 4 && setPhotoSheet(true)}>
-            <Ionicons name="image-outline" size={24} color={colors.green} />
-          </PressableScale>
-          <PressableScale activeScale={0.9} style={styles.tool}>
-            <Ionicons name="happy-outline" size={24} color={colors.green} />
-          </PressableScale>
-          <View style={{ flex: 1 }} />
-          <CountRing used={text.length} />
+        <View style={[styles.toolbarWrap, shadows.sheet]}>
+          {emojiOpen && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.emojiRow}>
+              {EMOJI.map((e) => (
+                <PressableScale
+                  key={e}
+                  activeScale={0.85}
+                  style={styles.emojiBtn}
+                  onPress={() => setText((t) => (t.length < MAX ? t + e : t))}
+                >
+                  <Text style={styles.emojiText}>{e}</Text>
+                </PressableScale>
+              ))}
+            </ScrollView>
+          )}
+          <View style={[styles.toolbar, { paddingBottom: Math.max(insets.bottom, 10) }]}>
+            <PressableScale activeScale={0.9} style={styles.tool} onPress={() => photos.length < 4 && setPhotoSheet(true)}>
+              <Ionicons name="image-outline" size={24} color={colors.green} />
+            </PressableScale>
+            <PressableScale activeScale={0.9} style={[styles.tool, emojiOpen && styles.toolOn]} onPress={() => setEmojiOpen((v) => !v)}>
+              <Ionicons name="happy-outline" size={24} color={emojiOpen ? colors.white : colors.green} />
+            </PressableScale>
+            <View style={{ flex: 1 }} />
+            <CountRing used={text.length} />
+          </View>
         </View>
       </KeyboardAvoidingView>
 
@@ -210,8 +229,13 @@ const styles = StyleSheet.create({
   addPhotoText: { fontFamily: fonts.bold, fontSize: 12, color: colors.green },
   tipRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: spacing.lg, paddingHorizontal: spacing.xs },
   tip: { flex: 1, fontFamily: fonts.medium, fontSize: 12.5, color: colors.textSecondary },
-  toolbar: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.card, paddingHorizontal: spacing.lg, paddingTop: spacing.md, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
+  toolbarWrap: { backgroundColor: colors.card, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
+  toolbar: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.lg, paddingTop: spacing.md },
   tool: { width: 42, height: 42, borderRadius: 21, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.greenSoft },
+  toolOn: { backgroundColor: colors.green },
+  emojiRow: { gap: spacing.sm, paddingHorizontal: spacing.lg, paddingTop: spacing.md },
+  emojiBtn: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bgWarm },
+  emojiText: { fontSize: 21, lineHeight: 26 },
   ring: { width: 30, height: 30, justifyContent: 'center', alignItems: 'center' },
   ringNum: { position: 'absolute', fontFamily: fonts.bold, fontSize: 9 },
 });

@@ -51,7 +51,8 @@ export default function HomeScreen() {
   const me = useMe();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-  const { items } = useTree();
+  // 肥料残高は tree ストアが持つ（水やり・チャージ・ボーナスで増減する実際の値）
+  const { items, fertilizer } = useTree();
   const { isBlocked } = useBlocks();
   const { unreadCount } = useNotifications();
   const { claimed, busy: bonusBusy, amount: bonusAmount, claim } = useLoginBonus();
@@ -136,7 +137,7 @@ export default function HomeScreen() {
             <View style={styles.fertBody}>
               <Sprout size={44} base />
               <View style={styles.fertNumRow}>
-                <Text style={styles.fertNum}>{me.fertilizer.toLocaleString()}</Text>
+                <Text style={styles.fertNum}>{fertilizer.toLocaleString()}</Text>
                 <Text style={styles.fertUnit}>肥料</Text>
               </View>
             </View>

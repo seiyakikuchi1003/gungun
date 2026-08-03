@@ -13,6 +13,7 @@ import { FormError } from '@/components/ui/FormError';
 import { useAuth } from '@/store/auth';
 import { isSupabaseEnabled } from '@/lib/supabase';
 import { updateProfile } from '@/lib/api/profile';
+import { pickFromLibrary } from '@/lib/photo';
 
 export default function ProfileEdit() {
   const me = useMe();
@@ -20,8 +21,15 @@ export default function ProfileEdit() {
   const { reloadProfile, profile } = useAuth();
   const [nickname, setNickname] = useState(me.nickname);
   const [bio, setBio] = useState(profile?.bio ?? '不要になったものを、必要な人へ🌱 気軽に水やりしてください！');
+  const [avatar, setAvatar] = useState<string | number>(me.avatar);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  /** アイコン写真を選び直す */
+  const changeAvatar = async () => {
+    const picked = await pickFromLibrary();
+    if (picked?.[0]) setAvatar(picked[0]);
+  };
 
   const save = async () => {
     if (busy) return;
@@ -52,8 +60,8 @@ export default function ProfileEdit() {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
         <View style={styles.avatarWrap}>
-          <Avatar uri={me.avatar} name={me.nickname} size={96} />
-          <PressableScale activeScale={0.9} style={[styles.camera, shadows.button]}>
+          <Avatar uri={avatar} name={nickname} size={96} />
+          <PressableScale onPress={changeAvatar} activeScale={0.9} style={[styles.camera, shadows.button]}>
             <Ionicons name="camera" size={18} color={colors.white} />
           </PressableScale>
         </View>
@@ -77,7 +85,7 @@ export default function ProfileEdit() {
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
-        <Button title="変更を保存する" onPress={() => router.back()} />
+        <Button title="変更を保存する" loading={busy} onPress={save} />
       </View>
     </View>
   );

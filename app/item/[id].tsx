@@ -117,7 +117,7 @@ export default function ItemDetailScreen() {
           </View>
 
           {/* 出品者 */}
-          <PressableScale activeScale={0.98} style={[styles.sellerCard, shadows.soft]}>
+          <PressableScale activeScale={0.98} onPress={() => router.push(`/user/${owner.id}`)} style={[styles.sellerCard, shadows.soft]}>
             <Avatar uri={owner.avatar} name={owner.nickname} size={48} />
             <View style={{ flex: 1 }}>
               <Text style={styles.sellerName}>{owner.nickname}さん</Text>

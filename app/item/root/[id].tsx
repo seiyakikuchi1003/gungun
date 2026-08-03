@@ -43,8 +43,8 @@ export default function RootDetail() {
 
         <View style={styles.treeStat}>
           <View style={styles.treeStatItem}>
-            <Text style={styles.treeNum}>{seed.treeCount}</Text>
-            <Text style={styles.treeLabel}>木全体の商品</Text>
+            <Text style={styles.treeNum}>{Math.max(0, seed.treeCount - 1)}</Text>
+            <Text style={styles.treeLabel}>集まった商品</Text>
           </View>
           <View style={styles.treeDivider} />
           <View style={styles.treeStatItem}>

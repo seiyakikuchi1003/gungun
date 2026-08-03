@@ -36,7 +36,9 @@ export default function TreeScreen() {
   const all = treeItems(root.id);
   const waterings = all.length - 1;
   const branches = rootChildren.length;
-  const harvestable = mine && waterings > 0 ? 1 : 0;
+  const canHarvest = mine && waterings > 0 && root.status === 'growing';
+  // いちばん深くつながっている段数（わらしべの鎖の長さ）
+  const deepest = all.reduce((mx, i) => Math.max(mx, i.depth), 0);
   const justWatered = !!newId;
   const cardW = width - 40;
 
@@ -95,7 +97,7 @@ export default function TreeScreen() {
               <StarRating value={4.5} size={12} gap={1} />
               <Text style={styles.rootSub}>(12)</Text>
             </View>
-            <Text style={styles.rootSub}>水やり数：{root.waterCount}</Text>
+            <Text style={styles.rootSub}>この種への直接の水やり：{branches}件</Text>
           </View>
         </View>
 
@@ -111,13 +113,13 @@ export default function TreeScreen() {
           />
         </View>
 
-        {/* 統計 */}
+        {/* 統計。3つとも違うことを指すように言い分ける（同じ数字を別名で出さない） */}
         <View style={styles.statRow}>
-          <Stat num={waterings} label="水やり数" />
+          <Stat num={waterings} label="集まった商品" />
           <View style={styles.statDivider} />
-          <Stat num={branches} label="枝分かれ" />
+          <Stat num={branches} label="直接の水やり" />
           <View style={styles.statDivider} />
-          <Stat num={harvestable} label="収穫できる" accent />
+          <Stat num={deepest} label="いちばん深い段" accent />
         </View>
 
         {/* アクション */}
@@ -133,6 +135,13 @@ export default function TreeScreen() {
           </View>
         ) : (
           <View style={{ gap: spacing.md, marginTop: spacing.xl }}>
+            {/* 自分の種に水やりが集まっていれば、ここから収穫へ進める */}
+            {canHarvest && (
+              <PressableScale onPress={() => router.push(`/harvest/${root.id}`)} activeScale={0.97} style={[styles.harvestBtn, shadows.button]}>
+                <Ionicons name="sparkles" size={18} color={colors.white} />
+                <Text style={styles.shareText}>収穫する（{waterings}件から選ぶ）</Text>
+              </PressableScale>
+            )}
             <PressableScale onPress={() => setPickWater(true)} activeScale={0.97} style={[styles.waterBtn, shadows.button]}>
               <Ionicons name="water" size={18} color={colors.white} />
               <Text style={styles.shareText}>この木に水やりする</Text>
@@ -370,6 +379,7 @@ const styles = StyleSheet.create({
   statLabel: { fontFamily: fonts.medium, fontSize: 11.5, color: colors.textSecondary },
   statDivider: { width: 1, height: 32, backgroundColor: colors.divider },
   waterBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, height: 54, borderRadius: radius.pill, backgroundColor: colors.waterBlue },
+  harvestBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, height: 54, borderRadius: radius.pill, backgroundColor: colors.orangeDeep },
   shareText: { fontFamily: fonts.bold, fontSize: 16, color: colors.white },
   ghostBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, height: 50, borderRadius: radius.pill, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
   ghostText: { fontFamily: fonts.bold, fontSize: 15, color: colors.textSecondary },

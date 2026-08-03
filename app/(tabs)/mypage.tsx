@@ -11,6 +11,7 @@ import { StarRating } from '@/components/ui/StarRating';
 import { FormError } from '@/components/ui/FormError';
 import { currentUser } from '@/data/mock';
 import { useAuth } from '@/store/auth';
+import { useTree } from '@/store/tree';
 import { warning } from '@/lib/haptics';
 
 type Action = 'about' | 'contact' | 'logout' | 'withdraw';
@@ -39,6 +40,8 @@ function Stat({ n, label }: { n: number; label: string }) {
 export default function MyPage() {
   const insets = useSafeAreaInsets();
   const { signOut, deleteAccount, profile } = useAuth();
+  // 肥料残高は tree ストアが持つ（水やり・チャージで増減する実際の値）
+  const { fertilizer } = useTree();
   // ログイン中の本人の表示名。実DB接続時は profiles の値、モックでは従来どおり。
   // ※ ID や所有判定はまだモック（currentUser.id）のまま。商品データの実DB化と一緒に切り替える。
   const displayName = profile?.nickname ?? currentUser.nickname;
@@ -92,7 +95,7 @@ export default function MyPage() {
             <Text style={styles.fertLabel}>肥料残高</Text>
           </View>
           <View style={styles.fertRight}>
-            <Text style={styles.fertNum}>{currentUser.fertilizer}</Text>
+            <Text style={styles.fertNum}>{fertilizer.toLocaleString()}</Text>
             <Text style={styles.fertUnit}>肥料</Text>
             <Text style={styles.charge}>チャージ ›</Text>
           </View>

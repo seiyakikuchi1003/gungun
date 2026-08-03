@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -23,13 +23,23 @@ export default function BoardScreen() {
   const [hidden, setHidden] = useState<string[]>([]); // 自分で削除した投稿ID
   const [sheetPost, setSheetPost] = useState<UIPost | null>(null);
   const [report, setReport] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [query, setQuery] = useState('');
   const { posts, loading, reload, remove } = useBoard();
+  const q = query.trim().replace(/^#/, '').toLowerCase();
   const list = posts.filter(
     (p) =>
       (filter === 'all' || p.tag === filter) &&
+      (q === '' || p.body.toLowerCase().includes(q)) &&
       !isBlocked(p.userId) &&
       !hidden.includes(p.id)
   );
+
+  /** 人気のタグをタップ＝そのキーワードで検索する */
+  const searchTag = (tag: string) => {
+    setQuery(tag);
+    setSearchOpen(true);
+  };
 
   // 投稿FABの開閉に使うスクロール位置
   const scrollY = useSharedValue(0);
@@ -45,10 +55,33 @@ export default function BoardScreen() {
           <Text style={styles.title}>掲示板</Text>
           <Text style={styles.subtitle}>交換の様子や質問をシェアしよう</Text>
         </View>
-        <PressableScale activeScale={0.9} style={styles.searchBtn}>
-          <Ionicons name="search" size={20} color={colors.textPrimary} />
+        <PressableScale
+          activeScale={0.9}
+          onPress={() => { setSearchOpen((v) => !v); if (searchOpen) setQuery(''); }}
+          style={[styles.searchBtn, searchOpen && styles.searchBtnOn]}
+        >
+          <Ionicons name={searchOpen ? 'close' : 'search'} size={20} color={searchOpen ? colors.white : colors.textPrimary} />
         </PressableScale>
       </View>
+
+      {searchOpen && (
+        <View style={styles.searchRow}>
+          <Ionicons name="search" size={17} color={colors.textSecondary} />
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            autoFocus
+            placeholder="投稿を検索"
+            placeholderTextColor={colors.textPlaceholder}
+            style={styles.searchInput}
+          />
+          {query.length > 0 && (
+            <PressableScale onPress={() => setQuery('')} activeScale={0.85} hitSlop={8}>
+              <Ionicons name="close-circle" size={18} color={colors.textPlaceholder} />
+            </PressableScale>
+          )}
+        </View>
+      )}
 
       {/* フィルター */}
       <View style={styles.filtersRow}>
@@ -77,11 +110,14 @@ export default function BoardScreen() {
             <Text style={styles.trendTitle}>人気のタグ</Text>
           </View>
           <View style={styles.trendTags}>
-            {trendingTags.map((t) => (
-              <PressableScale key={t} activeScale={0.95} style={styles.trendChip}>
-                <Text style={styles.trendChipText}>{t}</Text>
-              </PressableScale>
-            ))}
+            {trendingTags.map((t) => {
+              const on = q !== '' && t.toLowerCase().includes(q);
+              return (
+                <PressableScale key={t} activeScale={0.95} onPress={() => searchTag(t)} style={[styles.trendChip, on && styles.trendChipOn]}>
+                  <Text style={[styles.trendChipText, on && styles.trendChipTextOn]}>{t}</Text>
+                </PressableScale>
+              );
+            })}
           </View>
         </Animated.View>
 
@@ -92,7 +128,7 @@ export default function BoardScreen() {
         ))}
         {list.length === 0 && (
           <Text style={styles.empty}>
-            {loading ? '読み込み中…' : '表示できる投稿がありません'}
+            {loading ? '読み込み中…' : q !== '' ? `「${query}」に一致する投稿はありません` : '表示できる投稿がありません'}
           </Text>
         )}
       </Animated.ScrollView>
@@ -129,6 +165,9 @@ const styles = StyleSheet.create({
   title: { fontFamily: fonts.black, fontSize: 26, color: colors.textPrimary },
   subtitle: { fontFamily: fonts.medium, fontSize: 12.5, color: colors.textSecondary, marginTop: 2 },
   searchBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: colors.card, justifyContent: 'center', alignItems: 'center', ...shadows.soft },
+  searchBtnOn: { backgroundColor: colors.green },
+  searchRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.card, borderRadius: radius.pill, paddingHorizontal: spacing.md, height: 42, marginHorizontal: 20, marginBottom: spacing.sm, ...shadows.soft },
+  searchInput: { flex: 1, fontFamily: fonts.medium, fontSize: 14.5, color: colors.textPrimary },
   filtersRow: { height: 60 },
   filters: { paddingHorizontal: 20, gap: spacing.sm, alignItems: 'center', paddingVertical: 10 },
   chip: { paddingHorizontal: 16, height: 38, borderRadius: radius.pill, backgroundColor: colors.card, justifyContent: 'center' },
@@ -142,5 +181,7 @@ const styles = StyleSheet.create({
   trendTitle: { fontFamily: fonts.bold, fontSize: 14, color: colors.textPrimary },
   trendTags: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   trendChip: { backgroundColor: colors.greenSoft, paddingHorizontal: 12, paddingVertical: 7, borderRadius: radius.pill },
+  trendChipOn: { backgroundColor: colors.green },
   trendChipText: { fontFamily: fonts.bold, fontSize: 12.5, color: colors.green },
+  trendChipTextOn: { color: colors.white },
 });

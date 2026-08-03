@@ -70,6 +70,12 @@ type TreeState = {
   /** 出品の削除。子ノードは新しい種として独立する（SPEC 3-3） */
   deleteItem: (id: string) => Promise<WriteResult>;
 
+  /**
+   * 肥料を増やす（ログインボーナス・チャージ）。
+   * 実DB接続時は残高をサーバが持つので、ここでは再読み込みだけ行う。
+   */
+  addFertilizer: (amount: number) => void;
+
   /** 直近に自分が水やりで出した商品ID（完了画面のハイライト用） */
   lastWateredId: string | null;
   getItem: (id: string) => MockItem | undefined;
@@ -390,6 +396,19 @@ export function TreeProvider({ children }: { children: React.ReactNode }) {
     [live, refresh]
   );
 
+  const addFertilizer = useCallback(
+    (amount: number) => {
+      if (amount <= 0) return;
+      if (!live) {
+        setMockFertilizer((f) => f + amount);
+        return;
+      }
+      // 実DB接続時の残高はサーバ側で加算済みなので、読み直すだけ
+      reloadProfile().catch(() => {});
+    },
+    [live, reloadProfile]
+  );
+
   const value = useMemo<TreeState>(
     () => ({
       items: pool,
@@ -405,6 +424,7 @@ export function TreeProvider({ children }: { children: React.ReactNode }) {
       harvestSeed,
       updateItem,
       deleteItem,
+      addFertilizer,
       lastWateredId,
       getItem: (id) => pool.find((i) => i.id === id),
       childrenOf: (id) => childrenIn(pool, id),
@@ -413,7 +433,7 @@ export function TreeProvider({ children }: { children: React.ReactNode }) {
     }),
     [
       pool, fertilizer, live, loading, error, settings, refresh, canWater,
-      plantSeed, water, harvestSeed, updateItem, deleteItem, lastWateredId,
+      plantSeed, water, harvestSeed, updateItem, deleteItem, addFertilizer, lastWateredId,
     ]
   );
 

@@ -69,7 +69,8 @@ export default function HarvestDetail() {
           <Thumb source={seed.local} uri={seed.image} style={styles.seedThumb} radius={radius.md} markSize={30} />
           <View style={{ flex: 1 }}>
             <Text style={styles.seedName}>{seed.name}</Text>
-            <Text style={styles.seedSub}>あなたのタネ・木全体 {gathered.length + 1}件</Text>
+            {/* 件数は下の「集まった商品（N）」で出すので、ここでは重ねて言わない */}
+            <Text style={styles.seedSub}>あなたのタネ</Text>
           </View>
         </View>
 

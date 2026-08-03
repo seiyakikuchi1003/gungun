@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Share } from 'react-native';
 import { Image } from 'expo-image';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, spacing, fonts, radius, shadows } from '@/theme';
@@ -14,6 +14,12 @@ export function PostCard({ post, onPress, onMore }: { post: UIPost; onPress?: ()
   // 著者名・アバターは投稿の行が持っている（実DBでは UUID から引けないため）
   const u = { nickname: post.authorName, avatar: post.authorAvatar };
   const tag = TAG_META[post.tag];
+
+  /** 投稿の本文を共有（Web では共有シート非対応の場合があるので握りつぶす） */
+  const share = () => {
+    Share.share({ message: `${u.nickname}さんの投稿（ぐんぐん）\n\n${post.body}` }).catch(() => {});
+  };
+
   return (
     <PressableScale onPress={onPress} activeScale={0.985} style={[styles.card, shadows.card]}>
       {post.pinned && (
@@ -55,7 +61,7 @@ export function PostCard({ post, onPress, onMore }: { post: UIPost; onPress?: ()
           <Ionicons name="chatbubble-outline" size={17} color={colors.textSecondary} />
           <Text style={styles.actionText}>{post.commentCount}</Text>
         </View>
-        <PressableScale activeScale={0.85} style={[styles.action, { marginLeft: 'auto' }]}>
+        <PressableScale activeScale={0.85} onPress={share} hitSlop={8} style={[styles.action, { marginLeft: 'auto' }]}>
           <Ionicons name="share-outline" size={18} color={colors.textSecondary} />
         </PressableScale>
       </View>

@@ -61,16 +61,23 @@ export type Notif = {
   read?: boolean;
   today?: boolean;
   actorId?: string; // 相手のアバター表示用
+  /**
+   * 遷移先の対象ID（要件定義 第11章「通知タップで該当ページに遷移する」）。
+   * type ごとに指す先が違う：
+   *   watered / harvested → 商品ID、shipped / received / message → 取引ID、
+   *   board_comment → 投稿ID
+   */
+  relatedId?: string;
 };
 
 // body は「{actor}さん」に続く形で書く（先頭に助詞を含める）
 export const notifications: Notif[] = [
-  { id: 'n1', type: 'watered', body: 'があなたの「香水」に水やりしました', createdAt: '5分前', today: true, actorId: 'takusan' },
-  { id: 'n2', type: 'harvested', body: 'が「コーヒーメーカー」の輪を収穫しました。発送をお願いします', createdAt: '30分前', today: true, actorId: 'yu' },
-  { id: 'n3', type: 'message', body: 'からメッセージが届きました', createdAt: '1時間前', read: true, today: true, actorId: 'sakura' },
-  { id: 'n4', type: 'shipped', body: 'が商品を発送しました。到着までお待ちください', createdAt: '3時間前', read: true, today: true, actorId: 'yu' },
-  { id: 'n5', type: 'board_comment', body: 'があなたの投稿にコメントしました', createdAt: '昨日', read: true, actorId: 'haru' },
-  { id: 'n6', type: 'received', body: 'が受け取りを完了しました。評価をお願いします', createdAt: '2日前', read: true, actorId: 'sakura' },
+  { id: 'n1', type: 'watered', body: 'があなたの「香水」に水やりしました', relatedId: 'perfume', createdAt: '5分前', today: true, actorId: 'takusan' },
+  { id: 'n2', type: 'harvested', body: 'が「コーヒーメーカー」の輪を収穫しました。発送をお願いします', relatedId: 'coffee', createdAt: '30分前', today: true, actorId: 'yu' },
+  { id: 'n3', type: 'message', body: 'からメッセージが届きました', relatedId: 't1', createdAt: '1時間前', read: true, today: true, actorId: 'sakura' },
+  { id: 'n4', type: 'shipped', body: 'が商品を発送しました。到着までお待ちください', relatedId: 't1', createdAt: '3時間前', read: true, today: true, actorId: 'yu' },
+  { id: 'n5', type: 'board_comment', body: 'があなたの投稿にコメントしました', relatedId: 'p1', createdAt: '昨日', read: true, actorId: 'haru' },
+  { id: 'n6', type: 'received', body: 'が受け取りを完了しました。評価をお願いします', relatedId: 't2', createdAt: '2日前', read: true, actorId: 'sakura' },
 ];
 
 export const NOTIF_ICON: Record<NotificationType, string> = {

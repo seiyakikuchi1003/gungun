@@ -19,6 +19,29 @@ const TONE: Record<NotificationType, string> = {
   board_comment: colors.premium,
 };
 
+/**
+ * 通知の種類ごとの遷移先（要件定義 第11章「通知タップで該当ページに遷移する」）。
+ * relatedId が無い通知（古いデータなど）は、種類に応じた一覧へ寄せる。
+ */
+function destinationOf(n: Notif): string {
+  const id = n.relatedId;
+  switch (n.type) {
+    case 'watered':
+      // 水やりされた＝自分の商品に子が付いた。その商品の木を見せる
+      return id ? `/tree/${id}` : '/(tabs)/harvest';
+    case 'harvested':
+      return id ? `/harvest/${id}` : '/(tabs)/harvest';
+    case 'shipped':
+    case 'received':
+    case 'message':
+      return id ? `/exchange/${id}` : '/exchange';
+    case 'board_comment':
+      return id ? `/board/${id}` : '/(tabs)/board';
+    default:
+      return '/(tabs)';
+  }
+}
+
 function Row({ n, onPress }: { n: Notif; onPress: () => void }) {
   const actor = n.actorId ? getUser(n.actorId) : null;
   return (
@@ -47,6 +70,12 @@ export default function Notifications() {
   const today = list.filter((n) => n.today);
   const earlier = list.filter((n) => !n.today);
 
+  // タップしたら既読にして、その通知が指す画面へ飛ぶ
+  const open = (n: Notif) => {
+    if (!n.read) markRead(n.id);
+    router.push(destinationOf(n) as never);
+  };
+
   return (
     <View style={styles.root}>
       <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
@@ -63,13 +92,13 @@ export default function Notifications() {
         {today.length > 0 && (
           <>
             <Text style={styles.groupTitle}>今日</Text>
-            {today.map((n) => <Row key={n.id} n={n} onPress={() => markRead(n.id)} />)}
+            {today.map((n) => <Row key={n.id} n={n} onPress={() => open(n)} />)}
           </>
         )}
         {earlier.length > 0 && (
           <>
             <Text style={styles.groupTitle}>これまで</Text>
-            {earlier.map((n) => <Row key={n.id} n={n} onPress={() => markRead(n.id)} />)}
+            {earlier.map((n) => <Row key={n.id} n={n} onPress={() => open(n)} />)}
           </>
         )}
       </ScrollView>

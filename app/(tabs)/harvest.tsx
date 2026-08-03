@@ -10,6 +10,7 @@ import { PressableScale } from '@/components/ui/PressableScale';
 import { Thumb } from '@/components/ui/Thumb';
 import { Badge } from '@/components/ui/Badge';
 import { Sprout } from '@/components/art/Sprout';
+import { MiniTree } from '@/components/art/MiniTree';
 import { Mikan } from '@/components/art/Mikan';
 import { LeafDecor } from '@/components/art/LeafDecor';
 import { MockItem } from '@/data/mock';
@@ -97,12 +98,10 @@ export default function HarvestScreen() {
                       <Text style={styles.name} numberOfLines={1}>{s.name}</Text>
                       <Badge label={s.status === 'trading' ? '取引中' : '出品中'} tone={s.status === 'trading' ? 'orange' : 'green'} />
                     </View>
-                    <Text style={styles.growth}>この木の商品 {size}点</Text>
+                    {/* 「木全体」は 集まった商品+1 で同じことを言っているだけなので出さない */}
                     <View style={styles.metaRow}>
-                      <Ionicons name="water" size={13} color={colors.green} />
-                      <Text style={styles.meta}>集まった商品 <Text style={styles.metaNum}>{gathered}</Text></Text>
-                      <Sprout size={14} />
-                      <Text style={styles.meta}>木全体 <Text style={styles.metaNum}>{size}</Text>件</Text>
+                      <MiniTree size={18} count={gathered} />
+                      <Text style={styles.meta}>集まった商品 <Text style={styles.metaNum}>{gathered}</Text>件</Text>
                     </View>
                   </View>
                   <Ionicons name="chevron-forward" size={20} color={colors.textPlaceholder} />

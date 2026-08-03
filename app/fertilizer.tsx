@@ -8,12 +8,27 @@ import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { Button } from '@/components/ui/Button';
 import { settings, formatPrice } from '@/config/settings';
-import { useMe } from '@/store/me';
+import { useTree } from '@/store/tree';
 
 export default function Fertilizer() {
-  const me = useMe();
   const insets = useSafeAreaInsets();
+  // 残高は tree ストアが持つ（モックでも増減する）。me.fertilizer は初期値なので使わない
+  const { fertilizer, addFertilizer } = useTree();
   const [sel, setSel] = useState<string>(settings.chargePlans[1].id);
+  const [done, setDone] = useState<string | null>(null);
+  const plan = settings.chargePlans.find((p) => p.id === sel) ?? settings.chargePlans[0];
+
+  /**
+   * 購入。App Store の課金（StoreKit）はネイティブ化のときに繋ぐ。
+   * いまは選んだプランぶんの肥料を反映して、残高が増えるところまで見せる。
+   */
+  const purchase = () => {
+    if (done) return;
+    addFertilizer(plan.fertilizer);
+    setDone(`${plan.fertilizer.toLocaleString()}肥料をチャージしました`);
+    // 直リンクで開かれていて戻り先が無いこともあるのでホームへ逃がす
+    setTimeout(() => (router.canGoBack() ? router.back() : router.replace('/(tabs)')), 1200);
+  };
 
   return (
     <View style={styles.root}>
@@ -30,7 +45,7 @@ export default function Fertilizer() {
           <Text style={styles.balanceLabel}>現在の肥料</Text>
           <View style={styles.balanceRow}>
             <Ionicons name="leaf" size={22} color={colors.white} />
-            <Text style={styles.balanceNum}>{me.fertilizer}</Text>
+            <Text style={styles.balanceNum}>{fertilizer.toLocaleString()}</Text>
             <Text style={styles.balanceUnit}>肥料</Text>
           </View>
         </LinearGradient>
@@ -58,11 +73,18 @@ export default function Fertilizer() {
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
-        <Button
-          title="Apple Pay で購入する"
-          leftIcon={<Ionicons name="logo-apple" size={20} color={colors.white} />}
-          onPress={() => router.back()}
-        />
+        {done ? (
+          <View style={styles.doneRow}>
+            <Ionicons name="checkmark-circle" size={20} color={colors.green} />
+            <Text style={styles.doneText}>{done}</Text>
+          </View>
+        ) : (
+          <Button
+            title="Apple Pay で購入する"
+            leftIcon={<Ionicons name="logo-apple" size={20} color={colors.white} />}
+            onPress={purchase}
+          />
+        )}
       </View>
     </View>
   );
@@ -91,4 +113,6 @@ const styles = StyleSheet.create({
   note: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: spacing.md },
   noteText: { fontFamily: fonts.regular, fontSize: 12, color: colors.textSecondary },
   footer: { paddingHorizontal: 20, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: colors.divider },
+  doneRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, height: 54, borderRadius: radius.pill, backgroundColor: colors.greenSoft },
+  doneText: { fontFamily: fonts.bold, fontSize: 14.5, color: colors.green },
 });
