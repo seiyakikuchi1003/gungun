@@ -5,6 +5,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors } from '@/theme';
 import { AuthProvider } from '@/store/auth';
 import { AuthGate } from '@/components/AuthGate';
@@ -17,11 +18,14 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function RootLayout() {
   // 角丸ゴシック M PLUS Rounded 1c（使用文字だけにサブセット化）。
+  // Ionicons.font はネイティブでは自動リンクされるが、Web ではここで読み込まないと
+  // すべてのアイコンが「⊠」（未グリフ）で表示される。
   const [loaded] = useFonts({
     MPLUSRounded1c_400Regular: require('../assets/fonts/MPLUSRounded1c-Regular.ttf'),
     MPLUSRounded1c_500Medium: require('../assets/fonts/MPLUSRounded1c-Medium.ttf'),
     MPLUSRounded1c_700Bold: require('../assets/fonts/MPLUSRounded1c-Bold.ttf'),
     MPLUSRounded1c_800ExtraBold: require('../assets/fonts/MPLUSRounded1c-ExtraBold.ttf'),
+    ...Ionicons.font,
   });
 
   useEffect(() => {
