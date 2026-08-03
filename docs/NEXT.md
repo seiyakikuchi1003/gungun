@@ -1,174 +1,185 @@
-# 次に何をするか（Mac 再開用メモ）
+# 残りタスク（引き継ぎ・再開用メモ）
 
-最終更新：2026-07-28（クラウドセッションでの作業分）
+最終更新：2026-08-03
 
-## Macですぐ再開する手順
+## すぐ再開する手順
 
 ```bash
 cd ~/gungun
 git checkout claude/app-design-mockup-9f1vtu
 git pull
-npm install          # ★必須：supabase-js など依存が増えています
-npx expo start       # QRをExpo Goで読む（SDK 54）
+npm install
+npx expo start       # QRを Expo Go で読む（SDK 54）
 ```
 
-- Webで見るだけ：https://gungun-preview.pages.dev
-- ブランチは常に `claude/app-design-mockup-9f1vtu`。
+| URL | 接続先 | 用途 |
+|---|---|---|
+| https://gungun-preview.pages.dev | なし（モック） | 先方への画面デモ。触っても保存されない |
+| https://gungun-dev-app.pages.dev | Supabase `gungun-dev` | 実データのテスト。**保存される** |
+| https://gungun-admin.pages.dev | Supabase `gungun-dev` | 管理画面（先方運営用） |
+
+実データでのテスト手順は [`DB-TEST.md`](./DB-TEST.md)。
+
+---
 
 ## 今の状態
 
 | 層 | 状態 |
 |---|---|
-| アプリ画面（フロント） | ほぼ完成。全25画面が実装済み・レスポンシブ確認済み |
-| データ | **モック**（`src/store/tree.tsx` / `src/data/mock.ts`）で動作中 |
-| バックエンド（Supabase） | **設計・検証は完了**。クラウドに未設置 |
+| アプリ画面 | **完成**。全30画面。レスポンシブ点検・ボタン点検を自動化して通過 |
+| API レイヤ | **完成**。`src/lib/api/` が全機能ぶん実装済み |
+| ストア | **完成**。`isSupabaseEnabled` で実DB／モックを自動切替 |
+| 認証 | **完成**（Supabase Auth）。登録・ログイン・コード認証・再設定・退会 |
+| DB 設計 | **完成**。0001〜0008。Phase-1 テスト17項目をローカルPostgresで全PASS |
+| DB 設置 | **未適用**。`gungun-dev` にまだ流していない ← いちばん最初にやること |
+| 管理画面 | **完成**・デプロイ済み。アクセス制限だけ未設定 |
+| メール送信（Resend） | **未着手** |
+| プッシュ通知 | **未着手** |
+| 課金 | **未着手**（画面だけ。要・方式の確定） |
+| ネイティブ化 / 審査 | **未着手** |
 
-### バックエンドの中身（`supabase/`）
+---
 
-- `migrations/0001_schema.sql` … spec 2-2 のDDL（items1本で森を表現）＋ `app_settings`
-- `migrations/0002_functions.sql` … トリガ＋RPC（`get_ancestors` / `can_water` / `detach_children` / `harvest` / `plant_seed` / `water`）
-- `migrations/0003_rls.sql` … RLS土台＋肥料額などの既定値
-- `migrations/0004_admin.sql` … 管理画面用（`reports.status` / `profiles.is_suspended` / `admin_audit_log`）
-- `seed.sql` … デモの木をRPC経由で構築
+## A. すぐやること（手作業が必要）
 
-**検証済み**：仕様書のPhase-1テスト全17項目をローカルPostgresで実行し全PASS
-（種植え／水やりの親子付け、can_waterの4条件、収穫の玉突きの輪、枝の独立、1種1収穫、削除、深い木のroot/depth再計算、肥料消費・台帳・通知）。
+### A-1. gungun-dev にスキーマを流す ★最優先
 
-## 未完了：クラウドDBの設置（要・人手）
+`supabase/apply_all.sql` を SQL Editor に貼って Run するだけ。手順は [`DB-TEST.md`](./DB-TEST.md)。
 
-Souzoh Org が**無料プロジェクト上限（2つ）**のため `gungun-dev` を作成できていない。
-既存の `souzoh-rental-app` / `souzoh-CRM` は本番のため触らない。
+> クラウドセッションからは外部ネットワークが制限されていて Supabase に直接届かないため、
+> ここは手元で実行する必要がある。
 
-### 選択肢
-- **A. 新しいOrgを作る（実質無料）** — Supabase管理画面で新規Organization作成 → 無料プロジェクト作成
-- **B. Souzoh OrgをProへ（$25/月〜）** — 既存Orgをアップグレード
+### A-2. Supabase Auth の設定
 
-### 器ができた後の手順（自動化済み）
-```bash
-supabase link --project-ref <ref>
-supabase db push            # migrations を適用
-# 開発用にデモデータを入れる場合のみ
-psql "<connection string>" -f supabase/seed.sql
-```
-その後 `.env` に以下を設定すればアプリが実DBに切り替わる（未設定の間はモックのまま動く）：
-```
-EXPO_PUBLIC_SUPABASE_URL=...
-EXPO_PUBLIC_SUPABASE_ANON_KEY=...
-```
+Authentication → Sign In / Providers → Email
 
-## 開発用 Supabase プロジェクト
-
-2026-07-28 に作成。**Souzoh org とは別のアカウント**（`gungun-dev` org / 無料枠）。
-
-| 項目 | 値 |
-|---|---|
-| Project ref | `bypjhlfcqzebmukwzthi` |
-| Project URL | `https://bypjhlfcqzebmukwzthi.supabase.co` |
-| リージョン | Northeast Asia (Tokyo) |
-| ダッシュボード | https://supabase.com/dashboard/project/bypjhlfcqzebmukwzthi |
-
-キーは新形式（`sb_publishable_...` / `sb_secret_...`）。publishable は公開可、secret は絶対に共有しない。
-
-### 接続確認
-
-```bash
-npm run check:supabase
-```
-
-テーブル18個・アプリ設定・デモデータ・RPC・RLS を順に確認して日本語で結果を出す。
-
-### 認証（Supabase Auth）
-
-`src/store/auth.tsx` が本物の認証。`.env` が未設定のときは従来のモックに自動フォールバックするので、
-プレビュー（Cloudflare Pages）は今までどおり誰でも触れる。
-
-| 画面 | 使う API |
-|---|---|
-| ログイン | `signInWithPassword` |
-| 新規登録 | `signUp`（`options.data.nickname` → トリガが profiles を作成） |
-| 認証コード | `verifyOtp`（type: `signup` / `recovery`）／`resend` |
-| パスワード再設定 | `resetPasswordForEmail` → コード確認 → `updateUser` |
-| 退会 | RPC `delete_own_account`（auth.users を消す。profiles は cascade） |
-
-`src/components/AuthGate.tsx` がセッションの有無で行き先を振り分ける（復元中はスピナー）。
-
-**⚠️ Supabase 側の設定が必要**（Authentication → Sign In / Providers → Email）
-
-- **開発中**：「Confirm email」を **OFF** にする。登録した瞬間にログイン状態になり、コード入力を挟まない
+- **開発中**：「Confirm email」を **OFF**（登録した瞬間にログイン状態になる）
 - **本番**：Confirm email を ON にしたうえで、Authentication → Emails の
   **Confirm signup / Reset password テンプレートに `{{ .Token }}` を入れる**。
-  既定のテンプレートはリンク（`{{ .ConfirmationURL }}`）のみで6桁コードが載らないため、
-  アプリのコード入力画面が使えない
+  既定テンプレートはリンクのみで6桁コードが載らず、アプリのコード入力画面が使えない
 
-### スキーマの流し方
+### A-3. 実データで通し確認
 
-`supabase db push`（CLI をリンク済みの場合）か、`supabase/migrations/*.sql` を
-番号順に SQL Editor へ貼って実行する。デモデータは `supabase/seed.sql`。
+出品 → 水やり → 収穫 → 取引 → 評価 を2アカウントで一周する。
+画像アップロード（Storage の `item-images` バケット）もここで初めて実データを通る。
 
-## 管理画面（`admin/`）
+### A-4. 管理画面にアクセス制限をかける
 
-Next.js App Router + Tailwind。ユーザー／商品／通報の運営と、アプリ設定（金額・肥料量）の変更ができる。
-詳しい手順は `admin/README.md`。
+`ADMIN_PASSWORD` が未設定だと誰でも開ける。加えて Cloudflare Access を推奨（`admin/README.md`）。
 
-```bash
-cd admin
-npm install
-cp .env.example .env.local   # SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY / ADMIN_PASSWORD
-npm run dev                  # http://localhost:3100
-```
+---
 
-- **接続先は環境変数だけで決まる**。お客様の Supabase アカウントへ移すときにコード変更は不要
-- `SUPABASE_SERVICE_ROLE_KEY` は RLS を越える全権キー。サーバー専用・コミット禁止・共有禁止
-- URL に `NEXT_PUBLIC_` を付けないこと（ビルド時に値が焼き込まれ、デプロイ先で差し替えられなくなる）
-- `ADMIN_PASSWORD` 未設定だと誰でも開けるため、公開前に必ず設定する
+## B. めたん様に確認・依頼すること
 
-## お客様アカウントへの引き継ぎ
+1. **Cloudflare / Supabase のアカウントに海野を招待**（前回MTGからの継続）
+2. **本番の Supabase プロジェクトを先方アカウントで作成**（引き継ぎ手順は下記 E）
+3. **課金の方式と金額の確定** ← 下の「⚠ 課金の論点」を先に読む
+4. **利用規約・プライバシーポリシーの本文**（課金対応で変更が必要とのこと。
+   管理画面から差し替えられる形にはしてある）
+5. **Apple Developer Program の契約者**（年 $99）をどちらが持つか
+
+### ⚠ 課金の論点（要相談）
+
+仕様書では **Stripe（Apple Pay）** を想定しているが、このアプリは iOS ネイティブで、
+
+- 肥料 = アプリ内で消費する仮想通貨
+- プレミアム = 月額サブスク
+
+のどちらも **App Store の審査ガイドライン 3.1.1 で In-App Purchase が必須**になる可能性が高い。
+Stripe で外部決済すると審査で弾かれるリスクがあるため、**実装に入る前に方式を確定**したい。
+
+- IAP にする場合：手数料15〜30%、StoreKit（`expo-in-app-purchases` 等）で実装、
+  App Store Connect に商品を登録
+- Stripe を使える範囲：物理的な商品・サービスの決済（このアプリでは該当しない）
+
+金額はハードコードしていないので、確定後に管理画面から変更できる。
+
+---
+
+## C. 実装として残っているもの
+
+| # | 内容 | 補足 |
+|---|---|---|
+| C-1 | **メール送信（Resend）** | いまは Supabase 標準のメール。差出人・文面を自社にするなら Resend を SMTP に設定 |
+| C-2 | **プッシュ通知** | `expo-notifications` 未導入。`notifications` テーブルは既にある。トークン保存 → 送信の2段階 |
+| C-3 | **課金の実装** | 方式の確定待ち（上記 B-3）。いまは残高に反映するだけのモック |
+| C-4 | **型の自動生成** | `supabase gen types typescript` で `src/types/db.ts` を実DBから生成 |
+| C-5 | **プレミアムの中身** | 「欲しいものリスト公開」が画面だけ。v1に入れるか要相談 |
+
+---
+
+## D. ネイティブ化・App Store 申請
+
+| # | 内容 |
+|---|---|
+| D-1 | `eas.json` を作成し EAS Build を通す（未着手） |
+| D-2 | Apple Developer Program 登録 → App Store Connect にアプリ作成 |
+| D-3 | アイコン・スプラッシュの最終版（いまは仮素材） |
+| D-4 | 審査用素材：スクリーンショット、説明文、キーワード、サポートURL |
+| D-5 | プライバシー情報の申告（収集するデータ：メール・住所・写真） |
+| D-6 | C2C の審査対策：取引トラブルの窓口・通報機能の明記（通報・ブロックは実装済み） |
+| D-7 | `app.json` の bundleIdentifier は `app.gungun.ios`。ドメインに合わせるか確認 |
+
+---
+
+## E. 先方アカウントへの引き継ぎ
 
 1. お客様の Supabase で新規プロジェクト（推奨リージョン: Northeast Asia / Tokyo）
-2. `supabase db push` で `supabase/migrations/` を流す
+2. `supabase/apply_all.sql` を流す
 3. 必要ならデータを `pg_dump` / `psql` で移送
 4. 管理画面の環境変数を新しい URL / service_role キーに差し替え
-5. アプリの `.env`（`EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_ANON_KEY`）も差し替え
-6. 旧プロジェクトの service_role キーを失効させる
+5. アプリの `.env` も差し替えて `bash scripts/deploy-live.sh`
+6. **旧プロジェクトの service_role キーを失効させる**
 
-## 次にやる候補
+---
 
-1. **モック → 実RPCへの配線**：`src/store/tree.tsx` を `src/lib/api/gungun.ts` 経由に。`isSupabaseEnabled` で自動切替する形が用意済み
-2. **認証**：ログイン画面を Supabase Auth に接続（今は `src/store/auth.tsx` のモック）
-3. 型の自動生成：`supabase gen types typescript` で `src/types/db.ts` を置き換え
+## F. 移行・運用
 
-## プレビューサイト（Cloudflare Pages）の運用
+| # | 内容 |
+|---|---|
+| F-1 | 既存160人の移行（Click版 → Supabase）＋再ログイン案内メール（仕様書 Phase 10） |
+| F-2 | 独自ドメインの取得と設定 |
+| F-3 | PR #3 のマージ |
+| F-4 | Cloudflare Pages の `gungun-app` プロジェクトが使われていない残骸。整理する |
 
-公開URL：https://gungun-preview.pages.dev （誰でも閲覧可。認証なし）
+---
 
-**重要：GitHub連携の自動デプロイは無効にしてある。**
-このプロジェクトは以前 GitHub 連携が有効で、production_branch が開発ブランチだったため、
-ブランチに push するたびに「ビルド設定が空のままリポジトリ直下を公開」する自動デプロイが走り、
-`index.html` が無いので全ページ404になっていた（2026-07-27に発生）。
-再発防止のため `deployments_enabled=false` に変更済み。
-
-そのため**プレビュー更新は手動デプロイのみ**：
+## デプロイ手順（必ずスクリプト経由で）
 
 ```bash
-# 1) Webを書き出して1枚のHTMLに固める
-npx expo export --platform web
-node scripts/inline-web.mjs          # → gungun-preview.html
-
-# 2) 配信ディレクトリを作る（index.html / 404.html / _redirects / sounds）
-#    _redirects の中身は「/*    /index.html   200」（SPAフォールバック。/login 等の直リンク用）
-
-# 3) デプロイ（要 CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID）
-npx wrangler pages deploy <配信ディレクトリ> \
-  --project-name gungun-preview \
-  --branch claude/app-design-mockup-9f1vtu --commit-dirty=true
+bash scripts/deploy-preview.sh   # モック版 → gungun-preview
+bash scripts/deploy-live.sh      # 実DB接続版 → gungun-dev-app
 ```
 
-将来 push で自動更新したい場合は、Pagesのビルド設定を
-`build_command: npm ci && npx expo export --platform web` / `destination_dir: dist` にした上で
-自動デプロイを再有効化する（`public/_redirects` を用意すれば dist にコピーされる）。
-ただしビルド失敗時に本番が壊れるリスクがあるため、現状は手動運用を推奨。
+**手動で `npx expo export` しないこと。** Metro のビルドキャッシュには前回埋め込まれた
+`EXPO_PUBLIC_*` の値が残るため、`.env` を消しただけではモック版に接続情報が入り込む
+（実際に一度混入した。スクリプトの検査で止めた）。両スクリプトは `--clear` を付け、
+書き出したファイルにキーが混ざっていないか検査してから公開する。
+
+### Cloudflare Pages の GitHub 自動デプロイは無効にしてある
+
+以前 production_branch が開発ブランチのまま自動デプロイが走り、ビルド設定が空だったため
+リポジトリ直下を公開して全ページ404になった（2026-07-27）。`deployments_enabled=false` に変更済み。
+
+---
+
+## 点検スクリプト
+
+```bash
+# dist を配信しておく（http-server dist -p 8899 --proxy "http://127.0.0.1:8899?"）
+node scripts/audit-responsive.mjs   # 全ルート × 4幅で崩れを検出
+node scripts/audit-buttons.mjs      # 全ルートのボタンを押して無反応を検出
+```
+
+`audit-buttons.mjs` は色の変化も状態の指紋に含めるので、選択チップを誤検知しない。
+戻るボタンは `history.pushState` で遷移させている都合上「無反応」に出るが、実機では正常。
+
+---
 
 ## 補足
 
-- 金額・肥料量はハードコード禁止。`app_settings` テーブル（DB側）と `src/config/settings.ts`（モック側）から読む
+- 金額・肥料量はハードコード禁止。`app_settings`（DB）と `src/config/settings.ts`（モック）から読む
 - ツリーの親子付け（`root_id`/`depth`）は必ずDB側（トリガ＋RPC）で確定させる。アプリ側で組み立てない
+- 「大きな木」「MAX」など木の大小を表す言い方は使わない（2026-07-28 MTG）。
+  同じ数を別の名前で二度出すのも禁止（不明瞭さの原因になる）
+- `sb_secret_...` はアプリ側に絶対に入れない。アプリは publishable key だけ、権限は RLS が制御する
