@@ -158,6 +158,29 @@ head('1-4. 追加SQL（0010）の確認');
   }
 }
 
+// ── 1-6. 0011（閲覧履歴・評価一覧・停止の効き）の確認 ──────
+head('1-5. 追加SQL（0011）の確認');
+{
+  const lack = [];
+  for (const t of ['item_views', 'rating_cards']) {
+    const { error } = await db.from(t).select('*', { count: 'exact', head: true });
+    // item_views は本人しか読めない設計。未ログインなら権限エラーで「ある」とみなす
+    if (error && !/permission|row-level/i.test(error.message)) lack.push(`${t}（${error.message}）`);
+  }
+  const { error: rpcErr } = await db.rpc('touch_item_view', {
+    p_item_id: '00000000-0000-0000-0000-000000000000',
+  });
+  if (rpcErr && /does not exist|schema cache/i.test(rpcErr.message)) lack.push('touch_item_view()');
+
+  if (lack.length === 0) {
+    ok('0011 の追加ぶんが適用されています（閲覧履歴・評価一覧）');
+  } else {
+    ng(`次が見つかりません:\n     ${lack.join('\n     ')}`);
+    console.log('     → npm run db:apply を実行してください');
+    failed++;
+  }
+}
+
 // ── 1-4. 課金の付与がアプリから呼べないこと（重要）──────────
 head('1-4. 課金の安全性の確認');
 {

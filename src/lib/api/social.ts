@@ -123,3 +123,37 @@ export async function fetchLikedPostIds(userId: string): Promise<string[]> {
   if (error) throw error;
   return ((data ?? []) as { post_id: string }[]).map((r) => r.post_id);
 }
+
+// ── 閲覧履歴（最近見た商品）────────────────────────────────
+
+/** 商品を見たことを記録する（0011 の touch_item_view。同じ商品は1行・直近100件） */
+export async function recordItemView(itemId: string): Promise<void> {
+  const { error } = await requireSupabase().rpc('touch_item_view', { p_item_id: itemId });
+  if (error) throw error;
+}
+
+/** 最近見た商品。見た順（新しい順） */
+export async function fetchViewHistory(userId: string, limit = 60): Promise<MockItem[]> {
+  const sb = requireSupabase();
+  const { data: views, error } = await sb
+    .from('item_views')
+    .select('item_id, viewed_at')
+    .eq('user_id', userId)
+    .order('viewed_at', { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+
+  const ids = ((views ?? []) as { item_id: string }[]).map((r) => r.item_id);
+  if (!ids.length) return [];
+
+  const { data, error: e2 } = await sb.from('item_cards').select(ITEM_CARD_COLUMNS).in('id', ids);
+  if (e2) throw e2;
+  const byId = new Map((data ?? []).map((r: any) => [r.id, toItem(r as ItemCardRow)]));
+  return ids.map((id) => byId.get(id)).filter((x): x is MockItem => Boolean(x));
+}
+
+/** 履歴を全部消す（プライバシー配慮。メルカリと同じく消せるようにする） */
+export async function clearViewHistory(userId: string): Promise<void> {
+  const { error } = await requireSupabase().from('item_views').delete().eq('user_id', userId);
+  if (error) throw error;
+}

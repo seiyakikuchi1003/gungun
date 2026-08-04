@@ -1,4 +1,5 @@
 import { requireSupabase } from '@/lib/supabase';
+import { DELETED_USER_NAME, relativeTime } from './map';
 
 /** プロフィール・肥料・お届け先。 */
 
@@ -164,5 +165,41 @@ export async function fetchLedger(userId: string, limit = 50): Promise<LedgerEnt
     amount: Number(r.amount),
     reason: r.reason,
     createdAt: r.created_at,
+  }));
+}
+
+// ── 評価一覧 ───────────────────────────────────────────────
+
+export type RatingCard = {
+  id: string;
+  raterId: string | null;
+  raterName: string;
+  raterAvatar: string;
+  /** communication = 送った側への評価 / quality = 受け取った側への評価 */
+  type: 'communication' | 'quality';
+  score: number;
+  comment: string | null;
+  createdAt: string;
+};
+
+/** その人に付いた評価の一覧（新しい順）。星の内訳とコメントを見せる画面で使う */
+export async function fetchRatings(userId: string, limit = 100): Promise<RatingCard[]> {
+  const { data, error } = await requireSupabase()
+    .from('rating_cards')
+    .select('id, rater_id, rater_nickname, rater_avatar_url, type, score, comment, created_at')
+    .eq('ratee_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []).map((r: any) => ({
+    id: r.id,
+    raterId: r.rater_id ?? null,
+    // 退会した人の評価も残す設計なので、名前が無いときはそう見せる
+    raterName: r.rater_nickname ?? DELETED_USER_NAME,
+    raterAvatar: r.rater_avatar_url ?? '',
+    type: r.type,
+    score: Number(r.score),
+    comment: r.comment ?? null,
+    createdAt: relativeTime(r.created_at),
   }));
 }

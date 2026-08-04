@@ -46,7 +46,7 @@ npm run preview           # これ1本。DB適用 → 確認 → 管理画面 �
 | API レイヤ | **完成**。`src/lib/api/` が全機能ぶん実装済み |
 | ストア | **完成**。`isSupabaseEnabled` で実DB／モックを自動切替 |
 | 認証 | **完成**（Supabase Auth）。登録・ログイン・コード認証・再設定・退会 |
-| DB 設計 | **完成**。0001〜0009。ローカルPostgresで113項目のテスト全PASS |
+| DB 設計 | **完成**。0001〜0011。ローカルPostgresでテスト全PASS |
 | DB 設置 | **未適用**。`gungun-dev` にまだ流していない ← `npm run db:apply` で一発 |
 | 実機プレビュー | `npm run preview` で アプリ＋管理画面＋DB がまとめて立つ（Mac で実行） |
 | 管理画面 | **完成**・デプロイ済み・パスワード設定済み |
@@ -147,7 +147,7 @@ DB 側の受け皿は 0009 で用意済み。残っているのはアプリ／�
 | C-3 | **課金の実装** | DB：`purchases` と `redeem_purchase()`（冪等）は 0009 で用意済み。<br>残り：方式の確定（上記 B-3）→ StoreKit 導入 → **レシート検証サーバ**（Edge Function か管理画面の API） |
 | C-4 | **型の自動生成** | `supabase gen types typescript` で `src/types/db.ts` を実DBから生成 |
 | C-5 | **プレミアムの中身** | 「欲しいものリスト公開」が画面だけ。v1に入れるか要相談 |
-| C-6 | **利用停止が掲示板に効いていない** | `assert_not_suspended()` は `plant_seed` / `water` / `harvest` の入口だけ。掲示板の投稿・コメント・商品コメントは RPC を通さない直 INSERT なので、**停止中でも書き込める**。<br>直し方：`board_posts` / `board_comments` / `item_comments` の insert ポリシーに「停止中でない」条件を足す（数行）。荒らし対応の実効性に関わるので審査前に塞ぐ |
+| C-6 | ~~**利用停止が掲示板に効いていない**~~ | **対応済み（0011）**。`board_posts` / `board_comments` / `item_comments` の insert ポリシーに「停止中でない」条件を追加。ローカル Postgres で「停止中は弾かれる／解除後は書ける／なりすましは弾かれる」を確認 |
 
 ---
 

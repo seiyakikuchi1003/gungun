@@ -22,6 +22,7 @@ const MENU: { icon: keyof typeof Ionicons.glyphMap; label: string; route?: strin
   { icon: 'person-circle-outline', label: '個人情報設定', route: '/mypage/account' },
   { icon: 'pricetags-outline', label: '出品履歴', route: '/mypage/items' },
   { icon: 'heart-outline', label: 'いいね一覧', route: '/mypage/likes' },
+  { icon: 'time-outline', label: '閲覧履歴', route: '/mypage/history' },
   { icon: 'chatbox-ellipses-outline', label: '掲示板の履歴', route: '/mypage/posts' },
   { icon: 'ban-outline', label: 'ブロックリスト', route: '/mypage/blocks' },
   { icon: 'information-circle-outline', label: 'ぐんぐんについて', action: 'about' },
@@ -96,10 +97,15 @@ export default function MyPage() {
             <Avatar uri={profile?.avatarUrl ?? me.avatar} name={displayName} size={64} />
             <View style={{ flex: 1 }}>
               <Text style={styles.name}>{displayName}さん</Text>
-              <View style={styles.ratingRow}>
-                <StarRating value={4.5} size={15} />
+              <PressableScale
+                onPress={() => router.push(`/ratings/${me.id}` as never)}
+                activeScale={0.97}
+                style={styles.ratingRow}
+              >
+                <StarRating value={stats?.ratingAvg ?? 4.5} size={15} />
                 <Text style={styles.ratingText}>{rating}</Text>
-              </View>
+                <Ionicons name="chevron-forward" size={14} color={colors.textPlaceholder} />
+              </PressableScale>
             </View>
             <PressableScale onPress={() => router.push('/mypage/edit')} activeScale={0.95} style={styles.editBtn}>
               <Text style={styles.editText}>編集</Text>

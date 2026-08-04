@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -13,6 +13,9 @@ import { useTree } from '@/store/tree';
 import { useMe } from '@/store/me';
 import { useBlocks } from '@/store/blocks';
 import { useUsers } from '@/store/users';
+import { isSupabaseEnabled } from '@/lib/supabase';
+import { shareText } from '@/lib/share';
+import { fetchStats, type ProfileStats } from '@/lib/api/profile';
 
 /**
  * 他のユーザーのプロフィール。
@@ -33,6 +36,15 @@ export default function UserProfile() {
   const isMe = userId === me.id;
   const listed = items.filter((i) => i.ownerId === userId);
 
+  // 評価は profile_stats（実データ）から。以前は星 4.5 固定だった
+  const [stats, setStats] = useState<ProfileStats | null>(null);
+  useEffect(() => {
+    if (!isSupabaseEnabled || !me.live) return;
+    let alive = true;
+    fetchStats(userId).then((s) => { if (alive) setStats(s); }).catch(() => {});
+    return () => { alive = false; };
+  }, [userId, me.live]);
+
   return (
     <View style={styles.root}>
       <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
@@ -40,7 +52,13 @@ export default function UserProfile() {
           <Ionicons name="chevron-back" size={26} color={colors.textPrimary} />
         </PressableScale>
         <Text style={styles.hTitle} numberOfLines={1}>{u.nickname}さん</Text>
-        <View style={styles.hBtn} />
+        <PressableScale
+          onPress={() => shareText(`ぐんぐんで「${u.nickname}」さんの出品を見てみませんか？🌱`)}
+          activeScale={0.9}
+          style={styles.hBtn}
+        >
+          <Ionicons name="share-outline" size={22} color={colors.textPrimary} />
+        </PressableScale>
       </View>
 
       <ScrollView
@@ -49,10 +67,18 @@ export default function UserProfile() {
         <View style={[styles.profile, shadows.soft]}>
           <Avatar uri={u.avatar} name={u.nickname} size={72} />
           <Text style={styles.name}>{u.nickname}さん</Text>
-          <View style={styles.ratingRow}>
-            <StarRating value={4.5} size={14} gap={2} />
-            <Text style={styles.stat}>評価 {u.ratingCount}・出品 {u.itemCount}</Text>
-          </View>
+          <PressableScale
+            onPress={() => router.push(`/ratings/${userId}` as never)}
+            activeScale={0.97}
+            style={styles.ratingRow}
+          >
+            {/* 実データでは profile_stats、モック（画面デモ）では従来のデモ値を出す */}
+            <StarRating value={stats?.ratingAvg ?? (me.live ? 0 : 4.5)} size={14} gap={2} />
+            <Text style={styles.stat}>
+              評価 {stats?.ratingCount ?? (me.live ? 0 : u.ratingCount)}・出品 {listed.length}
+            </Text>
+            <Ionicons name="chevron-forward" size={14} color={colors.textPlaceholder} />
+          </PressableScale>
 
           {!isMe && (
             <PressableScale

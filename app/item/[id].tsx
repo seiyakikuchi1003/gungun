@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, useWindowDimensions, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -20,6 +20,8 @@ import { shareText } from '@/lib/share';
 import { Toast } from '@/components/ui/Toast';
 import { useItemComments } from '@/hooks/useItemComments';
 import { useUsers } from '@/store/users';
+import { recordItemView } from '@/lib/api/social';
+import { isSupabaseEnabled } from '@/lib/supabase';
 
 function RoundBtn({ icon, onPress }: { icon: keyof typeof Ionicons.glyphMap; onPress?: () => void }) {
   return (
@@ -43,6 +45,13 @@ export default function ItemDetailScreen() {
   const [ctext, setCtext] = useState('');
   const [toast, setToast] = useState<string | null>(null);
   const { comments, add: addComment, remove: removeComment } = useItemComments(id ?? '');
+
+  // 閲覧履歴に残す（DB 側で同じ商品は1行・直近100件に抑えている）。
+  // 失敗しても画面には影響させない。
+  useEffect(() => {
+    if (!id || !isSupabaseEnabled || !me.live) return;
+    recordItemView(id).catch(() => {});
+  }, [id, me.live]);
 
   if (!item) {
     return (

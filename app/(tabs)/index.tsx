@@ -31,12 +31,29 @@ import { medium } from '@/lib/haptics';
 import { playSfx, preloadSfx } from '@/lib/sound';
 import { useMe } from '@/store/me';
 import { useLoginBonus } from '@/hooks/useLoginBonus';
+import { useExchanges } from '@/hooks/useExchanges';
 
-function HeaderIcon({ name, badge, onPress }: { name: keyof typeof Ionicons.glyphMap; badge?: boolean; onPress?: () => void }) {
+/**
+ * ヘッダーのアイコン。未読件数を数字で出す（点だけだと何件あるか分からない）。
+ * 99件を超えたら「99+」に丸める。
+ */
+function HeaderIcon({
+  name,
+  count = 0,
+  onPress,
+}: {
+  name: keyof typeof Ionicons.glyphMap;
+  count?: number;
+  onPress?: () => void;
+}) {
   return (
     <PressableScale onPress={onPress} activeScale={0.9} style={styles.headerIcon}>
       <Ionicons name={name} size={23} color={colors.textPrimary} />
-      {badge && <View style={styles.redDot} />}
+      {count > 0 && (
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>{count > 99 ? '99+' : count}</Text>
+        </View>
+      )}
     </PressableScale>
   );
 }
@@ -55,6 +72,10 @@ export default function HomeScreen() {
   const { items, fertilizer } = useTree();
   const { isBlocked } = useBlocks();
   const { unreadCount } = useNotifications();
+  // 取引アイコンのバッジ。以前は常時点灯（badge 固定）だったので、
+  // 「まだ発送・受け取りが終わっていない取引」の件数に変えた
+  const { list: trades } = useExchanges();
+  const activeTrades = trades.filter((t) => t.status !== 'received').length;
   const { claimed, busy: bonusBusy, amount: bonusAmount, claim } = useLoginBonus();
   const [showBonus, setShowBonus] = useState(false);
   React.useEffect(() => { preloadSfx(); }, []); // 初回再生の遅延を減らす
@@ -124,8 +145,8 @@ export default function HomeScreen() {
             <Ionicons name="search" size={20} color={colors.textSecondary} />
             <Text style={styles.searchPlaceholder}>欲しいものを探してみよう</Text>
           </PressableScale>
-          <HeaderIcon name="notifications" badge={unreadCount > 0} onPress={() => router.push('/notifications')} />
-          <HeaderIcon name="swap-horizontal" badge onPress={() => router.push('/exchange')} />
+          <HeaderIcon name="notifications" count={unreadCount} onPress={() => router.push('/notifications')} />
+          <HeaderIcon name="swap-horizontal" count={activeTrades} onPress={() => router.push('/exchange')} />
         </View>
 
         {/* 肥料残高／ログインボーナス（白いカード2枚を横並び） */}
@@ -255,6 +276,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   searchPlaceholder: { fontFamily: fonts.regular, fontSize: 14.5, color: colors.textPlaceholder },
+  badge: {
+    position: 'absolute', top: 2, right: 0, minWidth: 17, height: 17, borderRadius: 8.5,
+    backgroundColor: '#E4796F', justifyContent: 'center', alignItems: 'center',
+    paddingHorizontal: 4, borderWidth: 1.5, borderColor: colors.bg,
+  },
+  badgeText: { fontFamily: fonts.bold, fontSize: 10, color: colors.white, lineHeight: 13 },
   headerIcon: {
     width: 44,
     height: 44,
