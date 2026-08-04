@@ -27,6 +27,9 @@ npm run preview           # これ1本。DB適用 → 確認 → 管理画面 �
 > `expo.dev` / `exp.host` / ngrok / `*.supabase.co` / `*.pages.dev` すべてに出られません
 > （2026-08-04 実測：CONNECT 403）。`--tunnel` も EAS Update も同じ理由で不可。
 > 上のコマンドは菊池さんの Mac で実行してください。
+>
+> **菊池さんの Mac 上（`~/gungun`）で作業する場合はこの制限はありません。** Supabase にも
+> GitHub にも到達でき、Expo の開発サーバもそのまま立ちます（2026-08-04 実測）。
 
 | URL | 接続先 | 用途 |
 |---|---|---|
@@ -47,7 +50,7 @@ npm run preview           # これ1本。DB適用 → 確認 → 管理画面 �
 | ストア | **完成**。`isSupabaseEnabled` で実DB／モックを自動切替 |
 | 認証 | **完成**（Supabase Auth）。登録・ログイン・コード認証・再設定・退会 |
 | DB 設計 | **完成**。0001〜0011。ローカルPostgresでテスト全PASS |
-| DB 設置 | **未適用**。`gungun-dev` にまだ流していない ← `npm run db:apply` で一発 |
+| DB 設置 | **適用済み**（2026-08-04 確認）。`gungun-dev` に 0001〜0011 すべて反映。`npm run db:status` で確認できる |
 | 実機プレビュー | `npm run preview` で アプリ＋管理画面＋DB がまとめて立つ（Mac で実行） |
 | 管理画面 | **完成**・デプロイ済み・パスワード設定済み |
 | メール送信（Resend） | **未着手** |
@@ -59,27 +62,18 @@ npm run preview           # これ1本。DB適用 → 確認 → 管理画面 �
 
 ## A. すぐやること（手作業が必要）
 
-### A-1. gungun-dev にスキーマを流す ★最優先
+### A-1. ~~gungun-dev にスキーマを流す~~ ✅ 完了（2026-08-04）
 
-```bash
-npm run db:apply     # 未適用のぶんだけ流す。何度実行しても安全
-```
+0001〜0011 すべて適用済み。`npm run db:status` で確認できる。
+以降マイグレーションを足したときは `npm run db:apply`（未適用のぶんだけ流す。何度実行しても安全）。
 
-初回だけ `SUPABASE_DB_URL`（ダッシュボード右上 Connect → Session pooler の URI、
-`[YOUR-PASSWORD]` は DB パスワードに置換）を聞かれる。`npm run preview` に
-含まれているので、そちらを使うならこの手順は不要。
-
-SQL Editor でやりたい場合は `supabase/apply_all.sql` を貼って Run（**1回だけ**）。
-どちらでも構わない。`db:apply` は SQL Editor で流した後の状態も検知して続けられる。
-
-> クラウドセッションからは Supabase に直接届かない（egress ポリシーで CONNECT 403）ため、
-> ここは手元で実行する必要がある。
+`SUPABASE_DB_URL` は `.env.local` に保存済み（このMacの中だけ・.gitignore 済み）。
 
 ### A-2. Supabase Auth の設定
 
 Authentication → Sign In / Providers → Email
 
-- **開発中**：「Confirm email」を **OFF**（登録した瞬間にログイン状態になる）
+- **開発中**：「Confirm email」を **OFF** — ✅ 設定済み（`npm run check:auth` が全項目PASS）
 - **本番**：Confirm email を ON にしたうえで、Authentication → Emails の
   **Confirm signup / Reset password テンプレートに `{{ .Token }}` を入れる**。
   既定テンプレートはリンクのみで6桁コードが載らず、アプリのコード入力画面が使えない
