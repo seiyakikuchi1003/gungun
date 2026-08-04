@@ -1,10 +1,10 @@
 export const runtime = "edge";
 
-import { redirect } from 'next/navigation';
 import { Shell, NotConnected } from '@/components/Shell';
 import { Banner } from '@/components/Banner';
 import { isConnected, rows } from '@/lib/supabase';
 import { saveSetting } from '@/lib/actions';
+import { redirectWithResult } from '@/lib/result';
 import { jst } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
@@ -32,7 +32,7 @@ async function saveAction(formData: FormData) {
   'use server';
   const key = String(formData.get('key'));
   const res = await saveSetting(key, String(formData.get('value') ?? ''));
-  redirect(res.error ? `/settings?error=${encodeURIComponent(res.error)}` : `/settings?ok=${key} を保存しました`);
+  redirectWithResult('/settings', res, `${key} を保存しました`);
 }
 
 export default async function SettingsPage({

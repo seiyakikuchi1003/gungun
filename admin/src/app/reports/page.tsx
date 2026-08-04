@@ -1,11 +1,11 @@
 export const runtime = "edge";
 
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
 import { Shell, NotConnected } from '@/components/Shell';
 import { Banner } from '@/components/Banner';
 import { isConnected, rows } from '@/lib/supabase';
 import { setReportStatus } from '@/lib/actions';
+import { redirectWithResult } from '@/lib/result';
 import { jst, shortId } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
@@ -29,7 +29,7 @@ async function statusAction(formData: FormData) {
   const id = String(formData.get('id'));
   const status = String(formData.get('status')) as 'open' | 'resolved' | 'dismissed';
   const res = await setReportStatus(id, status, String(formData.get('note') ?? ''));
-  redirect(res.error ? `/reports?error=${encodeURIComponent(res.error)}` : '/reports?ok=通報を更新しました');
+  redirectWithResult('/reports', res, '通報を更新しました');
 }
 
 export default async function ReportsPage({

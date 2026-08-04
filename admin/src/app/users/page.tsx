@@ -1,10 +1,10 @@
 export const runtime = "edge";
 
-import { redirect } from 'next/navigation';
 import { Shell, NotConnected } from '@/components/Shell';
 import { Banner } from '@/components/Banner';
 import { isConnected, rows } from '@/lib/supabase';
 import { grantFertilizer, setSuspended } from '@/lib/actions';
+import { redirectWithResult } from '@/lib/result';
 import { jst, num } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
@@ -14,14 +14,14 @@ async function suspendAction(formData: FormData) {
   const id = String(formData.get('id'));
   const to = formData.get('to') === '1';
   const res = await setSuspended(id, to, String(formData.get('reason') ?? ''));
-  redirect(res.error ? `/users?error=${encodeURIComponent(res.error)}` : `/users?ok=${to ? '停止しました' : '停止を解除しました'}`);
+  redirectWithResult('/users', res, to ? '停止しました' : '停止を解除しました');
 }
 
 async function fertilizerAction(formData: FormData) {
   'use server';
   const id = String(formData.get('id'));
   const res = await grantFertilizer(id, Number(formData.get('amount')));
-  redirect(res.error ? `/users?error=${encodeURIComponent(res.error)}` : '/users?ok=肥料を更新しました');
+  redirectWithResult('/users', res, '肥料を更新しました');
 }
 
 export default async function UsersPage({

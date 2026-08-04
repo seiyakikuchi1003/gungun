@@ -1,11 +1,11 @@
 export const runtime = "edge";
 
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
 import { Shell, NotConnected } from '@/components/Shell';
 import { Banner } from '@/components/Banner';
 import { isConnected, rows } from '@/lib/supabase';
 import { restoreItem, softDeleteItem } from '@/lib/actions';
+import { redirectWithResult } from '@/lib/result';
 import { jst, shortId } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
@@ -28,13 +28,13 @@ const FILTERS = [
 async function deleteAction(formData: FormData) {
   'use server';
   const res = await softDeleteItem(String(formData.get('id')));
-  redirect(res.error ? `/items?error=${encodeURIComponent(res.error)}` : '/items?ok=非表示にしました');
+  redirectWithResult('/items', res, '非表示にしました');
 }
 
 async function restoreAction(formData: FormData) {
   'use server';
   const res = await restoreItem(String(formData.get('id')));
-  redirect(res.error ? `/items?error=${encodeURIComponent(res.error)}` : '/items?ok=復活させました');
+  redirectWithResult('/items', res, '復活させました');
 }
 
 export default async function ItemsPage({
