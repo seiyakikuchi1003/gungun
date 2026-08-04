@@ -9,10 +9,10 @@ import { Avatar } from '@/components/ui/Avatar';
 import { Thumb } from '@/components/ui/Thumb';
 import { Badge } from '@/components/ui/Badge';
 import { StarRating } from '@/components/ui/StarRating';
-import { getUser } from '@/data/mock';
 import { useTree } from '@/store/tree';
 import { useMe } from '@/store/me';
 import { useBlocks } from '@/store/blocks';
+import { useUsers } from '@/store/users';
 
 /**
  * 他のユーザーのプロフィール。
@@ -20,6 +20,7 @@ import { useBlocks } from '@/store/blocks';
  * 自分自身ならマイページへ寄せる。
  */
 export default function UserProfile() {
+  const users = useUsers();
   const { id } = useLocalSearchParams<{ id: string }>();
   const me = useMe();
   const insets = useSafeAreaInsets();
@@ -27,7 +28,7 @@ export default function UserProfile() {
   const { isBlocked, block, unblock } = useBlocks();
 
   const userId = String(id);
-  const u = getUser(userId);
+  const u = users.user(userId);
   const blocked = isBlocked(userId);
   const isMe = userId === me.id;
   const listed = items.filter((i) => i.ownerId === userId);
@@ -42,7 +43,9 @@ export default function UserProfile() {
         <View style={styles.hBtn} />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
+      <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
         <View style={[styles.profile, shadows.soft]}>
           <Avatar uri={u.avatar} name={u.nickname} size={72} />
           <Text style={styles.name}>{u.nickname}さん</Text>

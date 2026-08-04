@@ -14,6 +14,8 @@ import { useAuth } from '@/store/auth';
 import { isSupabaseEnabled } from '@/lib/supabase';
 import { updateProfile } from '@/lib/api/profile';
 import { pickFromLibrary } from '@/lib/photo';
+import { uploadAvatar } from '@/lib/api/storage';
+import { KeyboardDoneBar, KEYBOARD_DONE_ID } from '@/components/ui/KeyboardDoneBar';
 
 export default function ProfileEdit() {
   const me = useMe();
@@ -38,7 +40,15 @@ export default function ProfileEdit() {
     setError(null);
     setBusy(true);
     try {
-      await updateProfile(me.id, { nickname, bio });
+      // 端末から選んだ画像は file:// のままでは保存できない。
+      // Storage に上げて公開URLにしてから avatar_url に入れる。
+      // （以前はここを通さず、選んでも開き直すと消えていた）
+      let avatarUrl: string | undefined;
+      if (typeof avatar === 'string' && avatar !== (me.avatar || '')) {
+        avatarUrl = avatar.trim() === '' ? undefined : await uploadAvatar(me.id, avatar);
+      }
+
+      await updateProfile(me.id, { nickname, bio, ...(avatarUrl ? { avatarUrl } : {}) });
       await reloadProfile();
       router.back();
     } catch (e) {
@@ -58,7 +68,9 @@ export default function ProfileEdit() {
         </PressableScale>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
+      <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
         <View style={styles.avatarWrap}>
           <Avatar uri={avatar} name={nickname} size={96} />
           <PressableScale onPress={changeAvatar} activeScale={0.9} style={[styles.camera, shadows.button]}>
@@ -76,6 +88,7 @@ export default function ProfileEdit() {
               value={bio}
               onChangeText={setBio}
               multiline
+              inputAccessoryViewID={KEYBOARD_DONE_ID}
               placeholder="自己紹介を書きましょう"
               placeholderTextColor={colors.textPlaceholder}
               style={[styles.bio, shadows.soft]}
@@ -87,6 +100,7 @@ export default function ProfileEdit() {
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
         <Button title="変更を保存する" loading={busy} onPress={save} />
       </View>
+      <KeyboardDoneBar />
     </View>
   );
 }

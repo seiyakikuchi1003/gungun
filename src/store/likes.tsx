@@ -31,13 +31,14 @@ export function LikesProvider({ children }: { children: React.ReactNode }) {
   const refresh = useCallback(async () => {
     if (!live || !me.live) return;
     try {
+      // 投稿一覧を丸ごと取る必要はない。board_likes / item_likes だけを引く
       const [items, posts] = await Promise.all([
         social.fetchMyItemLikes(me.id),
-        board.fetchPosts(me.id, 100),
+        board.myLikedPostIds(me.id),
       ]);
       const next: Record<string, boolean> = {};
       items.forEach((id) => { next[itemKey(id)] = true; });
-      posts.filter((p) => p.liked).forEach((p) => { next[postKey(p.id)] = true; });
+      posts.forEach((id) => { next[postKey(id)] = true; });
       setLiked(next);
     } catch {
       // 取れなくても画面は動かす（未いいね扱いになるだけ）

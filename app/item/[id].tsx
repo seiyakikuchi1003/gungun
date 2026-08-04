@@ -12,13 +12,14 @@ import { StarRating } from '@/components/ui/StarRating';
 import { Sprout } from '@/components/art/Sprout';
 import { ItemActionSheet } from '@/components/feature/ItemActionSheet';
 import { ReportSheet } from '@/components/feature/ReportSheet';
-import { getUser, itemImageSources } from '@/data/mock';
+import { itemImageSources } from '@/data/mock';
 import { settings } from '@/config/settings';
 import { useTree } from '@/store/tree';
 import { useMe } from '@/store/me';
 import { shareText } from '@/lib/share';
 import { Toast } from '@/components/ui/Toast';
 import { useItemComments } from '@/hooks/useItemComments';
+import { useUsers } from '@/store/users';
 
 function RoundBtn({ icon, onPress }: { icon: keyof typeof Ionicons.glyphMap; onPress?: () => void }) {
   return (
@@ -29,6 +30,7 @@ function RoundBtn({ icon, onPress }: { icon: keyof typeof Ionicons.glyphMap; onP
 }
 
 export default function ItemDetailScreen() {
+  const users = useUsers();
   const me = useMe();
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
@@ -49,7 +51,7 @@ export default function ItemDetailScreen() {
       </View>
     );
   }
-  const owner = getUser(item.ownerId);
+  const owner = users.user(item.ownerId);
   const imgs = itemImageSources(item);
   const connected = childrenOf(item.id); // この商品に水やりした商品（＝子ノード）
   const treeThumbs = treeItems(item.rootId).filter((i) => i.id !== item.id);
@@ -71,10 +73,14 @@ export default function ItemDetailScreen() {
 
   return (
     <View style={styles.root}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 130 }}>
+      <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 130 }}>
         {/* 画像カルーセル（全面）＋画像上のヘッダー（スクロールで一緒に流れる） */}
         <View>
-          <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} onScroll={onScroll} scrollEventThrottle={16}>
+          <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" horizontal pagingEnabled showsHorizontalScrollIndicator={false} onScroll={onScroll} scrollEventThrottle={16}>
             {imgs.map((src, i) => (
               <Thumb key={i} source={src} style={{ width, height: imgH }} markSize={100} />
             ))}
@@ -105,7 +111,7 @@ export default function ItemDetailScreen() {
               </View>
             </View>
             <View style={styles.favBox}>
-              <HeartButton count={item.likeCount} initial={false} size={26} id={`item:${item.id}`} />
+              <HeartButton count={item.likeCount} initial={!!item.liked} size={26} id={`item:${item.id}`} />
             </View>
           </View>
 

@@ -9,6 +9,7 @@ import { FormError } from '@/components/ui/FormError';
 import { useMe } from '@/store/me';
 import { isSupabaseEnabled } from '@/lib/supabase';
 import { submitReport, type ReportTarget } from '@/lib/api/social';
+import { KeyboardDoneBar, KEYBOARD_DONE_ID } from '@/components/ui/KeyboardDoneBar';
 
 type Props = {
   visible: boolean;
@@ -112,6 +113,7 @@ export function ReportSheet({ visible, onClose, targetLabel = 'この内容', ta
               placeholder="内容を入力してください"
               placeholderTextColor={colors.textPlaceholder}
               multiline
+              inputAccessoryViewID={KEYBOARD_DONE_ID}
               style={[styles.input, { outlineStyle: 'none' } as object]}
             />
           )}
@@ -126,6 +128,7 @@ export function ReportSheet({ visible, onClose, targetLabel = 'この内容', ta
           </PressableScale>
         </>
       )}
+      <KeyboardDoneBar />
     </BottomSheetModal>
   );
 }

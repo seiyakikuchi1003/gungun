@@ -65,7 +65,9 @@ export default function ExchangeScreen() {
         onChange={(k) => setTab(k as 'receive' | 'send')}
       />
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20 }}>
+      <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20 }}>
         <View style={[styles.summary, { backgroundColor: tab === 'receive' ? colors.greenSoft : colors.orangeSoft }]}>
           <View style={[styles.summaryIcon, { backgroundColor: accent }]}>
             <Ionicons name={tab === 'receive' ? 'download' : 'send'} size={18} color={colors.white} />

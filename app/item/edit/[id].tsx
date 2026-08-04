@@ -13,6 +13,7 @@ import { useMe } from '@/store/me';
 import { FormError } from '@/components/ui/FormError';
 import { success } from '@/lib/haptics';
 import { useTree } from '@/store/tree';
+import { KeyboardDoneBar, KEYBOARD_DONE_ID } from '@/components/ui/KeyboardDoneBar';
 
 const NAME_MAX = 20;
 const DESC_MAX = 200;
@@ -68,10 +69,14 @@ export default function EditItemScreen() {
         <View style={styles.hBtn} />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
         {/* 写真 */}
         <Text style={styles.label}>商品の写真</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photoRow}>
+        <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photoRow}>
           {photos.map((uri, i) => (
             <View key={uri + i} style={styles.photo}>
               <Thumb source={i === 0 ? item.local : undefined} uri={uri} style={styles.photoImg} radius={radius.md} markSize={30} />
@@ -116,6 +121,7 @@ export default function EditItemScreen() {
             placeholder="商品の説明を入力してください（200文字以内）"
             placeholderTextColor={colors.textPlaceholder}
             multiline
+              inputAccessoryViewID={KEYBOARD_DONE_ID}
             style={[styles.input, styles.textarea, { outlineStyle: 'none' } as object]}
           />
         </View>
@@ -165,6 +171,7 @@ function SelectRow({ label, value, placeholder, onPress }: { label: string; valu
         <Text style={[styles.selectValue, !value && styles.selectPlaceholder]}>{value || placeholder}</Text>
         <Ionicons name="chevron-down" size={18} color={colors.textSecondary} />
       </PressableScale>
+      <KeyboardDoneBar />
     </View>
   );
 }

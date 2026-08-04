@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Switch, TextInput } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,6 +7,10 @@ import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
 import { success } from '@/lib/haptics';
+import { useMe } from '@/store/me';
+import { useAuth } from '@/store/auth';
+import { isSupabaseEnabled } from '@/lib/supabase';
+import { fetchAddress, type Address } from '@/lib/api/profile';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -38,9 +42,33 @@ const NOTIF = [
 
 export default function Account() {
   const insets = useSafeAreaInsets();
+  const me = useMe();
+  const { email: authEmail } = useAuth();
   const [toggles, setToggles] = useState<Record<string, boolean>>({ watered: true, harvested: true, ship: true, message: true, board: false });
   const [mailSheet, setMailSheet] = useState(false);
-  const [mail, setMail] = useState('demo@gungun.app');
+
+  // ★ 以前はニックネーム「めたん」／メール「demo@gungun.app」を決め打ちで出していた。
+  //   マイページと違う名前が出て「個人情報が一致しない」と見えていた原因。
+  const email = authEmail ?? '';
+  const [mail, setMail] = useState(email);
+  const [address, setAddress] = useState<Address | null>(null);
+
+  useEffect(() => { setMail(email); }, [email]);
+
+  // お届け先・電話番号も「未登録」固定だったので、実データを見に行く
+  useEffect(() => {
+    if (!isSupabaseEnabled || !me.live) return;
+    let alive = true;
+    fetchAddress(me.id)
+      .then((a) => { if (alive) setAddress(a); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [me.id, me.live]);
+
+  const addressLabel = address
+    ? `${address.prefecture}${address.city}`
+    : '未登録';
+  const phoneLabel = address?.phone || '未登録';
 
   return (
     <View style={styles.root}>
@@ -52,16 +80,18 @@ export default function Account() {
         <View style={styles.hBtn} />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
+      <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
         <Section title="アカウント">
-          <Row label="ニックネーム" value="めたん" onPress={() => router.push('/mypage/edit')} />
-          <Row label="メールアドレス" value="demo@gungun.app" onPress={() => setMailSheet(true)} />
+          <Row label="ニックネーム" value={me.nickname || '未設定'} onPress={() => router.push('/mypage/edit')} />
+          <Row label="メールアドレス" value={email || '未設定'} onPress={() => setMailSheet(true)} />
           <Row label="パスワード" value="変更する" onPress={() => router.push('/(auth)/reset')} last />
         </Section>
 
         <Section title="お届け先・連絡先">
-          <Row label="お届け先" value="未登録" onPress={() => router.push('/address')} />
-          <Row label="電話番号" value="未登録" onPress={() => router.push('/address')} last />
+          <Row label="お届け先" value={addressLabel} onPress={() => router.push('/address')} />
+          <Row label="電話番号" value={phoneLabel} onPress={() => router.push('/address')} last />
         </Section>
 
         <Section title="通知設定">

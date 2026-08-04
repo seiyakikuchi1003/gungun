@@ -138,6 +138,26 @@ head('1-3. 追加SQL（0008 / 0009）の確認');
   }
 }
 
+// ── 1-5. 0010（アイコン保存先・いいね状態）が入っているか ──────
+head('1-4. 追加SQL（0010）の確認');
+{
+  const lack = [];
+  // item_cards.liked（いいねの表示に使う）
+  const { error: likedErr } = await db.from('item_cards').select('liked').limit(1);
+  if (likedErr && /liked/i.test(likedErr.message)) lack.push('item_cards.liked');
+  // item_likes.created_at（いいね一覧の並び順）
+  const { error: clErr } = await db.from('item_likes').select('created_at').limit(1);
+  if (clErr && /created_at/i.test(clErr.message)) lack.push('item_likes.created_at');
+
+  if (lack.length === 0) {
+    ok('0010 の追加ぶんが適用されています（いいね状態・いいね一覧）');
+  } else {
+    ng(`次が見つかりません:\n     ${lack.join('\n     ')}`);
+    console.log('     → npm run db:apply を実行してください');
+    failed++;
+  }
+}
+
 // ── 1-4. 課金の付与がアプリから呼べないこと（重要）──────────
 head('1-4. 課金の安全性の確認');
 {

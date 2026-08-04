@@ -6,7 +6,8 @@ import { Thumb } from '@/components/ui/Thumb';
 import { Avatar } from '@/components/ui/Avatar';
 import { Mikan } from '@/components/art/Mikan';
 import { PressableScale } from '@/components/ui/PressableScale';
-import { getUser, treeVisual, MockItem } from '@/data/mock';
+import { treeVisual, MockItem } from '@/data/mock';
+import { useUsers } from '@/store/users';
 
 type Props = {
   width: number;
@@ -46,6 +47,7 @@ const BLOOMS = [
 // 数が増えたことを事実として伝えるだけにする。
 
 export function TreeCanvas({ width, children, treeSize, highlightId, onPressNode, onPressEmpty, showEmptySlot = true, mascotText }: Props) {
+  const users = useUsers();
   const cx = width / 2;
   const size = treeSize ?? children.length + 1;
   const stage = treeVisual(size).stage;
@@ -184,7 +186,7 @@ export function TreeCanvas({ width, children, treeSize, highlightId, onPressNode
         const slot = slots[i];
         if (!slot) return null;
         const p = pos(slot);
-        const owner = getUser(item.ownerId);
+        const owner = users.user(item.ownerId);
         const isNew = item.id === highlightId;
         return (
           <View key={item.id} style={[styles.node, { left: p.x - NODE / 2, top: p.y - NODE / 2, width: NODE }]}>

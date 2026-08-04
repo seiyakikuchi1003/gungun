@@ -96,7 +96,9 @@ export default function SearchScreen() {
       </View>
 
       {/* カテゴリーチップ */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips} style={styles.chipsRow}>
+      <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips} style={styles.chipsRow}>
         <Chip label="すべて" on={cat === null} onPress={() => setCat(null)} />
         {categories.map((c) => (
           <Chip key={c} label={c} on={cat === c} onPress={() => setCat(cat === c ? null : c)} />
@@ -106,6 +108,8 @@ export default function SearchScreen() {
       {!searching ? (
         <View style={{ flex: 1 }}>
           <Animated.ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled"
             contentContainerStyle={styles.body}
             showsVerticalScrollIndicator={false}
             onScroll={onScroll}
@@ -150,7 +154,9 @@ export default function SearchScreen() {
           <RefreshSpinner pullY={scrollY} refreshing={refreshing} topOffset={4} />
         </View>
       ) : (
-        <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+        <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
           <View style={styles.resultHead}>
             <Text style={styles.resultCount}>{results.length}件</Text>
             <View style={styles.sortRow}>

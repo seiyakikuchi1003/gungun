@@ -37,6 +37,8 @@ export type ItemCardRow = {
   water_count: number;
   like_count: number;
   tree_count: number;
+  /** 自分がいいねしているか（0010 で追加） */
+  liked: boolean;
 };
 
 export function toItem(r: ItemCardRow): MockItem {
@@ -51,6 +53,7 @@ export function toItem(r: ItemCardRow): MockItem {
     ownerId: r.user_id,
     waterCount: Number(r.water_count ?? 0),
     likeCount: Number(r.like_count ?? 0),
+    liked: Boolean(r.liked),
     treeCount: Number(r.tree_count ?? 0),
     status: r.status,
     parentId: r.parent_id,
@@ -74,7 +77,7 @@ export function toOwner(r: ItemCardRow): MockUser {
 export const ITEM_CARD_COLUMNS =
   'id, user_id, owner_nickname, owner_avatar_url, name, description, category, condition, ' +
   'status, parent_id, root_id, depth, created_at, image_url, image_urls, ' +
-  'water_count, like_count, tree_count';
+  'water_count, like_count, tree_count, liked';
 
 /** 「3分前」「2日前」のような相対表記（画面が createdAt を文字列で出しているため） */
 export function relativeTime(iso: string): string {

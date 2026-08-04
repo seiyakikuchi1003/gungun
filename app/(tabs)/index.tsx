@@ -102,6 +102,8 @@ export default function HomeScreen() {
       </View>
 
       <Animated.ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: 170 }}
         onScroll={onScroll}

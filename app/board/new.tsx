@@ -13,6 +13,7 @@ import { TAG_META, BoardTag } from '@/data/mockSocial';
 import { useMe } from '@/store/me';
 import { useBoard } from '@/hooks/useBoard';
 import { FormError } from '@/components/ui/FormError';
+import { KeyboardDoneBar, KEYBOARD_DONE_ID } from '@/components/ui/KeyboardDoneBar';
 
 const MAX = 280;
 const TAGS: BoardTag[] = ['harvest', 'question', 'chat', 'notice'];
@@ -98,7 +99,9 @@ export default function NewPost() {
       </View>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
+        <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
           {error ? <View style={{ marginBottom: 12 }}><FormError message={error} /></View> : null}
 
           {/* ユーザー＋公開範囲 */}
@@ -133,6 +136,7 @@ export default function NewPost() {
             <TextInput
               autoFocus
               multiline
+              inputAccessoryViewID={KEYBOARD_DONE_ID}
               value={text}
               onChangeText={(t) => t.length <= MAX && setText(t)}
               placeholder="交換の様子や、探しているもの、質問などをシェアしよう🌱"
@@ -140,7 +144,9 @@ export default function NewPost() {
               style={[styles.input, { outlineStyle: 'none' } as object]}
             />
             {/* 添付写真 */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photoRow}>
+            <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photoRow}>
               {photos.map((uri, i) => (
                 <View key={i} style={styles.photo}>
                   <Thumb uri={uri} style={styles.photoImg} radius={radius.md} markSize={26} />
@@ -167,7 +173,9 @@ export default function NewPost() {
         {/* ツールバー */}
         <View style={[styles.toolbarWrap, shadows.sheet]}>
           {emojiOpen && (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.emojiRow}>
+            <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.emojiRow}>
               {EMOJI.map((e) => (
                 <PressableScale
                   key={e}
@@ -199,6 +207,7 @@ export default function NewPost() {
         onClose={() => setPhotoSheet(false)}
         onPicked={(uris) => setPhotos((p) => [...p, ...uris].slice(0, 4))}
       />
+      <KeyboardDoneBar />
     </View>
   );
 }

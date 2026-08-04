@@ -11,17 +11,20 @@ import { Thumb } from '@/components/ui/Thumb';
 import { Avatar } from '@/components/ui/Avatar';
 import { StarRating } from '@/components/ui/StarRating';
 import { PhotoSourceSheet } from '@/components/feature/PhotoSourceSheet';
-import { getUser, categories, conditions } from '@/data/mock';
+import { categories, conditions } from '@/data/mock';
 import { success } from '@/lib/haptics';
 import { playSfx } from '@/lib/sound';
 import { useTree } from '@/store/tree';
 import { settings } from '@/config/settings';
+import { useUsers } from '@/store/users';
+import { KeyboardDoneBar, KEYBOARD_DONE_ID } from '@/components/ui/KeyboardDoneBar';
 
 const NAME_MAX = 20;
 const DESC_MAX = 200;
 type PickerKey = 'category' | 'condition' | null;
 
 export default function WaterScreen() {
+  const users = useUsers();
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const { getItem, canWater, water, fertilizer, settings: appSettings, live } = useTree();
@@ -42,7 +45,7 @@ export default function WaterScreen() {
     );
   }
 
-  const owner = getUser(target.ownerId);
+  const owner = users.user(target.ownerId);
   const gate = canWater(target.id);
   // 水やり単価は DB（app_settings）から。未接続時はモックの既定値
   const cost = live ? appSettings.waterCost : settings.waterCost;
@@ -75,7 +78,9 @@ export default function WaterScreen() {
         </PressableScale>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
         {/* 水やり先（親商品） */}
         <Text style={styles.label}>水やり先（親商品）</Text>
         <View style={[styles.parentCard, shadows.soft]}>
@@ -95,7 +100,9 @@ export default function WaterScreen() {
 
         {/* あなたが出す商品（子） */}
         <Text style={[styles.label, { marginTop: spacing.xl, color: colors.waterBlue }]}>あなたが出す商品（子）</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photoRow}>
+        <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photoRow}>
           {photos.map((uri, i) => (
             <View key={uri + i} style={styles.photo}>
               <Thumb uri={uri} style={styles.photoImg} radius={radius.md} markSize={30} />
@@ -142,6 +149,7 @@ export default function WaterScreen() {
             placeholder="商品の説明を入力してください（200文字以内）"
             placeholderTextColor={colors.textPlaceholder}
             multiline
+              inputAccessoryViewID={KEYBOARD_DONE_ID}
             style={[styles.input, styles.textarea, { outlineStyle: 'none' } as object]}
           />
         </View>
@@ -220,6 +228,7 @@ function SelectRow({ label, value, placeholder, onPress }: { label: string; valu
         <Text style={[styles.selectValue, !value && styles.selectPlaceholder]}>{value || placeholder}</Text>
         <Ionicons name="chevron-down" size={18} color={colors.textSecondary} />
       </PressableScale>
+      <KeyboardDoneBar />
     </View>
   );
 }

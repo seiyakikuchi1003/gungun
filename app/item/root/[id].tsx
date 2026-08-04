@@ -8,10 +8,11 @@ import { PressableScale } from '@/components/ui/PressableScale';
 import { ItemCard } from '@/components/ui/ItemCard';
 import { Thumb } from '@/components/ui/Thumb';
 import { Sprout } from '@/components/art/Sprout';
-import { getUser } from '@/data/mock';
 import { useTree } from '@/store/tree';
+import { useUsers } from '@/store/users';
 
 export default function RootDetail() {
+  const users = useUsers();
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -19,7 +20,7 @@ export default function RootDetail() {
   const seed = getItem(id ?? '');
   const cardW = (width - 20 * 2 - 12) / 2;
   if (!seed) return <View style={styles.root} />;
-  const owner = getUser(seed.ownerId);
+  const owner = users.user(seed.ownerId);
   // 同じ木にぶら下がっている商品だけを出す（以前は先頭N件を無関係に並べていた）
   const connected = treeItems(seed.id).filter((i) => i.id !== seed.id);
   const gathered = connected.length;
@@ -35,7 +36,9 @@ export default function RootDetail() {
         <View style={styles.hBtn} />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
+      <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
         {/* 根の種 */}
         <View style={[styles.rootCard, shadows.card]}>
           <Thumb source={seed.local} uri={seed.image} style={styles.rootThumb} radius={radius.md} markSize={34} />

@@ -7,9 +7,9 @@ import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { Avatar } from '@/components/ui/Avatar';
 import { NOTIF_ICON, NotificationType, Notif } from '@/data/mockSocial';
-import { getUser } from '@/data/mock';
 import { useNotifications } from '@/store/notifications';
 import { notificationRoute } from '@/lib/notificationRoute';
+import { useUsers } from '@/store/users';
 
 const TONE: Record<NotificationType, string> = {
   watered: colors.green,
@@ -21,7 +21,8 @@ const TONE: Record<NotificationType, string> = {
 };
 
 function Row({ n, onPress }: { n: Notif; onPress: () => void }) {
-  const actor = n.actorId ? getUser(n.actorId) : null;
+  const users = useUsers();
+  const actor = n.actorId ? users.user(n.actorId) : null;
   return (
     <PressableScale onPress={onPress} activeScale={0.99} style={[styles.row, !n.read && styles.unread]}>
       <View style={styles.avatarWrap}>
@@ -66,7 +67,9 @@ export default function Notifications() {
         </PressableScale>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
         {today.length > 0 && (
           <>
             <Text style={styles.groupTitle}>今日</Text>

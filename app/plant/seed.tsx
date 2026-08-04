@@ -16,6 +16,7 @@ import { FormError } from '@/components/ui/FormError';
 import { categories, conditions } from '@/data/mock';
 import { success } from '@/lib/haptics';
 import { useTree } from '@/store/tree';
+import { KeyboardDoneBar, KEYBOARD_DONE_ID } from '@/components/ui/KeyboardDoneBar';
 
 type PickerKey = 'category' | 'condition' | null;
 
@@ -63,13 +64,17 @@ export default function PlantSeedScreen() {
         <View style={styles.close} />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
+      <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
         <View style={styles.body}>
           <NoticeBox text="いらないものを植えると、交換の輪がはじまります" />
 
           {/* 写真 */}
           <View style={styles.photoSection}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photoRow}>
+            <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photoRow}>
               {photos.map((uri, i) => (
                 <View key={uri + i} style={[styles.photo, shadows.soft]}>
                   <Thumb uri={uri} style={styles.photoImg} radius={radius.md} markSize={44} />
@@ -118,6 +123,7 @@ export default function PlantSeedScreen() {
               placeholder="状態や使用期間などを書きましょう"
               placeholderTextColor={colors.textPlaceholder}
               multiline
+              inputAccessoryViewID={KEYBOARD_DONE_ID}
               style={[styles.input, styles.textarea]}
             />
           </Animated.View>
@@ -168,6 +174,7 @@ export default function PlantSeedScreen() {
           );
         })}
       </BottomSheetModal>
+      <KeyboardDoneBar />
     </View>
   );
 }

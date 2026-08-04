@@ -40,7 +40,9 @@ export default function Fertilizer() {
         <View style={styles.hBtn} />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
+      <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
         <LinearGradient colors={[colors.green, colors.greenDeep]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.balance, shadows.card]}>
           <Text style={styles.balanceLabel}>現在の肥料</Text>
           <View style={styles.balanceRow}>

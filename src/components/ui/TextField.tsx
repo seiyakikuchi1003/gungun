@@ -42,6 +42,11 @@ export function TextField({ label, leftIcon, password, error, style, ...rest }: 
         <TextInput
           placeholderTextColor={colors.textPlaceholder}
           secureTextEntry={hidden}
+          // 1行入力は Enter（改行キー）でキーボードを閉じる。
+          // 既定のままだと閉じず、画面の余白をタップしないと消せなかった。
+          // rest より前に置いてあるので、画面側で上書きできる（次の欄へ送る等）。
+          returnKeyType="done"
+          submitBehavior="blurAndSubmit"
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           style={[styles.input, { outlineStyle: 'none' } as object, style]}

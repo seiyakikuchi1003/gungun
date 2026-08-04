@@ -1,5 +1,7 @@
 import { requireSupabase } from '@/lib/supabase';
 import { DELETED_USER_NAME } from './map';
+import type { MockItem } from '@/data/mock';
+import { ITEM_CARD_COLUMNS, toItem, type ItemCardRow } from './map';
 
 /** 商品のお気に入り・ブロック・通報。 */
 
@@ -82,4 +84,42 @@ export async function submitReport(
     reason: reason.trim() || null,
   });
   if (error) throw error;
+}
+
+// ── いいね一覧（マイページ）─────────────────────────────────
+// 「いいねしたものを一覧で見たい」＝メルカリの「いいね一覧」に相当する導線。
+
+/** いいねした商品。押した順（新しい順） */
+export async function fetchLikedItems(userId: string): Promise<MockItem[]> {
+  const sb = requireSupabase();
+  const { data: likes, error } = await sb
+    .from('item_likes')
+    .select('item_id, created_at')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(200);
+  if (error) throw error;
+
+  const ids = ((likes ?? []) as { item_id: string }[]).map((r) => r.item_id);
+  if (!ids.length) return [];
+
+  // item_cards は削除済みを除くビューなので、消えた商品は自然に一覧から落ちる
+  const { data, error: e2 } = await sb.from('item_cards').select(ITEM_CARD_COLUMNS).in('id', ids);
+  if (e2) throw e2;
+
+  const byId = new Map((data ?? []).map((r: any) => [r.id, toItem(r as ItemCardRow)]));
+  // 押した順を保つ（in() は順序を保証しない）
+  return ids.map((id) => byId.get(id)).filter((x): x is MockItem => Boolean(x));
+}
+
+/** いいねした投稿のID。押した順（新しい順） */
+export async function fetchLikedPostIds(userId: string): Promise<string[]> {
+  const { data, error } = await requireSupabase()
+    .from('board_likes')
+    .select('post_id, created_at')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(200);
+  if (error) throw error;
+  return ((data ?? []) as { post_id: string }[]).map((r) => r.post_id);
 }

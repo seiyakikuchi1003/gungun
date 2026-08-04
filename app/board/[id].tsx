@@ -39,7 +39,9 @@ export default function BoardDetail() {
 
       <ReportSheet visible={report} onClose={() => setReport(false)} targetLabel="この投稿" targetType="board_post" targetId={post.id} />
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+      <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
         {/* 投稿カード */}
         <View style={[styles.postCard, shadows.card]}>
           <View style={styles.postHead}>

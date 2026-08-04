@@ -12,6 +12,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { Mikan } from '@/components/art/Mikan';
 import { useExchange } from '@/hooks/useExchanges';
 import { FormError } from '@/components/ui/FormError';
+import { KeyboardDoneBar, KEYBOARD_DONE_ID } from '@/components/ui/KeyboardDoneBar';
 
 const GOOD = ['対応が丁寧', 'スムーズ', '説明通り', '発送が早い', '梱包が丁寧'];
 
@@ -64,7 +65,9 @@ export default function RatingScreen() {
         <View style={styles.hBtn} />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
+      <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
         <View style={styles.userCard}>
           <Avatar uri={u.avatar} name={u.nickname} size={64} />
           <Text style={styles.userName}>{u.nickname}さん</Text>
@@ -94,6 +97,7 @@ export default function RatingScreen() {
           placeholder="コメントを書く（任意）"
           placeholderTextColor={colors.textPlaceholder}
           multiline
+              inputAccessoryViewID={KEYBOARD_DONE_ID}
           style={[styles.comment, shadows.soft]}
         />
       </ScrollView>
@@ -102,6 +106,7 @@ export default function RatingScreen() {
         {error ? <View style={{ marginBottom: 12 }}><FormError message={error} /></View> : null}
         <Button title="評価を送信する" disabled={score === 0} loading={busy} onPress={submit} />
       </View>
+      <KeyboardDoneBar />
     </View>
   );
 }

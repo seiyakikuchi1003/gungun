@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Linking } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,6 +10,8 @@ import { Avatar } from '@/components/ui/Avatar';
 import { StarRating } from '@/components/ui/StarRating';
 import { FormError } from '@/components/ui/FormError';
 import { currentUser } from '@/data/mock';
+import { fetchStats, type ProfileStats } from '@/lib/api/profile';
+import { isSupabaseEnabled } from '@/lib/supabase';
 import { useAuth } from '@/store/auth';
 import { useTree } from '@/store/tree';
 import { useMe } from '@/store/me';
@@ -19,7 +21,8 @@ type Action = 'about' | 'contact' | 'logout' | 'withdraw';
 const MENU: { icon: keyof typeof Ionicons.glyphMap; label: string; route?: string; action?: Action; danger?: boolean }[] = [
   { icon: 'person-circle-outline', label: '個人情報設定', route: '/mypage/account' },
   { icon: 'pricetags-outline', label: '出品履歴', route: '/mypage/items' },
-  { icon: 'chatbox-ellipses-outline', label: '掲示板投稿履歴', route: '/mypage/posts' },
+  { icon: 'heart-outline', label: 'いいね一覧', route: '/mypage/likes' },
+  { icon: 'chatbox-ellipses-outline', label: '掲示板の履歴', route: '/mypage/posts' },
   { icon: 'ban-outline', label: 'ブロックリスト', route: '/mypage/blocks' },
   { icon: 'information-circle-outline', label: 'ぐんぐんについて', action: 'about' },
   { icon: 'document-text-outline', label: '利用規約', route: '/mypage/terms' },
@@ -49,10 +52,26 @@ export default function MyPage() {
   const watered = mine.filter((i) => i.parentId !== null).length;
   const exchanging = mine.filter((i) => i.status === 'trading').length;
   // ログイン中の本人の表示名。実DB接続時は profiles の値、モックでは従来どおり。
-  // ※ ID や所有判定はまだモック（currentUser.id）のまま。商品データの実DB化と一緒に切り替える。
-  const displayName = profile?.nickname ?? currentUser.nickname;
+  const displayName = profile?.nickname ?? me.nickname;
+  // 評価は profile_stats（実データ）から。以前はモックの 4.5 固定だった
+  const [stats, setStats] = useState<ProfileStats | null>(null);
+  // モック（画面デモ）では従来どおりデモの評価を出す。実データでは profile_stats を使い、
+  // 評価がまだ無い人には「評価なし」と出す（4.5 固定を出すと嘘になる）
+  const rating =
+    stats?.ratingAvg != null
+      ? `${stats.ratingAvg}（${stats.ratingCount}）`
+      : me.live
+        ? '評価なし'
+        : `4.5（${currentUser.ratingCount}）`;
   const [sheet, setSheet] = useState<Action | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isSupabaseEnabled || !me.live) return;
+    let alive = true;
+    fetchStats(me.id).then((s) => { if (alive) setStats(s); }).catch(() => {});
+    return () => { alive = false; };
+  }, [me.id, me.live]);
 
   const onMenu = (m: (typeof MENU)[number]) => {
     if (m.route) { router.push(m.route as never); return; }
@@ -61,7 +80,9 @@ export default function MyPage() {
 
   return (
     <View style={styles.root}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: 170 }}>
+      <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: 170 }}>
         <View style={styles.header}>
           <Text style={styles.title}>マイページ</Text>
           <PressableScale activeScale={0.9} onPress={() => router.push('/mypage/edit')} style={styles.settingsBtn}>
@@ -72,12 +93,12 @@ export default function MyPage() {
         {/* プロフィール */}
         <View style={[styles.profile, shadows.card]}>
           <View style={styles.profileTop}>
-            <Avatar uri={profile?.avatarUrl ?? currentUser.avatar} name={displayName} size={64} />
+            <Avatar uri={profile?.avatarUrl ?? me.avatar} name={displayName} size={64} />
             <View style={{ flex: 1 }}>
               <Text style={styles.name}>{displayName}さん</Text>
               <View style={styles.ratingRow}>
                 <StarRating value={4.5} size={15} />
-                <Text style={styles.ratingText}>4.5（{currentUser.ratingCount}）</Text>
+                <Text style={styles.ratingText}>{rating}</Text>
               </View>
             </View>
             <PressableScale onPress={() => router.push('/mypage/edit')} activeScale={0.95} style={styles.editBtn}>

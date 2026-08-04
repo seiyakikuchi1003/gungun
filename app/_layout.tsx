@@ -9,6 +9,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors } from '@/theme';
 import { AuthProvider } from '@/store/auth';
 import { AuthGate } from '@/components/AuthGate';
+import { UsersProvider } from '@/store/users';
 import { TreeProvider } from '@/store/tree';
 import { BlocksProvider } from '@/store/blocks';
 import { LikesProvider } from '@/store/likes';
@@ -52,6 +53,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <AuthProvider>
+          <UsersProvider>
           <TreeProvider>
             <BlocksProvider>
             <LikesProvider>
@@ -79,6 +81,7 @@ export default function RootLayout() {
             </LikesProvider>
             </BlocksProvider>
           </TreeProvider>
+          </UsersProvider>
         </AuthProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

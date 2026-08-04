@@ -28,6 +28,8 @@ export type MockItem = {
   waterCount: number; // 水やり数（＝直接の子ノード数）
   likeCount: number;
   treeCount: number; // 木全体の商品数（同じ root_id）
+  /** 自分がいいねしているか（item_cards.liked。モックでは常に false） */
+  liked?: boolean;
   status: 'growing' | 'trading' | 'completed';
   /** ツリー構造（SPEC 第2章）。種は parentId=null / rootId=自分 / depth=0。 */
   parentId: string | null; // 水やり先（親商品）。NULL なら種（root）

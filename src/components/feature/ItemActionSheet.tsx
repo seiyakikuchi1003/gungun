@@ -8,9 +8,9 @@ import { PressableScale } from '@/components/ui/PressableScale';
 import { FormError } from '@/components/ui/FormError';
 import { useTree } from '@/store/tree';
 import { useBlocks } from '@/store/blocks';
-import { getUser } from '@/data/mock';
 import { success, warning } from '@/lib/haptics';
 import type { MockItem } from '@/data/mock';
+import { useUsers } from '@/store/users';
 
 type Props = {
   visible: boolean;
@@ -29,11 +29,12 @@ type Props = {
  * 他人の出品：シェア / 通報 / 出品者をブロック
  */
 export function ItemActionSheet({ visible, onClose, item, isOwner, onReport, onDeleted }: Props) {
+  const users = useUsers();
   const { deleteItem } = useTree();
   const { block } = useBlocks();
   const [mode, setMode] = useState<'menu' | 'confirmDelete' | 'confirmBlock'>('menu');
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const owner = getUser(item.ownerId);
+  const owner = users.user(item.ownerId);
 
   const close = () => {
     onClose();

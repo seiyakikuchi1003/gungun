@@ -33,6 +33,8 @@ type AuthState = {
   profile: Profile | null;
   /** true なら本物の認証、false ならモック */
   live: boolean;
+  /** ログイン中のメールアドレス（個人情報設定の表示用）*/
+  email: string | null;
 
   signIn: (email: string, password: string) => Promise<Result>;
   signUp: (email: string, password: string, nickname: string) => Promise<SignUpResult>;
@@ -160,6 +162,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setMockAuthed(true);
           return { error: null };
         },
+        email: 'demo@gungun.app',
         signUp: async () => {
           saveMockAuthed(true);
           setMockAuthed(true);
@@ -189,6 +192,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       authed: Boolean(session),
       profile,
       live: true,
+      email: session?.user?.email ?? null,
 
       signIn: async (email, password) => {
         const { error } = await db.auth.signInWithPassword({ email: email.trim(), password });

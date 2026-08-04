@@ -21,6 +21,38 @@ export type Address = {
   building: string;
 };
 
+export type PublicProfile = {
+  id: string;
+  nickname: string;
+  avatarUrl: string | null;
+  bio: string | null;
+};
+
+/**
+ * id をまとめて渡してニックネーム・アイコンを引く（通知・コメント欄などで使う）。
+ * 見つからない id は「退会済み」。呼び出し側（users ストア）でそう扱う。
+ */
+export async function fetchProfilesByIds(ids: string[]): Promise<PublicProfile[]> {
+  if (!ids.length) return [];
+  const { data, error } = await requireSupabase()
+    .from('profiles')
+    .select('id, nickname, avatar_url, bio')
+    .in('id', ids);
+  if (error) throw error;
+  return (data ?? []).map((r: any) => ({
+    id: r.id,
+    nickname: r.nickname,
+    avatarUrl: r.avatar_url ?? null,
+    bio: r.bio ?? null,
+  }));
+}
+
+/** 他のユーザーのプロフィール1件（プロフィール画面用） */
+export async function fetchPublicProfile(id: string): Promise<PublicProfile | null> {
+  const found = await fetchProfilesByIds([id]);
+  return found[0] ?? null;
+}
+
 export async function fetchStats(userId: string): Promise<ProfileStats> {
   const { data, error } = await requireSupabase()
     .from('profile_stats')

@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getItemComments } from '@/data/mockSocial';
-import { getUser } from '@/data/mock';
 import { isSupabaseEnabled } from '@/lib/supabase';
 import { useMe } from '@/store/me';
 import * as api from '@/lib/api/items';
+import { useUsers } from '@/store/users';
 
 /**
  * 商品詳細のコメント欄。
@@ -21,6 +21,7 @@ export type UIComment = {
 };
 
 export function useItemComments(itemId: string) {
+  const users = useUsers();
   const live = isSupabaseEnabled;
   const me = useMe();
   const [comments, setComments] = useState<UIComment[]>([]);
@@ -31,7 +32,7 @@ export function useItemComments(itemId: string) {
       // モック：固定の初期コメントを表示名つきに詰め替える
       setComments(
         getItemComments(itemId).map((c) => {
-          const u = getUser(c.userId);
+          const u = users.user(c.userId);
           return {
             id: c.id,
             userId: c.userId,

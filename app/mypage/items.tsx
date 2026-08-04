@@ -34,7 +34,9 @@ export default function MyItems() {
       </View>
       <TopTabs tabs={[{ key: 'seed', label: '植えたタネ' }, { key: 'water', label: '水やり' }]} active={tab} onChange={setTab} />
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20 }}>
+      <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20 }}>
         {list.map((it) => (
           <PressableScale key={it.id} activeScale={0.98} onPress={() => router.push(`/item/${it.id}`)} style={[styles.card, shadows.soft]}>
             <Thumb source={it.local} uri={it.image} style={styles.thumb} radius={radius.md} markSize={26} />

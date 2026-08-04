@@ -24,7 +24,9 @@ export default function TermsScreen() {
         <Text style={styles.hTitle}>利用規約</Text>
         <View style={styles.hBtn} />
       </View>
-      <ScrollView contentContainerStyle={styles.body}>
+      <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" contentContainerStyle={styles.body}>
         <Text style={styles.text}>{body}</Text>
       </ScrollView>
     </View>

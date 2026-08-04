@@ -9,6 +9,8 @@ import { requireSupabase } from '@/lib/supabase';
  */
 
 const BUCKET = 'item-images';
+/** プロフィールアイコンの保存先（0010 で作成） */
+const AVATAR_BUCKET = 'avatars';
 
 function extOf(uri: string): string {
   const m = uri.match(/\.(jpe?g|png|webp)(\?|$)/i);
@@ -29,7 +31,7 @@ function randomName(ext: string): string {
  * 端末のローカル URI（file:// や content://）を1枚アップロードして、公開URLを返す。
  * すでに http(s) の URL ならアップロードせずそのまま返す（編集時に既存画像を残すため）。
  */
-export async function uploadImage(userId: string, uri: string): Promise<string> {
+export async function uploadImage(userId: string, uri: string, bucket = BUCKET): Promise<string> {
   if (/^https?:\/\//i.test(uri)) return uri;
 
   const sb = requireSupabase();
@@ -40,14 +42,23 @@ export async function uploadImage(userId: string, uri: string): Promise<string> 
   const res = await fetch(uri);
   const bytes = await res.arrayBuffer();
 
-  const { error } = await sb.storage.from(BUCKET).upload(path, bytes, {
+  const { error } = await sb.storage.from(bucket).upload(path, bytes, {
     contentType: mimeOf(ext),
     upsert: false,
   });
   if (error) throw error;
 
-  const { data } = sb.storage.from(BUCKET).getPublicUrl(path);
+  const { data } = sb.storage.from(bucket).getPublicUrl(path);
   return data.publicUrl;
+}
+
+/**
+ * プロフィールアイコンをアップロードして公開URLを返す。
+ * 端末から選んだ画像は file:// なので、これを通さないと保存されない
+ * （以前は選んだだけで保存しておらず、開き直すと消えていた）。
+ */
+export async function uploadAvatar(userId: string, uri: string): Promise<string> {
+  return uploadImage(userId, uri, AVATAR_BUCKET);
 }
 
 /** 複数枚を順番にアップロード（順序＝表示順なので並列にしない） */

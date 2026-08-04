@@ -51,7 +51,9 @@ export default function ExchangeDetail() {
         </View>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.chat}>
+      <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={styles.chat}>
         {msgs.map((m) =>
           m.system ? (
             <View key={m.id} style={styles.system}>

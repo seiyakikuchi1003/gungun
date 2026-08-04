@@ -87,7 +87,9 @@ export default function BoardScreen() {
 
       {/* フィルター */}
       <View style={styles.filtersRow}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
+      <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
         {boardTagFilters.map((f) => {
           const on = filter === f.key;
           return (
@@ -100,6 +102,8 @@ export default function BoardScreen() {
       </View>
 
       <Animated.ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.feed}
         onScroll={onScroll}

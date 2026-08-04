@@ -13,13 +13,14 @@ import { StarRating } from '@/components/ui/StarRating';
 import { Sprout } from '@/components/art/Sprout';
 import { TreeCanvas } from '@/components/feature/TreeCanvas';
 import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
-import { getUser } from '@/data/mock';
 import { shareText } from '@/lib/share';
 import { Toast } from '@/components/ui/Toast';
 import { useTree } from '@/store/tree';
 import { useMe } from '@/store/me';
+import { useUsers } from '@/store/users';
 
 export default function TreeScreen() {
+  const users = useUsers();
   const me = useMe();
   const { rootId, new: newId } = useLocalSearchParams<{ rootId: string; new?: string }>();
   const insets = useSafeAreaInsets();
@@ -32,7 +33,7 @@ export default function TreeScreen() {
   const root = getItem(rootId ?? '');
   if (!root) return <View style={styles.root} />;
 
-  const owner = getUser(root.ownerId);
+  const owner = users.user(root.ownerId);
   const mine = root.ownerId === me.id;
   const rootChildren = childrenOf(root.id);
   // 木のノード全部（root＋子孫）。順序は付けない（ツリー表示側で親子順に並べる）
@@ -63,7 +64,9 @@ export default function TreeScreen() {
         </PressableScale>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
+      <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
         {/* 完了バナー */}
         {justWatered && (
           <Animated.View entering={FadeInDown.duration(400)} style={styles.doneBanner}>
@@ -171,9 +174,11 @@ export default function TreeScreen() {
       <BottomSheetModal visible={pickWater} onClose={() => setPickWater(false)}>
         <Text style={styles.pickTitle}>水やりする商品を選ぶ</Text>
         <Text style={styles.pickSub}>成長中の商品に水やり＝あなたの商品を子として出品します</Text>
-        <ScrollView style={{ maxHeight: 380 }} showsVerticalScrollIndicator={false}>
+        <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" style={{ maxHeight: 380 }} showsVerticalScrollIndicator={false}>
           {all.filter((i) => i.status === 'growing').map((it) => {
-            const u = getUser(it.ownerId);
+            const u = users.user(it.ownerId);
             const gate = canWater(it.id);
             return (
               <PressableScale
@@ -252,6 +257,7 @@ type BranchListProps = {
 };
 
 function BranchList({ root, highlightId, childrenOf, canWater, onOpen, onWater }: BranchListProps) {
+  const users = useUsers();
   // 「もっと見る」を押した親のIDを覚えておく
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
 
@@ -281,7 +287,7 @@ function BranchList({ root, highlightId, childrenOf, canWater, onOpen, onWater }
   return (
     <View style={{ gap: 2 }}>
       {rows.map(({ item, depth, childCount, hiddenSiblings, parentId }) => {
-        const owner = getUser(item.ownerId);
+        const owner = users.user(item.ownerId);
         const isNew = item.id === highlightId;
         const gate = canWater(item.id);
         const indent = Math.min(depth, MAX_INDENT_STEP) * INDENT_PX;

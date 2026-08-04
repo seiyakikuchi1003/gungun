@@ -12,12 +12,13 @@ import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
 import { Mikan } from '@/components/art/Mikan';
 import { Sprout } from '@/components/art/Sprout';
 import { Avatar } from '@/components/ui/Avatar';
-import { getUser, MockItem } from '@/data/mock';
+import { MockItem } from '@/data/mock';
 import { useTree } from '@/store/tree';
 import { success } from '@/lib/haptics';
 import { playSfx } from '@/lib/sound';
 import { useMe } from '@/store/me';
 import { FormError } from '@/components/ui/FormError';
+import { useUsers } from '@/store/users';
 
 /**
  * 収穫画面。
@@ -29,6 +30,7 @@ import { FormError } from '@/components/ui/FormError';
  * ここでは実際のツリー（parentId/rootId）から祖先ラインを引いて輪を組み立てる。
  */
 export default function HarvestDetail() {
+  const users = useUsers();
   const me = useMe();
   const { rootId } = useLocalSearchParams<{ rootId: string }>();
   const insets = useSafeAreaInsets();
@@ -64,7 +66,9 @@ export default function HarvestDetail() {
         <View style={styles.hBtn} />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
+      <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
         <View style={[styles.seedCard, shadows.soft]}>
           <Thumb source={seed.local} uri={seed.image} style={styles.seedThumb} radius={radius.md} markSize={30} />
           <View style={{ flex: 1 }}>
@@ -84,7 +88,7 @@ export default function HarvestDetail() {
         </Text>
 
         {gathered.map((g) => {
-          const u = getUser(g.ownerId);
+          const u = users.user(g.ownerId);
           const ring = pathTo(g); // この商品を選んだときの輪
           return (
             <View key={g.id} style={[styles.gCard, shadows.soft]}>
@@ -125,9 +129,11 @@ export default function HarvestDetail() {
         {/* 交換の輪：path[i]の品 → path[i+1]の人／最後は先頭（あなた）に戻る */}
         <View style={styles.ringBox}>
           <Text style={styles.ringTitle}>{path.length}人の輪ができます</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.ringRow}>
+          <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.ringRow}>
             {path.map((node) => {
-              const u = getUser(node.ownerId);
+              const u = users.user(node.ownerId);
               const isMe = node.ownerId === me.id;
               return (
                 <React.Fragment key={node.id}>

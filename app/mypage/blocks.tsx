@@ -6,11 +6,12 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { Avatar } from '@/components/ui/Avatar';
-import { getUser } from '@/data/mock';
 import { useBlocks } from '@/store/blocks';
 import { isSupabaseEnabled } from '@/lib/supabase';
+import { useUsers } from '@/store/users';
 
 export default function Blocks() {
+  const users = useUsers();
   const insets = useSafeAreaInsets();
   const { blocked, blockedUsers, unblock } = useBlocks();
   const live = isSupabaseEnabled;
@@ -25,7 +26,9 @@ export default function Blocks() {
         <View style={styles.hBtn} />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20 }}>
+      <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20 }}>
         {blocked.length === 0 ? (
           <View style={styles.empty}>
             <Ionicons name="checkmark-circle-outline" size={48} color={colors.greenSoftBorder} />
@@ -37,7 +40,7 @@ export default function Blocks() {
             const dbUser = blockedUsers.find((x) => x.id === id);
             const u = live
               ? { nickname: dbUser?.nickname ?? '(不明なユーザー)', avatar: dbUser?.avatarUrl ?? '' }
-              : getUser(id);
+              : users.user(id);
             return (
               <View key={id} style={[styles.row, shadows.soft]}>
                 <Avatar uri={u.avatar} name={u.nickname} size={44} />

@@ -34,9 +34,10 @@ export function Screen({
     return (
       <View style={[styles.root, { backgroundColor: background }, pad, style]}>
         <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
           contentContainerStyle={inner}
-          keyboardShouldPersistTaps="handled"
         >
           {children}
         </ScrollView>

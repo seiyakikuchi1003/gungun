@@ -51,7 +51,7 @@ function toPost(r: any, likedIds: Set<string>): BoardPost {
 }
 
 /** 自分がいいねした投稿IDの集合（一覧の♡の状態に使う） */
-async function myLikedPostIds(userId: string | null): Promise<Set<string>> {
+export async function myLikedPostIds(userId: string | null): Promise<Set<string>> {
   if (!userId) return new Set();
   const { data } = await requireSupabase().from('board_likes').select('post_id').eq('user_id', userId);
   return new Set(((data ?? []) as { post_id: string }[]).map((r) => r.post_id));
@@ -156,4 +156,51 @@ export async function togglePostLike(postId: string, userId: string, on: boolean
       .eq('user_id', userId);
     if (error) throw error;
   }
+}
+
+/** いいねした投稿（マイページのいいね一覧）。押した順に並べ替えて返す */
+export async function fetchPostsByIds(ids: string[], userId: string | null): Promise<BoardPost[]> {
+  if (!ids.length) return [];
+  const sb = requireSupabase();
+  const [{ data, error }, liked] = await Promise.all([
+    sb.from('board_cards').select(CARD_COLUMNS).in('id', ids),
+    myLikedPostIds(userId),
+  ]);
+  if (error) throw error;
+  const byId = new Map((data ?? []).map((r: any) => [r.id, toPost(r, liked)]));
+  return ids.map((id) => byId.get(id)).filter((x): x is BoardPost => Boolean(x));
+}
+
+// ── 自分のコメント履歴 ─────────────────────────────────────
+
+export type MyComment = {
+  id: string;
+  postId: string;
+  body: string;
+  createdAt: string;
+  /** コメントした先の投稿（誰の・どんな内容か） */
+  postBody: string;
+  postAuthor: string;
+};
+
+/**
+ * 自分が書いた掲示板コメントの履歴。
+ * どの投稿へのコメントか分かるよう、投稿本文と投稿者名も一緒に引く。
+ */
+export async function fetchMyComments(userId: string, limit = 100): Promise<MyComment[]> {
+  const { data, error } = await requireSupabase()
+    .from('board_comments')
+    .select('id, post_id, body, created_at, board_posts(body, profiles(nickname))')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []).map((r: any) => ({
+    id: r.id,
+    postId: r.post_id,
+    body: r.body,
+    createdAt: relativeTime(r.created_at),
+    postBody: r.board_posts?.body ?? '',
+    postAuthor: r.board_posts?.profiles?.nickname ?? DELETED_USER_NAME,
+  }));
 }

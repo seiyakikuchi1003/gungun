@@ -151,7 +151,9 @@ export function LoginBonusSheet({ visible, claimedToday, amount, onClose }: Prop
             <Ionicons name="close" size={20} color={colors.textSecondary} />
           </PressableScale>
 
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: spacing.lg }}>
+          <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: spacing.lg }}>
             {/* ヘッダー */}
             <View style={styles.head}>
               <View style={{ flex: 1 }}>
