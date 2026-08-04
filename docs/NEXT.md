@@ -12,7 +12,12 @@ npm run preview           # これ1本。DB適用 → 確認 → 管理画面 �
 ```
 
 初回だけ Supabase の接続情報を4つ聞かれます（ダッシュボードからコピペ）。
-手順とつまずきどころは [`DEVICE-PREVIEW.md`](./DEVICE-PREVIEW.md)。
+
+| 読むもの | 内容 |
+|---|---|
+| [`DEVICE-PREVIEW.md`](./DEVICE-PREVIEW.md) | 立ち上げ方・つまずきどころ |
+| [`WALKTHROUGH.md`](./WALKTHROUGH.md) | **実機での通し確認の台本**（2アカウントで一周する順番） |
+| [`ADMIN-GUIDE.md`](./ADMIN-GUIDE.md) | **管理画面の見方**（先方にもそのまま渡せる） |
 
 - アプリ … ターミナルの QR を iPhone のカメラで読む（Expo Go）
 - 管理画面 … http://localhost:3100 （localhost はパスワード不要）
@@ -142,6 +147,7 @@ DB 側の受け皿は 0009 で用意済み。残っているのはアプリ／�
 | C-3 | **課金の実装** | DB：`purchases` と `redeem_purchase()`（冪等）は 0009 で用意済み。<br>残り：方式の確定（上記 B-3）→ StoreKit 導入 → **レシート検証サーバ**（Edge Function か管理画面の API） |
 | C-4 | **型の自動生成** | `supabase gen types typescript` で `src/types/db.ts` を実DBから生成 |
 | C-5 | **プレミアムの中身** | 「欲しいものリスト公開」が画面だけ。v1に入れるか要相談 |
+| C-6 | **利用停止が掲示板に効いていない** | `assert_not_suspended()` は `plant_seed` / `water` / `harvest` の入口だけ。掲示板の投稿・コメント・商品コメントは RPC を通さない直 INSERT なので、**停止中でも書き込める**。<br>直し方：`board_posts` / `board_comments` / `item_comments` の insert ポリシーに「停止中でない」条件を足す（数行）。荒らし対応の実効性に関わるので審査前に塞ぐ |
 
 ---
 

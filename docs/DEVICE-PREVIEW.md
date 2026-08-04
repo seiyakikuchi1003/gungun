@@ -91,7 +91,10 @@ npm run db:apply:seed   # デモデータも入れ直す
 
 ## 実データの連動を確認する順番
 
-アプリで操作 → **管理画面（http://localhost:3100）を再読み込み**すると、
+**上から順に操作すれば一周できる台本を [`WALKTHROUGH.md`](./WALKTHROUGH.md) に用意しました**
+（2アカウント・所要20〜30分）。管理画面の各ページの見方は [`ADMIN-GUIDE.md`](./ADMIN-GUIDE.md)。
+
+以下は要点だけの一覧です。アプリで操作 → **管理画面（http://localhost:3100）を再読み込み**すると、
 同じデータがそのまま出ます。Supabase の Table Editor でも同じものが見えます。
 
 | # | アプリでの操作 | DB で見るところ |

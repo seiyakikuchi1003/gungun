@@ -55,9 +55,12 @@ export function Shell({ title, children }: { title: string; children: React.Reac
           </nav>
         </header>
         <main className="p-6 max-w-6xl">
+          {/* 未設定でも公開URLは middleware が 503 で閉じるので、「誰でも開ける」とは書かない。
+              いま開けているのは localhost だからだと分かる文言にする。 */}
           {!passwordRequired && (
             <div className="mb-4 rounded-lg px-4 py-3 text-sm font-bold bg-mikan-soft text-mikan">
-              ADMIN_PASSWORD が未設定のため、この管理画面は誰でも開けます。公開前に必ず設定してください。
+              ADMIN_PASSWORD 未設定 — いまは localhost なので開けています。
+              公開URLからは 503 で閉じるため、先方にお渡しする前に設定してください。
             </div>
           )}
           {children}
