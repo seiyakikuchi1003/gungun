@@ -26,6 +26,10 @@ yarn-error.*
 # macOS
 .DS_Store
 
+# 生の会話ログ。176MB 級で、APIキーやパスワードがそのまま入っているためコミットしない。
+# 読める形は docs/logs/ に、伏せ字をかけて書き出す（npm run log:export）
+*.jsonl
+
 # env
 .env
 .env.local

@@ -16,7 +16,9 @@
     "db:status": "node scripts/apply-schema.mjs --status",
     "admin": "npm --prefix admin run dev",
     "device": "bash scripts/setup-device-preview.sh",
-    "device:mock": "bash scripts/setup-device-preview.sh --mock"
+    "device:mock": "bash scripts/setup-device-preview.sh --mock",
+    "log:export": "node scripts/export-chat-log.mjs",
+    "log:export:all": "node scripts/export-chat-log.mjs --all"
   },
   "dependencies": {
     "@expo-google-fonts/m-plus-rounded-1c": "^0.4.4",
