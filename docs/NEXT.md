@@ -1,6 +1,6 @@
 # 残りタスク（引き継ぎ・再開用メモ）
 
-最終更新：2026-08-03
+最終更新：2026-08-04
 
 ## すぐ再開する手順
 
@@ -8,15 +8,19 @@
 cd ~/gungun
 git checkout claude/app-design-mockup-9f1vtu
 git pull
-npm install               # 依存が増えています
-npm run check:supabase    # DB につながるか確認
-npm run device            # 実機（Expo Go）で開く。QRをカメラで読む
+npm run preview           # これ1本。DB適用 → 確認 → 管理画面 → Expo Go の QR
 ```
 
-実機で確認する手順の詳細は [`DEVICE-PREVIEW.md`](./DEVICE-PREVIEW.md)。
+初回だけ Supabase の接続情報を4つ聞かれます（ダッシュボードからコピペ）。
+手順とつまずきどころは [`DEVICE-PREVIEW.md`](./DEVICE-PREVIEW.md)。
 
-> **実機配信はクラウドの作業環境からはできません。** Expo のホスト（`expo.dev` /
-> `exp.host` / ngrok）へ出られないため、`--tunnel` も EAS Update も使えません。
+- アプリ … ターミナルの QR を iPhone のカメラで読む（Expo Go）
+- 管理画面 … http://localhost:3100 （localhost はパスワード不要）
+- DB だけ触りたいとき … `npm run db:status` / `npm run db:apply`
+
+> **実機配信もDB接続もクラウドの作業環境からはできません。** 組織の egress ポリシーで
+> `expo.dev` / `exp.host` / ngrok / `*.supabase.co` / `*.pages.dev` すべてに出られません
+> （2026-08-04 実測：CONNECT 403）。`--tunnel` も EAS Update も同じ理由で不可。
 > 上のコマンドは菊池さんの Mac で実行してください。
 
 | URL | 接続先 | 用途 |
@@ -38,7 +42,8 @@ npm run device            # 実機（Expo Go）で開く。QRをカメラで読�
 | ストア | **完成**。`isSupabaseEnabled` で実DB／モックを自動切替 |
 | 認証 | **完成**（Supabase Auth）。登録・ログイン・コード認証・再設定・退会 |
 | DB 設計 | **完成**。0001〜0009。ローカルPostgresで113項目のテスト全PASS |
-| DB 設置 | **未適用**。`gungun-dev` にまだ流していない ← いちばん最初にやること |
+| DB 設置 | **未適用**。`gungun-dev` にまだ流していない ← `npm run db:apply` で一発 |
+| 実機プレビュー | `npm run preview` で アプリ＋管理画面＋DB がまとめて立つ（Mac で実行） |
 | 管理画面 | **完成**・デプロイ済み・パスワード設定済み |
 | メール送信（Resend） | **未着手** |
 | プッシュ通知 | アプリ側・DB側・送信ワーカーは**実装済み**。EASビルドと実機確認が残り（`docs/PUSH.md`） |
@@ -51,9 +56,18 @@ npm run device            # 実機（Expo Go）で開く。QRをカメラで読�
 
 ### A-1. gungun-dev にスキーマを流す ★最優先
 
-`supabase/apply_all.sql` を SQL Editor に貼って Run するだけ。手順は [`DB-TEST.md`](./DB-TEST.md)。
+```bash
+npm run db:apply     # 未適用のぶんだけ流す。何度実行しても安全
+```
 
-> クラウドセッションからは外部ネットワークが制限されていて Supabase に直接届かないため、
+初回だけ `SUPABASE_DB_URL`（ダッシュボード右上 Connect → Session pooler の URI、
+`[YOUR-PASSWORD]` は DB パスワードに置換）を聞かれる。`npm run preview` に
+含まれているので、そちらを使うならこの手順は不要。
+
+SQL Editor でやりたい場合は `supabase/apply_all.sql` を貼って Run（**1回だけ**）。
+どちらでも構わない。`db:apply` は SQL Editor で流した後の状態も検知して続けられる。
+
+> クラウドセッションからは Supabase に直接届かない（egress ポリシーで CONNECT 403）ため、
 > ここは手元で実行する必要がある。
 
 ### A-2. Supabase Auth の設定
@@ -68,11 +82,11 @@ Authentication → Sign In / Providers → Email
 ### A-3. 実データで通し確認
 
 ```bash
-npm run check:supabase    # 先にこれが全部 ✓ になること
-npm run device            # 実機（Expo Go）
+npm run preview           # DB適用 → 確認 → 管理画面 → Expo Go の QR
 ```
 
 出品 → 水やり → 収穫 → 取引 → 評価 → 退会 を2アカウントで一周する。
+アプリで操作したら管理画面（localhost:3100）を再読み込みして、同じデータが出るか見る。
 画像アップロード（Storage の `item-images` バケット）もここで初めて実データを通る。
 確認する順番と、DB のどこを見ればよいかは [`DEVICE-PREVIEW.md`](./DEVICE-PREVIEW.md)。
 

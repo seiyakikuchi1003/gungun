@@ -1,67 +1,84 @@
-# 実機で確認する（Expo Go）
+# 実機プレビュー（アプリ＋管理画面＋実データ）
 
-## 先に知っておくこと
-
-**この作業は菊池さんの Mac で行う必要があります。**
-クラウドの作業環境からは Expo のホスト（`expo.dev` / `exp.host` / ngrok）へ出られないため、
-実機への配信ができません。トンネル（`--tunnel`）も EAS Update も同じ理由で使えません。
-
-Mac 側での所要時間は、`npm install` 済みなら **2〜3分**です。
-
----
-
-## 手順
-
-### 0. 先に DB を用意する（初回だけ）
-
-まだなら `supabase/apply_all.sql` を Supabase の SQL Editor で実行してください。
-手順は [`DB-TEST.md`](./DB-TEST.md)。
-
-### 1. 最新を取ってくる
+## 1コマンドで全部立ち上がります
 
 ```bash
 cd ~/gungun
 git checkout claude/app-design-mockup-9f1vtu
 git pull
-npm install          # 依存が増えています（expo-notifications / expo-device）
+npm run preview
 ```
 
-### 2. DB につながるか先に確認する
+これで順に、
+
+1. 依存関係（アプリ・管理画面）を入れる
+2. アプリの `.env`（接続先）を作る ← 初回だけ聞かれます
+3. **DB に未適用の SQL を流す**（何度実行しても安全）
+4. アプリ側から見えるかを確認（`check:supabase`）
+5. **管理画面**を http://localhost:3100 で起動（localhost はパスワード不要）
+6. **Expo Go 用の QR コード**を出す
+
+まで進みます。Ctrl+C で両方まとめて止まります。
+
+| オプション | 動き |
+|---|---|
+| `npm run preview` | 実データ（Supabase）につなぐ。アプリ＋管理画面 |
+| `npm run preview:mock` | モック。DB を一切触らない（画面デモ用） |
+| `npm run preview -- --no-admin` | 管理画面を立てず、アプリだけ |
+| `npm run preview -- --skip-db` | DB の適用・確認を飛ばす（2回目以降の時短） |
+
+> **この作業は菊池さんの Mac で行う必要があります。**
+> クラウドの作業環境は組織の egress ポリシーで `expo.dev` / `exp.host` /
+> ngrok / `*.supabase.co` すべてに出られません（実測：CONNECT 403）。
+> トンネルも EAS Update も同じ理由で使えません。
+
+---
+
+## 初回に聞かれること（4つ）
+
+すべて Supabase ダッシュボードからコピーするだけです。入力は `.env` /
+`.env.local` / `admin/.env.local` に保存され、2回目以降は聞かれません
+（3ファイルとも `.gitignore` 済み）。
+
+| 聞かれるもの | どこから取るか | 備考 |
+|---|---|---|
+| `EXPO_PUBLIC_SUPABASE_URL` | Project Settings → API Keys | `https://xxxx.supabase.co` |
+| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | 同上 | **publishable** キー（`sb_publishable_…`）。secret を入れると止まります |
+| `SUPABASE_DB_URL` | 右上 **Connect** → **Session pooler** の URI | `[YOUR-PASSWORD]` を DB パスワードに置換。空Enterで飛ばせます |
+| `SUPABASE_SERVICE_ROLE_KEY` | Project Settings → API Keys | **secret** キー（`sb_secret_…`）。管理画面用。空Enterで管理画面を飛ばせます |
+
+`SUPABASE_DB_URL` を入れると SQL の適用まで自動になります。入れない場合は
+Supabase の SQL Editor に `supabase/apply_all.sql` を貼って Run してください。
+
+---
+
+## DB だけを操作したいとき
 
 ```bash
-npm run check:supabase
+npm run db:status       # 0001〜0009 のどれが適用済みか
+npm run db:apply        # 未適用のぶんだけ流す
+npm run db:apply:seed   # デモデータも入れ直す
 ```
 
-テーブル・ビュー・設定・デモデータ・RPC・RLS・課金の安全性を順に見て、日本語で結果を出します。
-**ここが全部 ✓ になってから実機に進んでください。** アプリが空に見える原因の切り分けが楽になります。
+`apply_all.sql`（SQL Editor 用）と違って **何度実行しても安全**です。
 
-### 3. 実機で開く
+- 適用済みのファイル名を `public._gungun_migrations` に記録し、2回目以降は飛ばす
+- 1ファイル = 1トランザクション。途中で失敗してもそのファイルの変更は残らない
+- すでに SQL Editor で `apply_all.sql` を流してあるプロジェクトでも、
+  実体を見て「どこまで入っているか」を判定し、台帳に登録してから続けます
+  （0006 までしか入っていない状態から 0007〜0009 を足す、も確認済み）
 
-```bash
-npm run device
-```
+デモデータは何度流しても増えません（先に消してから入れ直す作り）。
 
-`.env` が無ければ接続情報を聞かれます（Supabase の Project Settings → API Keys）。
-入力するのは **publishable キー**（`sb_publishable_...`）です。
-secret キーを入れると止まります — アプリに入れてはいけないキーなので。
+---
 
-そのあと：
+## Expo Go で開く
 
 1. iPhone に **Expo Go** を入れて、**Mac と同じ Wi-Fi** につなぐ
 2. ターミナルに出る **QR コードを iPhone のカメラで読む**
 3. ログイン画面に **「● 実データ（Supabase）に接続中」** が出ていれば成功
 
-DB を触らずに画面だけ見たいときは：
-
-```bash
-npm run device:mock
-```
-
----
-
-## 実データの連動を確認する順番
-
-デモアカウントでログインします（パスワードは全員 `password`）。
+デモアカウント（パスワードは全員 `password`）：
 
 | メールアドレス | ニックネーム |
 |---|---|
@@ -70,7 +87,14 @@ npm run device:mock
 
 2台（または iPhone ＋ Mac のブラウザ）で別アカウントにすると、相手側の反応まで確認できます。
 
-| # | 操作 | DB で見るところ |
+---
+
+## 実データの連動を確認する順番
+
+アプリで操作 → **管理画面（http://localhost:3100）を再読み込み**すると、
+同じデータがそのまま出ます。Supabase の Table Editor でも同じものが見えます。
+
+| # | アプリでの操作 | DB で見るところ |
 |---|---|---|
 | 1 | タネを植える | `items` に `parent_id = null` の行が増える |
 | 2 | 写真を付ける | `item_images` ＋ Storage の `item-images` バケット |
@@ -83,16 +107,13 @@ npm run device:mock
 | 9 | 通報・ブロック | `reports` / `blocks` |
 | 10 | 退会する | `profiles` から消え、相手の `exchanges` は残って参照だけ NULL |
 
-Supabase の **Table Editor** で見るのが一番早いです。
-管理画面（gungun-admin.pages.dev）からも同じデータが見えます。
-
 ---
 
 ## つまずきやすいところ
 
 ### 「○ モックデータ（.env 未読込）」と出る
 
-`.env` が読めていません。`npm run device` は `--clear` を付けているので
+`.env` が読めていません。`npm run preview` は `--clear` を付けているので
 キャッシュではなく、`.env` の場所か中身の問題です。プロジェクト直下にあるか確認してください。
 
 ### QR を読んでも繋がらない
@@ -102,8 +123,20 @@ iPhone と Mac が同じ Wi-Fi にいるか確認してください。
 
 ### 画面が空っぽ／エラーになる
 
-`npm run check:supabase` を先に走らせてください。
+`npm run db:status` で 0001〜0009 が全部 ✓ になっているか確認してください。
 SQL が未適用だと、テーブルが無いので全画面が空になります。
+
+### `SUPABASE_DB_URL` で「password authentication failed」
+
+Connect ダイアログの URI に含まれる `[YOUR-PASSWORD]` を実際の DB パスワードに
+置き換えていない可能性があります。忘れた場合は Project Settings → Database →
+Reset database password で作り直せます。
+
+### 管理画面が真っ白／数字が 0
+
+`admin/.env.local` の `SUPABASE_SERVICE_ROLE_KEY` が secret キー（`sb_secret_…`）
+になっているか確認してください。publishable キーだと RLS に阻まれて何も見えません。
+ログは `.expo/admin-dev.log` に出ます。
 
 ### プッシュ通知が来ない
 
@@ -127,3 +160,19 @@ ON のままだと、登録してもメール確認が終わるまでログイ�
 | App Store の挙動 | ビルドが別 | TestFlight |
 
 ハプティクス・効果音・カメラ・写真ライブラリは Expo Go で確認できます。
+
+---
+
+## クラウド側で済ませた事前確認
+
+実機で「赤い画面」に当たらないよう、バンドルまでは作業環境で通してあります。
+
+| 確認したこと | 結果 |
+|---|---|
+| iOS 向けの本番バンドル（`expo export --platform ios`） | 成功（Hermes バイトコード 5.55 MB） |
+| Metro を起動して Expo Go と同じヘッダでマニフェスト取得 | HTTP 200 / SDK 54.0.0 / `launchAsset` あり |
+| Expo Go が実際に落とす iOS バンドルを取得 | HTTP 200 / 12.4 MB / `Unable to resolve module` 0件 |
+| バンドルに接続情報が入っているか | Supabase URL と publishable キーが埋め込み済み |
+| バンドルに secret キーが混入していないか | 混入なし |
+| マイグレーション適用スクリプト | ローカル Postgres で4パターン（新規／再実行／`apply_all` 済み／0006 まで）を確認 |
+| 管理画面のローカル起動 | `localhost:3100` が 200（パスワード不要で開ける） |

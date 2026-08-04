@@ -9,6 +9,12 @@
     "export:web": "expo export --platform web",
     "check:supabase": "node scripts/check-supabase.mjs",
     "check:auth": "node scripts/check-auth.mjs",
+    "preview": "bash scripts/preview.sh",
+    "preview:mock": "bash scripts/preview.sh --mock",
+    "db:apply": "node scripts/apply-schema.mjs",
+    "db:apply:seed": "node scripts/apply-schema.mjs --seed",
+    "db:status": "node scripts/apply-schema.mjs --status",
+    "admin": "npm --prefix admin run dev",
     "device": "bash scripts/setup-device-preview.sh",
     "device:mock": "bash scripts/setup-device-preview.sh --mock"
   },
@@ -45,6 +51,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.1.0",
+    "pg": "^8.22.0",
     "typescript": "~5.9.2"
   },
   "private": true
