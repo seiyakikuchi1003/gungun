@@ -340,6 +340,12 @@ const styles = StyleSheet.create({
   waterCostText: { fontFamily: fonts.bold, fontSize: 12, color: colors.white },
   wateredPill: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, height: 56, borderRadius: radius.pill, backgroundColor: colors.greenSoft },
   wateredText: { fontFamily: fonts.bold, fontSize: 15, color: colors.green },
-  disabledBox: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, height: 56, borderRadius: radius.pill, backgroundColor: colors.cardMuted, paddingHorizontal: spacing.lg },
-  disabledText: { fontFamily: fonts.medium, fontSize: 13.5, color: colors.textSecondary, textAlign: 'center' },
+  // 高さ56固定・角丸ピルだと文が入りきらず窮屈だった（2026-08-05 指摘）。
+  // 折り返せる箱にして、行数が増えても収まるようにする
+  disabledBox: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+    minHeight: 56, borderRadius: radius.card, backgroundColor: colors.cardMuted,
+    paddingHorizontal: spacing.lg, paddingVertical: spacing.md,
+  },
+  disabledText: { flex: 1, fontFamily: fonts.medium, fontSize: 13.5, lineHeight: 19, color: colors.textSecondary },
 });

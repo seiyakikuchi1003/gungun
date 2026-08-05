@@ -70,15 +70,17 @@ export default function BoardDetail() {
         <Text style={styles.commentsTitle}>コメント {comments.length}</Text>
         {comments.map((c) => {
           const cu = { nickname: c.authorName, avatar: c.authorAvatar };
+          // 自分のコメントは右に寄せる。取引のチャットと同じ見え方に揃える（2026-08-05 指摘）
+          const mine = c.userId === me.id;
           return (
-            <View key={c.id} style={styles.comment}>
-              <Avatar uri={cu.avatar} name={cu.nickname} size={36} />
-              <View style={styles.bubble}>
+            <View key={c.id} style={[styles.comment, mine && styles.commentMine]}>
+              {!mine && <Avatar uri={cu.avatar} name={cu.nickname} size={36} />}
+              <View style={[styles.bubble, mine && styles.bubbleMine]}>
                 <View style={styles.cHead}>
-                  <Text style={styles.cName}>{cu.nickname}</Text>
-                  <Text style={styles.time}>{c.createdAt}</Text>
+                  <Text style={[styles.cName, mine && styles.cNameMine]}>{mine ? 'あなた' : cu.nickname}</Text>
+                  <Text style={[styles.time, mine && styles.timeMine]}>{c.createdAt}</Text>
                 </View>
-                <Text style={styles.cBody}>{c.body}</Text>
+                <Text style={[styles.cBody, mine && styles.cBodyMine]}>{c.body}</Text>
               </View>
             </View>
           );
@@ -132,6 +134,11 @@ const styles = StyleSheet.create({
   statText: { fontFamily: fonts.medium, fontSize: 13, color: colors.textSecondary },
   commentsTitle: { fontFamily: fonts.bold, fontSize: 15, color: colors.textPrimary, paddingHorizontal: 20, paddingBottom: spacing.sm },
   comment: { flexDirection: 'row', gap: spacing.md, paddingHorizontal: 20, paddingVertical: spacing.sm },
+  commentMine: { justifyContent: 'flex-end' },
+  bubbleMine: { backgroundColor: colors.green },
+  cNameMine: { color: colors.white },
+  timeMine: { color: colors.white, opacity: 0.8 },
+  cBodyMine: { color: colors.white },
   bubble: { flex: 1, backgroundColor: colors.card, borderRadius: 16, padding: spacing.md, ...shadows.soft },
   cHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   cName: { fontFamily: fonts.bold, fontSize: 13, color: colors.textPrimary },

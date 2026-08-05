@@ -194,10 +194,17 @@ export function TreeProvider({ children }: { children: React.ReactNode }) {
       // サーバ側の can_water と同じ判定。ここは表示用の事前判定。
       // （サーバ側は status='deleted' を除外するが、プールには削除済みが入らないので
       //   ここでは絞り込み不要）
-      const inTree = pool.some((n) => n.rootId === target.rootId && n.ownerId === myId);
-      if (inTree) {
+      const mineInTree = pool.filter((n) => n.rootId === target.rootId && n.ownerId === myId);
+      if (mineInTree.length > 0) {
         if (target.ownerId === myId) return { ok: false, reason: '自分の出品には水やりできません' };
-        return { ok: false, reason: 'この木にはすでに水やりしています（1つの木につき1回まで）' };
+        // 「種を植えただけ」の人に「水やりしています」と出ていたので、理由を分ける
+        const onlySeed = mineInTree.every((n) => n.parentId === null);
+        return {
+          ok: false,
+          reason: onlySeed
+            ? '自分のタネが育っている木です（1つの木につき1人1回まで）'
+            : 'この木にはすでに水やりしています（1つの木につき1回まで）',
+        };
       }
       if (fertilizer < waterCost) return { ok: false, reason: '肥料が不足しています' };
       return { ok: true };

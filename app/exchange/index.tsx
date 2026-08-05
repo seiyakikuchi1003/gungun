@@ -59,6 +59,9 @@ export default function ExchangeScreen() {
   const list = all.filter((t) => t.dir === tab);
   const accent = tab === 'receive' ? colors.green : colors.orange;
   const actionCount = list.filter((t) => (tab === 'receive' ? t.status === 'shipped' : t.status === 'pending')).length;
+  // タブごとの「あなたの対応待ち」件数（表示中でない側も数える）
+  const needReceive = all.filter((t) => t.dir === 'receive' && t.status === 'shipped').length;
+  const needSend = all.filter((t) => t.dir === 'send' && t.status === 'pending').length;
 
   return (
     <View style={styles.root}>
@@ -72,8 +75,9 @@ export default function ExchangeScreen() {
 
       <TopTabs
         tabs={[
-          { key: 'receive', label: '受け取る', color: colors.green },
-          { key: 'send', label: '送る', color: colors.orange },
+          // 見ていない側のタブにも用事があると気づけるよう、対応待ちの件数を出す
+          { key: 'receive', label: '受け取る', color: colors.green, alert: needReceive },
+          { key: 'send', label: '送る', color: colors.orange, alert: needSend },
         ]}
         active={tab}
         onChange={(k) => setTab(k as 'receive' | 'send')}
