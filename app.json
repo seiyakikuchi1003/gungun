@@ -2,6 +2,7 @@
   "expo": {
     "name": "ぐんぐん",
     "slug": "gungun",
+    "owner": "unnoshohei",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -56,6 +57,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "cb922a39-ddd5-4817-b3c8-473c709940ed"
+      }
     }
   }
 }
