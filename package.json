@@ -19,7 +19,8 @@
     "device:mock": "bash scripts/setup-device-preview.sh --mock",
     "log:export": "node scripts/export-chat-log.mjs",
     "log:export:all": "node scripts/export-chat-log.mjs --all",
-    "check:harvest": "node scripts/check-harvest-flow.mjs"
+    "check:harvest": "node scripts/check-harvest-flow.mjs",
+    "check:payment": "node scripts/check-payment.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/m-plus-rounded-1c": "^0.4.4",

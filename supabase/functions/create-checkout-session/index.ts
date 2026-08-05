@@ -38,6 +38,16 @@ function form(obj: Record<string, string | number>): string {
 }
 
 Deno.serve(async (req) => {
+  try {
+    return await handle(req);
+  } catch (e) {
+    // 想定外の例外も本文で返す（本文が無いと Internal Server Error としか分からないため）
+    console.error('create-checkout-session で例外', e);
+    return json({ error: '内部エラー: ' + (e instanceof Error ? e.message : String(e)) }, 500);
+  }
+});
+
+async function handle(req: Request): Promise<Response> {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
 
   const url = Deno.env.get('SUPABASE_URL');
@@ -139,4 +149,4 @@ Deno.serve(async (req) => {
   }
 
   return json({ url: session.url, id: session.id });
-});
+}
