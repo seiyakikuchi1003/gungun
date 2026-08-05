@@ -39,10 +39,18 @@ export default function HarvestScreen() {
   // 自分が植えたタネ（parentId=null）＝収穫の起点になれるもの
   // デモの木を見せるため、自分の種が無い場合は水やりが集まっている木も表示する
   const ownSeeds = items.filter((i) => i.parentId === null && i.ownerId === me.id);
+  // 実データでは他人のタネを混ぜない。収穫できるのは自分のタネだけなので、
+  // 並べておくと「押せるのに収穫できない」ことになる（2026-08-05 指摘）
   const demoSeeds = items
     .filter((i) => i.parentId === null && treeItems(i.id).length > 1)
     .slice(0, 3);
-  const mySeeds: MockItem[] = ownSeeds.length > 0 ? ownSeeds : demoSeeds;
+  // 実データでは自分のタネだけ。デモの木で埋めるのは未接続（モック）のときだけにする。
+  // 他人のタネを並べると「収穫するを押せるのに、自分のタネではないので進まない」となる
+  const mySeeds: MockItem[] = me.live
+    ? ownSeeds
+    : ownSeeds.length > 0
+      ? ownSeeds
+      : demoSeeds;
 
   /** その木にぶら下がっている件数（種を含む） */
   const treeSizeOf = (s: MockItem) => treeItems(s.id).length;
