@@ -22,7 +22,8 @@ export default function ProfileEdit() {
   const insets = useSafeAreaInsets();
   const { reloadProfile, profile } = useAuth();
   const [nickname, setNickname] = useState(me.nickname);
-  const [bio, setBio] = useState(profile?.bio ?? '不要になったものを、必要な人へ🌱 気軽に水やりしてください！');
+  // 例文を初期値にすると、書いていない人まで同じ自己紹介になってしまう
+  const [bio, setBio] = useState(profile?.bio ?? '');
   const [avatar, setAvatar] = useState<string | number>(me.avatar);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);

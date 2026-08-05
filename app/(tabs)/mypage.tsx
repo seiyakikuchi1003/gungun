@@ -119,7 +119,12 @@ export default function MyPage() {
               <Text style={styles.editText}>編集</Text>
             </PressableScale>
           </View>
-          <Text style={styles.bio}>不要になったものを、必要な人へ🌱 気軽に水やりしてください！</Text>
+          {/* 自己紹介は本人が書いたものを出す。以前は誰でも同じ文言が固定で出ていた（2026-08-05 指摘） */}
+          {profile?.bio ? (
+            <Text style={styles.bio}>{profile.bio}</Text>
+          ) : (
+            <Text style={[styles.bio, styles.bioEmpty]}>自己紹介はまだありません（編集から書けます）</Text>
+          )}
           {/* 固定値ではなく実データから数える（収穫タブの件数と食い違わないように） */}
           <View style={styles.stats}>
             <Stat n={planted} label="植えたタネ" />
@@ -247,6 +252,7 @@ const styles = StyleSheet.create({
   editBtn: { borderWidth: 1.5, borderColor: colors.green, borderRadius: radius.pill, paddingHorizontal: 16, paddingVertical: 6 },
   editText: { fontFamily: fonts.bold, fontSize: 13, color: colors.green },
   bio: { fontFamily: fonts.regular, fontSize: 13.5, lineHeight: 21, color: colors.textSecondary },
+  bioEmpty: { color: colors.textPlaceholder },
   stats: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.bgWarm, borderRadius: radius.md, paddingVertical: spacing.md },
   stat: { flex: 1, alignItems: 'center', gap: 2 },
   statNum: { fontFamily: fonts.black, fontSize: 22, color: colors.green },

@@ -19,12 +19,15 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   const inAuthGroup = segments[0] === '(auth)';
+  // パスワードの再設定はログイン中の人も開く（マイページ →「パスワードを変更する」）。
+  // ここを弾いていたため、押すとホームに飛ばされていた（2026-08-05 指摘）
+  const allowedWhileSignedIn = segments[1] === 'reset';
 
   useEffect(() => {
     if (!ready) return;
     if (!authed && !inAuthGroup) router.replace('/(auth)/login');
-    else if (authed && inAuthGroup) router.replace('/(tabs)');
-  }, [ready, authed, inAuthGroup, router]);
+    else if (authed && inAuthGroup && !allowedWhileSignedIn) router.replace('/(tabs)');
+  }, [ready, authed, inAuthGroup, allowedWhileSignedIn, router]);
 
   if (!ready) {
     return (

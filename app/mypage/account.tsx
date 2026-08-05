@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Switch, TextInput } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,6 +11,7 @@ import { useMe } from '@/store/me';
 import { useAuth } from '@/store/auth';
 import { isSupabaseEnabled } from '@/lib/supabase';
 import { fetchAddress, type Address } from '@/lib/api/profile';
+import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -56,14 +57,21 @@ export default function Account() {
   useEffect(() => { setMail(email); }, [email]);
 
   // お届け先・電話番号も「未登録」固定だったので、実データを見に行く
-  useEffect(() => {
+  // 保存して戻ってきたときに読み直す。以前は最初の1回しか読まず、
+  // お届け先を登録しても「未登録」のままだった（2026-08-05 指摘）
+  const reloadAddress = useCallback(async () => {
     if (!isSupabaseEnabled || !me.live) return;
-    let alive = true;
-    fetchAddress(me.id)
-      .then((a) => { if (alive) setAddress(a); })
-      .catch(() => {});
-    return () => { alive = false; };
+    try {
+      setAddress(await fetchAddress(me.id));
+    } catch {
+      // 読めなくても画面は保つ
+    }
   }, [me.id, me.live]);
+
+  useEffect(() => {
+    reloadAddress();
+  }, [reloadAddress]);
+  useAutoRefresh(reloadAddress);
 
   const addressLabel = address
     ? `${address.prefecture}${address.city}`
