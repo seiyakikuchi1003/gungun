@@ -10,11 +10,14 @@ import { Button } from '@/components/ui/Button';
 import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
 import { useExchange } from '@/hooks/useExchanges';
 import { FormError } from '@/components/ui/FormError';
+import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 
 export default function ExchangeDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
-  const { trade, messages: msgs, busy, error, send, markShipped, markReceived } = useExchange(id ?? '');
+  const { trade, messages: msgs, busy, error, send, markShipped, markReceived, reload } = useExchange(id ?? '');
+  // 画面に戻ったとき・アプリを前面に戻したときに最新を取り直す
+  useAutoRefresh(reload, { intervalMs: 10000 });
   const [text, setText] = useState('');
   const [report, setReport] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);

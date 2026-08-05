@@ -15,6 +15,7 @@ import { boardTagFilters, trendingTags } from '@/data/mockSocial';
 import { useBoard, type UIPost } from '@/hooks/useBoard';
 import { useBlocks } from '@/store/blocks';
 import { useMe } from '@/store/me';
+import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 
 export default function BoardScreen() {
   const me = useMe();
@@ -28,6 +29,8 @@ export default function BoardScreen() {
   const [query, setQuery] = useState('');
   const [toast, setToast] = useState<string | null>(null);
   const { posts, loading, reload, remove } = useBoard();
+  // 画面に戻ったとき・アプリを前面に戻したときに最新を取り直す
+  useAutoRefresh(reload);
   // 引っ張って更新（他の画面と同じ操作で最新にできるように）
   const [refreshing, setRefreshing] = useState(false);
   const onRefresh = useCallback(async () => {

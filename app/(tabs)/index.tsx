@@ -32,6 +32,7 @@ import { playSfx, preloadSfx } from '@/lib/sound';
 import { useMe } from '@/store/me';
 import { useLoginBonus } from '@/hooks/useLoginBonus';
 import { useExchanges } from '@/hooks/useExchanges';
+import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 
 /**
  * ヘッダーのアイコン。未読件数を数字で出す（点だけだと何件あるか分からない）。
@@ -70,6 +71,8 @@ export default function HomeScreen() {
   const { width } = useWindowDimensions();
   // 肥料残高は tree ストアが持つ（水やり・チャージ・ボーナスで増減する実際の値）
   const { items, fertilizer, refresh } = useTree();
+  // 画面に戻ったとき・アプリを前面に戻したときに最新を取り直す
+  useAutoRefresh(refresh);
   const { isBlocked } = useBlocks();
   const { unreadCount } = useNotifications();
   // 取引アイコンのバッジ。以前は常時点灯（badge 固定）だったので、

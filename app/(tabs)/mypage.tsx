@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Linking } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -16,6 +16,7 @@ import { useAuth } from '@/store/auth';
 import { useTree } from '@/store/tree';
 import { useMe } from '@/store/me';
 import { warning } from '@/lib/haptics';
+import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 
 type Action = 'about' | 'contact' | 'logout' | 'withdraw';
 const MENU: { icon: keyof typeof Ionicons.glyphMap; label: string; route?: string; action?: Action; danger?: boolean }[] = [
@@ -44,7 +45,7 @@ function Stat({ n, label }: { n: number; label: string }) {
 
 export default function MyPage() {
   const insets = useSafeAreaInsets();
-  const { signOut, deleteAccount, profile } = useAuth();
+  const { signOut, deleteAccount, profile, reloadProfile } = useAuth();
   // 肥料残高は tree ストアが持つ（水やり・チャージで増減する実際の値）
   const { fertilizer, items } = useTree();
   const me = useMe();
@@ -67,12 +68,20 @@ export default function MyPage() {
   const [sheet, setSheet] = useState<Action | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  useEffect(() => {
+  // 評価・肥料・プロフィールをまとめて取り直す。
+  // 画面に戻ったとき／アプリを前面に戻したときにも呼ばれる（useAutoRefresh）
+  const reloadMine = useCallback(async () => {
     if (!isSupabaseEnabled || !me.live) return;
-    let alive = true;
-    fetchStats(me.id).then((s) => { if (alive) setStats(s); }).catch(() => {});
-    return () => { alive = false; };
-  }, [me.id, me.live]);
+    await Promise.all([
+      fetchStats(me.id).then(setStats).catch(() => {}),
+      reloadProfile().catch(() => {}),
+    ]);
+  }, [me.id, me.live, reloadProfile]);
+
+  useEffect(() => {
+    reloadMine();
+  }, [reloadMine]);
+  useAutoRefresh(reloadMine);
 
   const onMenu = (m: (typeof MENU)[number]) => {
     if (m.route) { router.push(m.route as never); return; }

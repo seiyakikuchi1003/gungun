@@ -16,11 +16,14 @@ import { LeafDecor } from '@/components/art/LeafDecor';
 import { MockItem } from '@/data/mock';
 import { useTree } from '@/store/tree';
 import { useMe } from '@/store/me';
+import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 
 export default function HarvestScreen() {
   const me = useMe();
   const insets = useSafeAreaInsets();
   const { items, treeItems, refresh } = useTree();
+  // 画面に戻ったとき・アプリを前面に戻したときに最新を取り直す
+  useAutoRefresh(refresh);
   // 引っ張って更新（他の画面と同じ操作で最新にできるように）
   const [refreshing, setRefreshing] = useState(false);
   const onRefresh = useCallback(async () => {

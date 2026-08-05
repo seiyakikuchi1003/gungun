@@ -9,6 +9,7 @@ import { TopTabs } from '@/components/ui/TopTabs';
 import { Thumb } from '@/components/ui/Thumb';
 import { Avatar } from '@/components/ui/Avatar';
 import { useExchanges, type UITrade } from '@/hooks/useExchanges';
+import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 
 /** 2ステップの進捗（発送→受取）。done は完了段階。 */
 function Steps({ labels, done, accent }: { labels: [string, string]; done: number; accent: string }) {
@@ -42,6 +43,8 @@ export default function ExchangeScreen() {
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<'receive' | 'send'>('receive');
   const { list: all, loading, reload } = useExchanges();
+  // 画面に戻ったとき・アプリを前面に戻したときに最新を取り直す
+  useAutoRefresh(reload);
   // 引っ張って更新（他の画面と同じ操作で最新にできるように）
   const [refreshing, setRefreshing] = useState(false);
   const onRefresh = useCallback(async () => {

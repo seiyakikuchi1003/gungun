@@ -10,6 +10,7 @@ import { NOTIF_ICON, NotificationType, Notif } from '@/data/mockSocial';
 import { useNotifications } from '@/store/notifications';
 import { notificationRoute } from '@/lib/notificationRoute';
 import { useUsers } from '@/store/users';
+import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 
 const TONE: Record<NotificationType, string> = {
   watered: colors.green,
@@ -46,6 +47,8 @@ function Row({ n, onPress }: { n: Notif; onPress: () => void }) {
 export default function Notifications() {
   const insets = useSafeAreaInsets();
   const { list, markRead, markAllRead, refresh } = useNotifications();
+  // 画面に戻ったとき・アプリを前面に戻したときに最新を取り直す
+  useAutoRefresh(refresh, { intervalMs: 20000 });
   // 引っ張って更新（他の画面と同じ操作で最新にできるように）
   const [refreshing, setRefreshing] = useState(false);
   const onRefresh = useCallback(async () => {
