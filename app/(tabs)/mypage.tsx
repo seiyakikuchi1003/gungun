@@ -7,7 +7,7 @@ import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
 import { Avatar } from '@/components/ui/Avatar';
-import { StarRating } from '@/components/ui/StarRating';
+import { RatingSummary } from '@/components/ui/RatingSummary';
 import { FormError } from '@/components/ui/FormError';
 import { currentUser } from '@/data/mock';
 import { fetchStats, type ProfileStats } from '@/lib/api/profile';
@@ -102,8 +102,7 @@ export default function MyPage() {
                 activeScale={0.97}
                 style={styles.ratingRow}
               >
-                <StarRating value={stats?.ratingAvg ?? 4.5} size={15} />
-                <Text style={styles.ratingText}>{rating}</Text>
+                <RatingSummary avg={stats?.ratingAvg ?? null} count={stats?.ratingCount ?? 0} size={15} />
                 <Ionicons name="chevron-forward" size={14} color={colors.textPlaceholder} />
               </PressableScale>
             </View>

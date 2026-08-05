@@ -9,7 +9,7 @@ import { PressableScale } from '@/components/ui/PressableScale';
 import { Thumb } from '@/components/ui/Thumb';
 import { Avatar } from '@/components/ui/Avatar';
 import { Badge } from '@/components/ui/Badge';
-import { StarRating } from '@/components/ui/StarRating';
+import { RatingSummary } from '@/components/ui/RatingSummary';
 import { Sprout } from '@/components/art/Sprout';
 import { TreeCanvas } from '@/components/feature/TreeCanvas';
 import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
@@ -90,8 +90,7 @@ export default function TreeScreen() {
             <View style={styles.rootMeta}>
               <Avatar uri={owner.avatar} name={owner.nickname} size={18} />
               <Text style={styles.rootOwner}>{owner.nickname}さん</Text>
-              <StarRating value={4.5} size={12} gap={1} />
-              <Text style={styles.rootSub}>(12)</Text>
+              <RatingSummary avg={owner.ratingAvg ?? null} count={owner.ratingCount} size={12} gap={1} />
             </View>
             <Text style={styles.rootSub}>この種への直接の水やり：{branches}件</Text>
           </View>

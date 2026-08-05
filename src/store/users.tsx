@@ -28,8 +28,8 @@ export type UsersState = {
 
 const UsersContext = createContext<UsersState | null>(null);
 
-const PLACEHOLDER: Omit<MockUser, 'id'> = { nickname: '', avatar: '', ratingCount: 0, itemCount: 0 };
-const DELETED: Omit<MockUser, 'id'> = { nickname: DELETED_USER_NAME, avatar: '', ratingCount: 0, itemCount: 0 };
+const PLACEHOLDER: Omit<MockUser, 'id'> = { nickname: '', avatar: '', ratingAvg: null, ratingCount: 0, itemCount: 0 };
+const DELETED: Omit<MockUser, 'id'> = { nickname: DELETED_USER_NAME, avatar: '', ratingAvg: null, ratingCount: 0, itemCount: 0 };
 
 export function UsersProvider({ children }: { children: React.ReactNode }) {
   const { live } = useAuth();
@@ -53,7 +53,14 @@ export function UsersProvider({ children }: { children: React.ReactNode }) {
       setCache((prev) => {
         const next = { ...prev };
         for (const p of found) {
-          next[p.id] = { id: p.id, nickname: p.nickname, avatar: p.avatarUrl ?? '', ratingCount: 0, itemCount: 0 };
+          next[p.id] = {
+            id: p.id,
+            nickname: p.nickname,
+            avatar: p.avatarUrl ?? '',
+            ratingAvg: p.ratingAvg,
+            ratingCount: p.ratingCount,
+            itemCount: p.itemCount,
+          };
         }
         // 見つからなかった＝退会済み。毎回引き直さないようここで確定させる
         for (const id of ids) if (!next[id]) next[id] = { id, ...DELETED };

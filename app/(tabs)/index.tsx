@@ -69,7 +69,7 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   // 肥料残高は tree ストアが持つ（水やり・チャージ・ボーナスで増減する実際の値）
-  const { items, fertilizer } = useTree();
+  const { items, fertilizer, refresh } = useTree();
   const { isBlocked } = useBlocks();
   const { unreadCount } = useNotifications();
   // 取引アイコンのバッジ。以前は常時点灯（badge 固定）だったので、
@@ -88,16 +88,26 @@ export default function HomeScreen() {
   const onScroll = useAnimatedScrollHandler((e) => {
     scrollY.value = e.contentOffset.y;
   });
-  const onRefresh = useCallback(() => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
     medium(); // 引っ張った瞬間の「トン」
     preloadSfx();
+    // 実データを取り直す。以前はここで待つだけで並べ替えしかしておらず、
+    // 他の人が出した新しいタネが引っ張っても出てこなかった（2026-08-05 修正）
+    const started = Date.now();
+    try {
+      await refresh();
+    } catch {
+      // 取得に失敗しても画面は保つ（オフラインでも操作を止めない）
+    }
+    // 速すぎると更新された感じがしないので、最低限アニメーションを見せる
+    const rest = Math.max(0, 700 - (Date.now() - started));
     setTimeout(() => {
       setRefreshTick((t) => t + 1);
       setRefreshing(false);
       playSfx('pop'); // 更新完了の「プチッ」
-    }, 1300);
-  }, []);
+    }, rest);
+  }, [refresh]);
 
   // 「みんなの種」＝木の根（parentId=null）をテーマ別のモザイクで表示
   const seedsBase = items.filter((i) => i.parentId === null && !isBlocked(i.ownerId)).reverse();
@@ -262,7 +272,7 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.bg },
+  root: { flex: 1, backgroundColor: colors.bg, overflow: 'hidden' }, // 装飾の葉が右にはみ出す設計なので、ここで切る（全画面で横スクロールが出ていた）
   leafBg: { position: 'absolute', right: -40, top: 40 },
   topBar: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: 20, marginBottom: spacing.lg },
   search: {

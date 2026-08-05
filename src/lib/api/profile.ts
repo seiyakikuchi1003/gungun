@@ -27,6 +27,11 @@ export type PublicProfile = {
   nickname: string;
   avatarUrl: string | null;
   bio: string | null;
+  /** 平均評価。まだ評価が無ければ null */
+  ratingAvg: number | null;
+  ratingCount: number;
+  /** 出品数（タネ＋水やりで出した商品） */
+  itemCount: number;
 };
 
 /**
@@ -35,17 +40,27 @@ export type PublicProfile = {
  */
 export async function fetchProfilesByIds(ids: string[]): Promise<PublicProfile[]> {
   if (!ids.length) return [];
-  const { data, error } = await requireSupabase()
-    .from('profiles')
-    .select('id, nickname, avatar_url, bio')
-    .in('id', ids);
+  const sb = requireSupabase();
+  // 評価・出品数は profile_stats にある。以前はここを引いておらず、
+  // 画面側が「評価0・出品0」を出したり星を 4.5 で決め打ちしていた（2026-08-05 修正）
+  const [{ data, error }, { data: stats }] = await Promise.all([
+    sb.from('profiles').select('id, nickname, avatar_url, bio').in('id', ids),
+    sb.from('profile_stats').select('id, rating_avg, rating_count, seed_count, water_count').in('id', ids),
+  ]);
   if (error) throw error;
-  return (data ?? []).map((r: any) => ({
-    id: r.id,
-    nickname: r.nickname,
-    avatarUrl: r.avatar_url ?? null,
-    bio: r.bio ?? null,
-  }));
+  const byId = new Map((stats ?? []).map((s: any) => [s.id, s]));
+  return (data ?? []).map((r: any) => {
+    const s = byId.get(r.id);
+    return {
+      id: r.id,
+      nickname: r.nickname,
+      avatarUrl: r.avatar_url ?? null,
+      bio: r.bio ?? null,
+      ratingAvg: s?.rating_avg == null ? null : Number(s.rating_avg),
+      ratingCount: Number(s?.rating_count ?? 0),
+      itemCount: Number(s?.seed_count ?? 0) + Number(s?.water_count ?? 0),
+    };
+  });
 }
 
 /** 他のユーザーのプロフィール1件（プロフィール画面用） */

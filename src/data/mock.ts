@@ -8,6 +8,8 @@ export type MockUser = {
   id: string;
   nickname: string;
   avatar: string | number; // number = ローカル画像（require）
+  /** 平均評価。評価が1件も無ければ null（星を光らせない） */
+  ratingAvg?: number | null;
   ratingCount: number;
   itemCount: number;
 };

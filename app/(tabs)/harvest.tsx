@@ -139,7 +139,7 @@ export default function HarvestScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.bg },
+  root: { flex: 1, backgroundColor: colors.bg, overflow: 'hidden' }, // 装飾の葉が右にはみ出す設計なので、ここで切る（全画面で横スクロールが出ていた）
   leafBg: { position: 'absolute', right: -40, top: -20 },
   headRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.lg },
   title: { fontFamily: fonts.black, fontSize: 24, color: colors.textPrimary },

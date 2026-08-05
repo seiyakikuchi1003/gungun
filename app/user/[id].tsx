@@ -8,7 +8,7 @@ import { PressableScale } from '@/components/ui/PressableScale';
 import { Avatar } from '@/components/ui/Avatar';
 import { Thumb } from '@/components/ui/Thumb';
 import { Badge } from '@/components/ui/Badge';
-import { StarRating } from '@/components/ui/StarRating';
+import { RatingSummary } from '@/components/ui/RatingSummary';
 import { useTree } from '@/store/tree';
 import { useMe } from '@/store/me';
 import { useBlocks } from '@/store/blocks';
@@ -72,11 +72,12 @@ export default function UserProfile() {
             activeScale={0.97}
             style={styles.ratingRow}
           >
-            {/* 実データでは profile_stats、モック（画面デモ）では従来のデモ値を出す */}
-            <StarRating value={stats?.ratingAvg ?? (me.live ? 0 : 4.5)} size={14} gap={2} />
-            <Text style={styles.stat}>
-              評価 {stats?.ratingCount ?? (me.live ? 0 : u.ratingCount)}・出品 {listed.length}
-            </Text>
+            <RatingSummary
+              avg={stats?.ratingAvg ?? u.ratingAvg ?? null}
+              count={stats?.ratingCount ?? u.ratingCount}
+              suffix={`出品 ${listed.length}`}
+              size={14}
+            />
             <Ionicons name="chevron-forward" size={14} color={colors.textPlaceholder} />
           </PressableScale>
 

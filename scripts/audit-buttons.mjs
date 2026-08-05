@@ -9,8 +9,9 @@
  *   node scripts/audit-buttons.mjs [baseURL]
  */
 import { createRequire } from 'node:module';
+import { browserPath } from './lib/browser.mjs';
 const require = createRequire(import.meta.url);
-const { chromium } = require('/opt/node22/lib/node_modules/playwright');
+const { chromium } = require('playwright-core');  // ローカルの devDependency を使う
 
 const BASE = process.argv[2] ?? 'http://127.0.0.1:8899';
 
@@ -84,7 +85,7 @@ const SNAPSHOT = () => {
   ].join('||');
 };
 
-const browser = await chromium.launch();
+const browser = await chromium.launch({ executablePath: browserPath() });
 const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
 await page.goto(`${BASE}/`, { waitUntil: 'domcontentloaded' });
 await page.waitForTimeout(5000);

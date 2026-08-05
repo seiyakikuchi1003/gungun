@@ -10,9 +10,10 @@
  *   node scripts/audit-responsive.mjs [baseURL] [--shots]
  */
 import { createRequire } from 'node:module';
+import { browserPath } from './lib/browser.mjs';
 import { mkdirSync } from 'node:fs';
 const require = createRequire(import.meta.url);
-const { chromium } = require('/opt/node22/lib/node_modules/playwright');
+const { chromium } = require('playwright-core');  // ローカルの devDependency を使う
 
 const BASE = process.argv[2] ?? 'http://127.0.0.1:8899';
 const SHOTS = process.argv.includes('--shots');
@@ -111,7 +112,7 @@ const COLLECT = () => {
   return out;
 };
 
-const browser = await chromium.launch();
+const browser = await chromium.launch({ executablePath: browserPath() });
 if (SHOTS) mkdirSync(SHOT_DIR, { recursive: true });
 
 let problems = 0;

@@ -9,7 +9,7 @@ import { PressableScale } from '@/components/ui/PressableScale';
 import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
 import { Thumb } from '@/components/ui/Thumb';
 import { Avatar } from '@/components/ui/Avatar';
-import { StarRating } from '@/components/ui/StarRating';
+import { RatingSummary } from '@/components/ui/RatingSummary';
 import { PhotoSourceSheet } from '@/components/feature/PhotoSourceSheet';
 import { categories, conditions } from '@/data/mock';
 import { success } from '@/lib/haptics';
@@ -92,8 +92,8 @@ export default function WaterScreen() {
               <Text style={styles.parentOwner}>{owner.nickname}さん</Text>
             </View>
             <View style={styles.parentMeta}>
-              <StarRating value={4.5} size={12} gap={1} />
-              <Text style={styles.parentSub}>(12)　水やり数：{target.waterCount}</Text>
+              <RatingSummary avg={owner.ratingAvg ?? null} count={owner.ratingCount} size={12} gap={1} />
+              <Text style={styles.parentSub}>水やり数：{target.waterCount}</Text>
             </View>
           </View>
         </View>

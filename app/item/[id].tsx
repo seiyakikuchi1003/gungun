@@ -8,7 +8,7 @@ import { PressableScale } from '@/components/ui/PressableScale';
 import { Avatar } from '@/components/ui/Avatar';
 import { Thumb } from '@/components/ui/Thumb';
 import { HeartButton } from '@/components/ui/HeartButton';
-import { StarRating } from '@/components/ui/StarRating';
+import { RatingSummary } from '@/components/ui/RatingSummary';
 import { Sprout } from '@/components/art/Sprout';
 import { ItemActionSheet } from '@/components/feature/ItemActionSheet';
 import { ReportSheet } from '@/components/feature/ReportSheet';
@@ -130,8 +130,11 @@ export default function ItemDetailScreen() {
             <View style={{ flex: 1 }}>
               <Text style={styles.sellerName}>{owner.nickname}さん</Text>
               <View style={styles.sellerRating}>
-                <StarRating value={4.5} size={13} gap={2} />
-                <Text style={styles.sellerStat}>評価 {owner.ratingCount}・出品 {owner.itemCount}</Text>
+                <RatingSummary
+                  avg={owner.ratingAvg ?? null}
+                  count={owner.ratingCount}
+                  suffix={`出品 ${owner.itemCount}`}
+                />
               </View>
             </View>
             <Ionicons name="chevron-forward" size={20} color={colors.textPlaceholder} />
