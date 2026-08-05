@@ -78,10 +78,16 @@ Deno.serve(async (req) => {
   const success = 'gungun://purchase?status=success';
   const cancel = 'gungun://purchase?status=cancel';
 
+  // 【Apple Pay について】
+  //   payment_method_types をあえて指定しない。指定するとその種類だけに絞られてしまう。
+  //   未指定なら Stripe ダッシュボードの「自動決済手段」が効き、
+  //   iPhone の Safari で開いたときに Apple Pay のボタンが最上部に出る。
+  //   ★ ブラウザで開くこと（Linking.openURL）が条件。アプリ内WebViewでは Apple Pay は動かない。
   const params: Record<string, string | number> = {
     'success_url': success,
     'cancel_url': cancel,
     'client_reference_id': user.id,
+    'locale': 'ja',
     'metadata[user_id]': user.id,
     'metadata[kind]': kind,
     'line_items[0][quantity]': 1,
@@ -94,6 +100,8 @@ Deno.serve(async (req) => {
     if (!plan) return json({ error: '販売プランが見つかりません: ' + body.planId }, 400);
 
     params['mode'] = 'payment';
+    // 領収書と問い合わせ対応のために顧客レコードを残す
+    params['customer_creation'] = 'always';
     params['line_items[0][price_data][unit_amount]'] = plan.price;
     params['line_items[0][price_data][product_data][name]'] = `${plan.fertilizer.toLocaleString()}肥料`;
     params['metadata[plan_id]'] = plan.id;

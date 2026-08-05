@@ -108,7 +108,7 @@ export default function Premium() {
         <View style={styles.ctaWrap}>
           <Text style={styles.note}>
             {live
-              ? '※ 登録手続きはブラウザで行います。いつでも解約できます'
+              ? '※ 登録手続きはブラウザで行います（Apple Pay・カードに対応）。いつでも解約できます'
               : '※ 料金・提供機能は調整中です（管理画面から変更可能）'}
           </Text>
           {error ? <FormError message={error} /> : null}
@@ -124,7 +124,7 @@ export default function Premium() {
         </View>
         <Text style={styles.sheetNote}>
           {live
-            ? 'いつでも解約できます。お支払いはブラウザの決済画面で行います。'
+            ? 'いつでも解約できます。お支払いは Apple Pay またはカードでどうぞ。'
             : 'いつでも解約できます。料金は調整中のため、正式提供時に改めてご案内します。'}
         </Text>
         <PressableScale

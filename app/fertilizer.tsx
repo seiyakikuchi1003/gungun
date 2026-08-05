@@ -104,7 +104,7 @@ export default function Fertilizer() {
           <Ionicons name="information-circle-outline" size={16} color={colors.textSecondary} />
           <Text style={styles.noteText}>
             {live
-              ? '購入手続きはブラウザで行います。完了するとアプリに戻り、肥料が反映されます。'
+              ? '購入手続きはブラウザで行います（Apple Pay・カードに対応）。完了するとアプリに戻り、肥料が反映されます。'
               : '金額は調整中です。確定後、管理画面から反映されます。'}
           </Text>
         </View>
