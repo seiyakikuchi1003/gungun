@@ -41,15 +41,54 @@ begin
 end $$;
 
 -- ── ユーザー6人 ────────────────────────────────────────────
--- 必須列のみ。残りは Supabase 側の既定値に任せる。
+-- パスワードはすべて password。
 -- handle_new_user トリガが raw_user_meta_data.nickname を見て profiles を作る。
-insert into auth.users (id, email, encrypted_password, email_confirmed_at, raw_user_meta_data) values
-  ('00000000-0000-0000-0000-0000000000a1', 'haru@example.com',    crypt('password', gen_salt('bf')), now(), '{"nickname":"はる"}'),
-  ('00000000-0000-0000-0000-0000000000a2', 'metan@example.com',   crypt('password', gen_salt('bf')), now(), '{"nickname":"めたん"}'),
-  ('00000000-0000-0000-0000-0000000000a3', 'sakura@example.com',  crypt('password', gen_salt('bf')), now(), '{"nickname":"さくら"}'),
-  ('00000000-0000-0000-0000-0000000000a4', 'yu@example.com',      crypt('password', gen_salt('bf')), now(), '{"nickname":"ゆう"}'),
-  ('00000000-0000-0000-0000-0000000000a5', 'takusan@example.com', crypt('password', gen_salt('bf')), now(), '{"nickname":"たくさん"}'),
-  ('00000000-0000-0000-0000-0000000000a6', 'kenta@example.com',   crypt('password', gen_salt('bf')), now(), '{"nickname":"けんた"}');
+--
+-- ★ auth.users を直挿しするときは、GoTrue（認証基盤）が読む列をすべて埋めること。
+--   2026-08-05、埋め忘れで以下の2段階のエラーを実際に踏んだ：
+--     1. aud / role / instance_id が NULL
+--        → GoTrue はこの3つで絞り込むので「ユーザーが存在しない」扱い
+--          → Invalid login credentials
+--     2. raw_app_meta_data / created_at / updated_at が NULL
+--        → GoTrue が構造体に読み込めず 500 Database error querying schema
+--   トークン列も NULL ではなく空文字にする（Go 側が文字列として読むため）。
+insert into auth.users (
+  id, instance_id, aud, role,
+  email, encrypted_password, email_confirmed_at,
+  raw_user_meta_data, raw_app_meta_data, created_at, updated_at,
+  confirmation_token, recovery_token, email_change,
+  email_change_token_new, email_change_token_current,
+  phone_change, phone_change_token, reauthentication_token
+)
+select
+  v.id::uuid, '00000000-0000-0000-0000-000000000000'::uuid, 'authenticated', 'authenticated',
+  v.email, crypt('password', gen_salt('bf')), now(),
+  v.meta::jsonb, '{"provider":"email","providers":["email"]}'::jsonb, now(), now(),
+  '', '', '', '', '', '', '', ''
+from (values
+  ('00000000-0000-0000-0000-0000000000a1', 'haru@example.com',    '{"nickname":"はる"}'),
+  ('00000000-0000-0000-0000-0000000000a2', 'metan@example.com',   '{"nickname":"めたん"}'),
+  ('00000000-0000-0000-0000-0000000000a3', 'sakura@example.com',  '{"nickname":"さくら"}'),
+  ('00000000-0000-0000-0000-0000000000a4', 'yu@example.com',      '{"nickname":"ゆう"}'),
+  ('00000000-0000-0000-0000-0000000000a5', 'takusan@example.com', '{"nickname":"たくさん"}'),
+  ('00000000-0000-0000-0000-0000000000a6', 'kenta@example.com',   '{"nickname":"けんた"}')
+) as v(id, email, meta);
+
+-- ★ auth.identities も必須。
+--   いまの GoTrue はメール＋パスワードのログイン時に identities（provider='email'）を
+--   引くため、この行が無いと auth.users があってもログインできない
+--   （2026-08-05：aud/role を直したあとも Invalid login credentials が続いた原因）。
+insert into auth.identities (user_id, provider_id, provider, identity_data, last_sign_in_at, created_at, updated_at)
+select
+  u.id, u.id::text, 'email',
+  jsonb_build_object('sub', u.id::text, 'email', u.email, 'email_verified', true, 'phone_verified', false),
+  now(), now(), now()
+from auth.users u
+where u.id in (
+  '00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000a2',
+  '00000000-0000-0000-0000-0000000000a3', '00000000-0000-0000-0000-0000000000a4',
+  '00000000-0000-0000-0000-0000000000a5', '00000000-0000-0000-0000-0000000000a6'
+);
 
 -- profiles はトリガ handle_new_user が作る。肥料を追加で盛る
 update profiles set fertilizer = 2000 where id in (
@@ -93,6 +132,30 @@ insert into items (id, user_id, name, description, category, condition, parent_i
    '腕時計', '電池交換済み。カメラが欲しくて水やり。', 'メンズ', '未使用に近い',
    'b1000000-0000-4000-8000-000000000005');
 
+-- ── めたん様がすぐ収穫を試せる木 ───────────────────────────
+-- 種の持ち主が「めたん」でないと収穫を試せない（収穫できるのは種の持ち主だけ）。
+-- めたん → たくさん → けんた の一本道にしてあるので、
+-- metan@example.com でログインして「収穫」タブから3人の輪をすぐ作れる。
+insert into items (id, user_id, name, description, category, condition) values
+  ('b1000000-0000-4000-8000-000000000020', '00000000-0000-0000-0000-0000000000a2',
+   'スニーカー', '数回履いただけです。箱あり。', 'メンズ', '目立った傷や汚れなし');
+
+insert into items (id, user_id, name, description, category, condition, parent_id) values
+  ('b1000000-0000-4000-8000-000000000021', '00000000-0000-0000-0000-0000000000a5',
+   'iPhone 15', 'バッテリー最大容量92%。初期化して発送します。', 'スマホ・家電', '目立った傷や汚れなし',
+   'b1000000-0000-4000-8000-000000000020');
+
+insert into items (id, user_id, name, description, category, condition, parent_id) values
+  ('b1000000-0000-4000-8000-000000000022', '00000000-0000-0000-0000-0000000000a6',
+   'ブランド財布', 'いただきものですが使わないため。', 'メンズ', '未使用に近い',
+   'b1000000-0000-4000-8000-000000000021');
+
+-- 収穫の一本道から外れる枝。収穫すると新しいタネとして独立する（苗木機能の確認用）
+insert into items (id, user_id, name, description, category, condition, parent_id) values
+  ('b1000000-0000-4000-8000-000000000023', '00000000-0000-0000-0000-0000000000a3',
+   'ワイヤレスコントローラー', '数回使用のみ。箱・ケーブル付き。', 'ゲーム・おもちゃ', '目立った傷や汚れなし',
+   'b1000000-0000-4000-8000-000000000020');
+
 -- 別の独立した種（一覧に並べる用）
 insert into items (id, user_id, name, description, category, condition) values
   ('b1000000-0000-4000-8000-000000000010', '00000000-0000-0000-0000-0000000000a6',
@@ -114,7 +177,11 @@ insert into item_images (item_id, url, sort_order) values
   ('b1000000-0000-4000-8000-000000000007', 'https://raw.githubusercontent.com/seiyakikuchi1003/gungun/main/assets/products/watch.jpg', 0),
   ('b1000000-0000-4000-8000-000000000010', 'https://raw.githubusercontent.com/seiyakikuchi1003/gungun/main/assets/products/switch.jpg', 0),
   ('b1000000-0000-4000-8000-000000000011', 'https://raw.githubusercontent.com/seiyakikuchi1003/gungun/main/assets/products/perfume.jpg', 0),
-  ('b1000000-0000-4000-8000-000000000012', 'https://raw.githubusercontent.com/seiyakikuchi1003/gungun/main/assets/products/airpods.jpg', 0);
+  ('b1000000-0000-4000-8000-000000000012', 'https://raw.githubusercontent.com/seiyakikuchi1003/gungun/main/assets/products/airpods.jpg', 0),
+  ('b1000000-0000-4000-8000-000000000020', 'https://raw.githubusercontent.com/seiyakikuchi1003/gungun/main/assets/products/sneaker.jpg', 0),
+  ('b1000000-0000-4000-8000-000000000021', 'https://raw.githubusercontent.com/seiyakikuchi1003/gungun/main/assets/products/iphone.jpg', 0),
+  ('b1000000-0000-4000-8000-000000000022', 'https://raw.githubusercontent.com/seiyakikuchi1003/gungun/main/assets/products/wallet.jpg', 0),
+  ('b1000000-0000-4000-8000-000000000023', 'https://raw.githubusercontent.com/seiyakikuchi1003/gungun/main/assets/products/controller.jpg', 0);
 
 -- ── 掲示板の投稿 ─────────────────────────────────────────
 insert into board_posts (id, user_id, body, tag, image_url, pinned, created_at) values
