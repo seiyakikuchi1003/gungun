@@ -1,0 +1,13 @@
+# Cloudflare Pages の設定（管理画面）
+#
+# ここに書いておくと、デプロイのたびに互換フラグを手で設定し直さずに済む。
+# nodejs_compat は必須：Supabase SDK が Node.js の組込みモジュールを使うため、
+# 無いと本番で 500 になる（過去に踏んだ）。
+#
+#   npx next-on-pages                                  # .vercel/output/static を生成
+#   wrangler pages deploy --project-name=gungun-admin  # 出力先は下の設定から読まれる
+
+name = "gungun-admin"
+pages_build_output_dir = ".vercel/output/static"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]

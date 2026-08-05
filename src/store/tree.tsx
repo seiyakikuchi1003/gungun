@@ -189,11 +189,15 @@ export function TreeProvider({ children }: { children: React.ReactNode }) {
         return { ok: false, reason: 'この商品は取引中のため水やりできません' };
       if (!myId) return { ok: false, reason: 'ログインしてください' };
 
-      // 祖先ライン（target〜root）に自分の商品があれば不可（SPEC 3-2）
-      const line = ancestorsIn(pool, targetId);
-      if (line.some((n) => n.ownerId === myId)) {
+      // 対象が属する木（同じ rootId）に自分の商品が1つでもあれば不可（SPEC 3-2）。
+      // 1ユーザーは1つの木につき1回だけ水やりできる。
+      // サーバ側の can_water と同じ判定。ここは表示用の事前判定。
+      // （サーバ側は status='deleted' を除外するが、プールには削除済みが入らないので
+      //   ここでは絞り込み不要）
+      const inTree = pool.some((n) => n.rootId === target.rootId && n.ownerId === myId);
+      if (inTree) {
         if (target.ownerId === myId) return { ok: false, reason: '自分の出品には水やりできません' };
-        return { ok: false, reason: 'すでに参加している交換の輪には水やりできません' };
+        return { ok: false, reason: 'この木にはすでに水やりしています（1つの木につき1回まで）' };
       }
       if (fertilizer < waterCost) return { ok: false, reason: '肥料が不足しています' };
       return { ok: true };

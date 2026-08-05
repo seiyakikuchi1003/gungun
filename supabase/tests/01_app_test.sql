@@ -58,7 +58,7 @@ begin
   i_c := water(c, i_b, 'カメラ', '', '家電', '良い', '{}');
   perform t('孫ノードは depth=2', (select depth from items where id=i_c) = 2);
 
-  -- ── can_water のルール ────────────────────────────────
+  -- ── can_water のルール（★2026-08-05：木全体で判定）──────
   perform t('自分の出品には水やりできない', can_water(a, seed) = false);
   perform t('すでに輪にいる人は同じ枝に水やりできない', can_water(b, i_c) = false);
   perform t('関係ない人は水やりできる', can_water(d, i_c) = true);
@@ -68,6 +68,14 @@ begin
   i_d := water(d, seed, 'マフラー', '', 'ファッション', '普通', '{}');
   perform t('同じ種に2本目の枝が生える',
     (select count(*) from items where parent_id = seed) = 2);
+
+  -- 木全体で判定するので、自分と交わらない別の枝にも水やりできない
+  perform t('同じ木の別の枝には水やりできない（1木1回）', can_water(b, i_d) = false);
+  perform t('2回目の水やりは同じ木では不可', can_water(d, i_c) = false);
+  begin
+    perform water(d, i_c, '二重水やり', '', '家電', '普通', '{}');
+    perform t('同じ木に2回水やりすると例外', false);
+  exception when others then perform t('同じ木に2回水やりすると例外', true); end;
 
   -- ── ビュー ────────────────────────────────────────────
   perform t('item_cards の water_count が枝の数と一致',
