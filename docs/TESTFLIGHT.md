@@ -41,7 +41,7 @@ npx eas build --profile production --platform ios
 ```
 
 - Apple の認証を求められます。**EAS に証明書とプロビジョニングを自動作成させる**のが一番早いです（`Yes` で進む）
-- Bundle ID `app.gungun.ios` が Apple 側に無ければ自動で作られます
+- Bundle ID `com.warashibe.gungun` が Apple 側に無ければ自動で作られます
 - 進捗はターミナルか expo.dev のビルド画面で見られます
 
 ### 2. App Store Connect へアップロード（5〜10分）

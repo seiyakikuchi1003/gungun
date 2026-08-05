@@ -16,7 +16,7 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "app.gungun.ios",
+      "bundleIdentifier": "com.warashibe.gungun",
       "infoPlist": {
         "UIBackgroundModes": [
           "remote-notification"
