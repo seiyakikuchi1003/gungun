@@ -62,7 +62,9 @@ export default function LoginScreen() {
                 「触ったのに保存されない／消えない」の切り分けに使う。
                 モック時は何も出さないので、先方デモの邪魔にはならない。
                 開発中は .env の読み込み漏れに気づけるよう、モックでも出す。 */}
-            {(live || __DEV__) && (
+            {/* 先方に見せる版では出さない。開発中だけ .env の読み込み状態が分かればよい
+                （2026-08-05：「いらない文言が多い」との指摘で本番非表示に） */}
+            {__DEV__ && (
               <View style={[styles.modeChip, live ? styles.modeLive : styles.modeMock]}>
                 <Text style={[styles.modeText, live ? styles.modeTextLive : styles.modeTextMock]}>
                   {live ? '● 実データ（Supabase）に接続中' : '○ モックデータ（.env 未読込）'}

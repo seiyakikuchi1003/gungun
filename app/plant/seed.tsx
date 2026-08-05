@@ -26,7 +26,8 @@ export default function PlantSeedScreen() {
   const [photos, setPhotos] = useState<string[]>([]);
   const [name, setName] = useState('');
   const [desc, setDesc] = useState('');
-  const [category, setCategory] = useState('ゲーム・おもちゃ');
+  // 初期値を入れると「選んだつもりがない物」で出品されてしまうので未選択から始める
+  const [category, setCategory] = useState('');
   const [condition, setCondition] = useState('目立った傷や汚れなし');
   const [picker, setPicker] = useState<PickerKey>(null);
   const [photoSheet, setPhotoSheet] = useState(false);
@@ -129,8 +130,8 @@ export default function PlantSeedScreen() {
           </Animated.View>
 
           {/* カテゴリー / 状態 */}
-          <SelectRow label="カテゴリー" value={category} onPress={() => setPicker('category')} />
-          <SelectRow label="商品の状態" value={condition} onPress={() => setPicker('condition')} />
+          <SelectRow label="カテゴリー" value={category} placeholder="選択してください" required onPress={() => setPicker('category')} />
+          <SelectRow label="商品の状態" value={condition} placeholder="選択してください" required onPress={() => setPicker('condition')} />
         </View>
       </ScrollView>
 
@@ -179,12 +180,27 @@ export default function PlantSeedScreen() {
   );
 }
 
-function SelectRow({ label, value, onPress }: { label: string; value: string; onPress: () => void }) {
+function SelectRow({
+  label,
+  value,
+  placeholder = '',
+  required = false,
+  onPress,
+}: {
+  label: string;
+  value: string;
+  placeholder?: string;
+  required?: boolean;
+  onPress: () => void;
+}) {
   return (
     <PressableScale onPress={onPress} activeScale={0.98} style={[styles.selectRow, shadows.soft]}>
-      <Text style={styles.fieldLabel}>{label}</Text>
+      <View style={styles.labelRow}>
+        <Text style={styles.fieldLabel}>{label}</Text>
+        {required && <Text style={styles.required}>必須</Text>}
+      </View>
       <View style={styles.selectRight}>
-        <Text style={styles.selectValue}>{value}</Text>
+        <Text style={[styles.selectValue, !value && styles.selectPlaceholder]}>{value || placeholder}</Text>
         <Ionicons name="chevron-forward" size={18} color={colors.green} />
       </View>
     </PressableScale>
@@ -192,6 +208,14 @@ function SelectRow({ label, value, onPress }: { label: string; value: string; on
 }
 
 const styles = StyleSheet.create({
+  labelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  // 「任意」があるなら「必須」も出す（2026-08-05 指摘）
+  required: {
+    fontFamily: fonts.bold, fontSize: 10.5, color: colors.white,
+    backgroundColor: colors.orangeDeep, paddingHorizontal: 6, paddingVertical: 1.5,
+    borderRadius: radius.pill, overflow: 'hidden',
+  },
+  selectPlaceholder: { color: colors.textPlaceholder },
   root: { flex: 1, backgroundColor: colors.bg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: spacing.md },
   close: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },

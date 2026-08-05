@@ -113,7 +113,11 @@ export default function HomeScreen() {
   }, [refresh]);
 
   // 「みんなの種」＝木の根（parentId=null）をテーマ別のモザイクで表示
-  const seedsBase = items.filter((i) => i.parentId === null && !isBlocked(i.ownerId)).reverse();
+  // 収穫が決まった（取引中・完了）ものはホームに出さない。
+  // 出しておくと水やりできそうに見えるが、実際には受け付けられない（2026-08-05 指摘）
+  const seedsBase = items
+    .filter((i) => i.parentId === null && i.status === 'growing' && !isBlocked(i.ownerId))
+    .reverse();
   const shift = refreshTick % Math.max(seedsBase.length, 1);
   const seeds = seedsBase.slice(shift).concat(seedsBase.slice(0, shift));
   const COLLECTIONS: { title: string; subtitle: string; match: (c: string) => boolean }[] = [
