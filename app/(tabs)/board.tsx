@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TextInput, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -28,6 +28,17 @@ export default function BoardScreen() {
   const [query, setQuery] = useState('');
   const [toast, setToast] = useState<string | null>(null);
   const { posts, loading, reload, remove } = useBoard();
+  // 引っ張って更新（他の画面と同じ操作で最新にできるように）
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await reload();
+    } catch {
+      // 取得に失敗しても画面は保つ
+    }
+    setRefreshing(false);
+  }, [reload]);
   const q = query.trim().replace(/^#/, '').toLowerCase();
   const list = posts.filter(
     (p) =>
@@ -88,6 +99,7 @@ export default function BoardScreen() {
       {/* フィルター */}
       <View style={styles.filtersRow}>
       <ScrollView
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.green]} tintColor={colors.green} />}
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
         {boardTagFilters.map((f) => {

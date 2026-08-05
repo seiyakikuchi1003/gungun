@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -45,7 +45,18 @@ function Row({ n, onPress }: { n: Notif; onPress: () => void }) {
 
 export default function Notifications() {
   const insets = useSafeAreaInsets();
-  const { list, markRead, markAllRead } = useNotifications();
+  const { list, markRead, markAllRead, refresh } = useNotifications();
+  // 引っ張って更新（他の画面と同じ操作で最新にできるように）
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refresh();
+    } catch {
+      // 取得に失敗しても画面は保つ
+    }
+    setRefreshing(false);
+  }, [refresh]);
   const today = list.filter((n) => n.today);
   const earlier = list.filter((n) => !n.today);
 
@@ -68,6 +79,7 @@ export default function Notifications() {
       </View>
 
       <ScrollView
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.green]} tintColor={colors.green} />}
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
         {today.length > 0 && (

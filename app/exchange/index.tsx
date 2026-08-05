@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -41,7 +41,18 @@ function actionHint(t: UITrade): string {
 export default function ExchangeScreen() {
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<'receive' | 'send'>('receive');
-  const { list: all, loading } = useExchanges();
+  const { list: all, loading, reload } = useExchanges();
+  // 引っ張って更新（他の画面と同じ操作で最新にできるように）
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await reload();
+    } catch {
+      // 取得に失敗しても画面は保つ
+    }
+    setRefreshing(false);
+  }, [reload]);
   const list = all.filter((t) => t.dir === tab);
   const accent = tab === 'receive' ? colors.green : colors.orange;
   const actionCount = list.filter((t) => (tab === 'receive' ? t.status === 'shipped' : t.status === 'pending')).length;
@@ -66,6 +77,7 @@ export default function ExchangeScreen() {
       />
 
       <ScrollView
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.green]} tintColor={colors.green} />}
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20 }}>
         <View style={[styles.summary, { backgroundColor: tab === 'receive' ? colors.greenSoft : colors.orangeSoft }]}>

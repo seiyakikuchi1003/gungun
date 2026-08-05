@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -20,7 +20,18 @@ import { useMe } from '@/store/me';
 export default function HarvestScreen() {
   const me = useMe();
   const insets = useSafeAreaInsets();
-  const { items, treeItems } = useTree();
+  const { items, treeItems, refresh } = useTree();
+  // 引っ張って更新（他の画面と同じ操作で最新にできるように）
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refresh();
+    } catch {
+      // 取得に失敗しても画面は保つ
+    }
+    setRefreshing(false);
+  }, [refresh]);
 
   // 自分が植えたタネ（parentId=null）＝収穫の起点になれるもの
   // デモの木を見せるため、自分の種が無い場合は水やりが集まっている木も表示する
@@ -45,6 +56,7 @@ export default function HarvestScreen() {
       </View>
 
       <ScrollView
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.green]} tintColor={colors.green} />}
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
