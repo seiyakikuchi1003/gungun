@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, AppState } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -7,27 +7,59 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { Button } from '@/components/ui/Button';
-import { settings, formatPrice } from '@/config/settings';
+import { settings as fallbackSettings, formatPrice } from '@/config/settings';
 import { useTree } from '@/store/tree';
+import { useAuth } from '@/store/auth';
+import { startCheckout } from '@/lib/api/purchases';
+import { FormError } from '@/components/ui/FormError';
 
 export default function Fertilizer() {
   const insets = useSafeAreaInsets();
   // 残高は tree ストアが持つ（モックでも増減する）。me.fertilizer は初期値なので使わない
-  const { fertilizer, addFertilizer } = useTree();
-  const [sel, setSel] = useState<string>(settings.chargePlans[1].id);
+  const { fertilizer, addFertilizer, settings: appSettings, live } = useTree();
+  const { reloadProfile } = useAuth();
+  // 販売プランは DB（app_settings.charge_plans）から。未接続時はモックの既定値
+  const plans = live
+    ? appSettings.chargePlans
+    : fallbackSettings.chargePlans.map((p) => ({ ...p, price: p.price ?? 0, badge: p.badge ?? '' }));
+  const [sel, setSel] = useState<string>(plans[1]?.id ?? plans[0].id);
   const [done, setDone] = useState<string | null>(null);
-  const plan = settings.chargePlans.find((p) => p.id === sel) ?? settings.chargePlans[0];
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const plan = plans.find((p) => p.id === sel) ?? plans[0];
+
+  // 決済はブラウザで行うので、アプリに戻ってきたら残高を取り直す。
+  // 付与は Stripe の通知を受けたサーバ側が行うため、ここでは読むだけ。
+  useEffect(() => {
+    if (!live) return;
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') reloadProfile().catch(() => {});
+    });
+    return () => sub.remove();
+  }, [live, reloadProfile]);
 
   /**
-   * 購入。App Store の課金（StoreKit）はネイティブ化のときに繋ぐ。
-   * いまは選んだプランぶんの肥料を反映して、残高が増えるところまで見せる。
+   * 購入。実DB接続時は Stripe Checkout をブラウザで開く。
+   * 未接続（モック）のときは、残高が増えるところまでを見せる。
    */
-  const purchase = () => {
-    if (done) return;
-    addFertilizer(plan.fertilizer);
-    setDone(`${plan.fertilizer.toLocaleString()}肥料をチャージしました`);
-    // 直リンクで開かれていて戻り先が無いこともあるのでホームへ逃がす
-    setTimeout(() => (router.canGoBack() ? router.back() : router.replace('/(tabs)')), 1200);
+  const purchase = async () => {
+    if (done || busy) return;
+    if (!live) {
+      addFertilizer(plan.fertilizer);
+      setDone(`${plan.fertilizer.toLocaleString()}肥料をチャージしました`);
+      // 直リンクで開かれていて戻り先が無いこともあるのでホームへ逃がす
+      setTimeout(() => (router.canGoBack() ? router.back() : router.replace('/(tabs)')), 1200);
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      await startCheckout('fertilizer', plan.id);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '決済画面を開けませんでした');
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -53,7 +85,7 @@ export default function Fertilizer() {
         </LinearGradient>
 
         <Text style={styles.sectionTitle}>チャージするプランを選択</Text>
-        {settings.chargePlans.map((p) => {
+        {plans.map((p) => {
           const on = p.id === sel;
           return (
             <PressableScale key={p.id} activeScale={0.98} onPress={() => setSel(p.id)} style={[styles.plan, shadows.soft, on && styles.planOn]}>
@@ -70,8 +102,13 @@ export default function Fertilizer() {
 
         <View style={styles.note}>
           <Ionicons name="information-circle-outline" size={16} color={colors.textSecondary} />
-          <Text style={styles.noteText}>金額は調整中です。確定後、管理画面から反映されます。</Text>
+          <Text style={styles.noteText}>
+            {live
+              ? '購入手続きはブラウザで行います。完了するとアプリに戻り、肥料が反映されます。'
+              : '金額は調整中です。確定後、管理画面から反映されます。'}
+          </Text>
         </View>
+        {error ? <FormError message={error} /> : null}
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
@@ -82,8 +119,9 @@ export default function Fertilizer() {
           </View>
         ) : (
           <Button
-            title="Apple Pay で購入する"
-            leftIcon={<Ionicons name="logo-apple" size={20} color={colors.white} />}
+            title={live ? `${formatPrice(plan.price)} を支払う` : 'Apple Pay で購入する'}
+            leftIcon={<Ionicons name={live ? 'card' : 'logo-apple'} size={20} color={colors.white} />}
+            loading={busy}
             onPress={purchase}
           />
         )}

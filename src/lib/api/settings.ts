@@ -9,6 +9,8 @@ import { settings as fallback } from '@/config/settings';
  * 取得に失敗したときは src/config/settings.ts の既定値で動かす。
  */
 
+export type ChargePlan = { id: string; fertilizer: number; price: number; badge: string };
+
 export type AppSettings = {
   waterCost: number;
   dailyLoginBonus: number;
@@ -19,6 +21,8 @@ export type AppSettings = {
   maxImagesPerItem: number;
   termsOfService: string;
   privacyPolicy: string;
+  /** 肥料の販売プラン（管理画面から変更できる） */
+  chargePlans: ChargePlan[];
 };
 
 export const defaultSettings: AppSettings = {
@@ -31,7 +35,28 @@ export const defaultSettings: AppSettings = {
   maxImagesPerItem: 4,
   termsOfService: '',
   privacyPolicy: '',
+  chargePlans: fallback.chargePlans.map((p) => ({
+    id: p.id,
+    fertilizer: p.fertilizer,
+    price: p.price ?? 0,
+    badge: p.badge ?? '',
+  })),
 };
+
+/** charge_plans（jsonb の配列）を読む。壊れていれば既定値で動かす */
+function plans(v: unknown): ChargePlan[] {
+  if (!Array.isArray(v)) return defaultSettings.chargePlans;
+  const out = v
+    .filter((p): p is Record<string, unknown> => typeof p === 'object' && p !== null)
+    .map((p) => ({
+      id: String(p.id ?? ''),
+      fertilizer: Number(p.fertilizer ?? 0),
+      price: Number(p.price ?? 0),
+      badge: typeof p.badge === 'string' ? p.badge : '',
+    }))
+    .filter((p) => p.id !== '' && p.fertilizer > 0 && p.price > 0);
+  return out.length > 0 ? out : defaultSettings.chargePlans;
+}
 
 function num(v: unknown, d: number): number {
   const n = typeof v === 'string' ? Number(v) : (v as number);
@@ -61,5 +86,6 @@ export async function fetchSettings(): Promise<AppSettings> {
     maxImagesPerItem: num(map.get('max_images_per_item'), defaultSettings.maxImagesPerItem),
     termsOfService: text(map.get('terms_of_service'), defaultSettings.termsOfService),
     privacyPolicy: text(map.get('privacy_policy'), defaultSettings.privacyPolicy),
+    chargePlans: plans(map.get('charge_plans')),
   };
 }

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, AppState } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -7,9 +7,12 @@ import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { Mikan } from '@/components/art/Mikan';
-import { settings, formatPrice } from '@/config/settings';
+import { formatPrice } from '@/config/settings';
 import { success } from '@/lib/haptics';
 import { useTree } from '@/store/tree';
+import { useAuth } from '@/store/auth';
+import { startCheckout } from '@/lib/api/purchases';
+import { FormError } from '@/components/ui/FormError';
 
 function makeFeatures(bonus: number): { icon: keyof typeof Ionicons.glyphMap; title: string; desc: string }[] {
   return [
@@ -22,9 +25,43 @@ function makeFeatures(bonus: number): { icon: keyof typeof Ionicons.glyphMap; ti
 export default function Premium() {
   const insets = useSafeAreaInsets();
   const [confirm, setConfirm] = useState(false);
-  const [joined, setJoined] = useState(false);
-  const { settings: appSettings } = useTree();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { settings: appSettings, live } = useTree();
+  const { profile, reloadProfile } = useAuth();
   const FEATURES = makeFeatures(appSettings.dailyLoginBonusPremium);
+  // 加入済みかは DB（profiles.is_premium）が正。画面のフラグでは判断しない
+  const joined = live ? Boolean(profile?.isPremium) : false;
+  const price = live ? appSettings.premiumMonthly : appSettings.premiumMonthly;
+
+  // 決済はブラウザで行うので、戻ってきたらプロフィールを取り直す
+  useEffect(() => {
+    if (!live) return;
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') reloadProfile().catch(() => {});
+    });
+    return () => sub.remove();
+  }, [live, reloadProfile]);
+
+  /** 加入。実DB接続時は Stripe のサブスクリプションをブラウザで開く */
+  const subscribe = async () => {
+    if (busy) return;
+    if (!live) {
+      success();
+      setConfirm(false);
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      await startCheckout('premium');
+      setConfirm(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '決済画面を開けませんでした');
+    } finally {
+      setBusy(false);
+    }
+  };
   return (
     <View style={styles.root}>
       <ScrollView
@@ -37,7 +74,7 @@ export default function Premium() {
           <Text style={styles.heroTitle}>ぐんぐん プレミアム</Text>
           <Text style={styles.heroSub}>もっと交換をたのしむ、特別プラン</Text>
           <View style={styles.priceRow}>
-            <Text style={styles.price}>{formatPrice(settings.premiumMonthly)}</Text>
+            <Text style={styles.price}>{formatPrice(price)}</Text>
             <Text style={styles.priceUnit}>/ 月</Text>
           </View>
 
@@ -69,7 +106,12 @@ export default function Premium() {
         </View>
 
         <View style={styles.ctaWrap}>
-          <Text style={styles.note}>※ 料金・提供機能は調整中です（管理画面から変更可能）</Text>
+          <Text style={styles.note}>
+            {live
+              ? '※ 登録手続きはブラウザで行います。いつでも解約できます'
+              : '※ 料金・提供機能は調整中です（管理画面から変更可能）'}
+          </Text>
+          {error ? <FormError message={error} /> : null}
         </View>
       </ScrollView>
 
@@ -78,18 +120,21 @@ export default function Premium() {
         <View style={styles.sheetHead}>
           <Mikan size={56} />
           <Text style={styles.sheetTitle}>ぐんぐん プレミアム</Text>
-          <Text style={styles.sheetPrice}>{formatPrice(settings.premiumMonthly)} / 月</Text>
+          <Text style={styles.sheetPrice}>{formatPrice(price)} / 月</Text>
         </View>
         <Text style={styles.sheetNote}>
-          いつでも解約できます。料金は調整中のため、正式提供時に改めてご案内します。
+          {live
+            ? 'いつでも解約できます。お支払いはブラウザの決済画面で行います。'
+            : 'いつでも解約できます。料金は調整中のため、正式提供時に改めてご案内します。'}
         </Text>
         <PressableScale
-          onPress={() => { success(); setJoined(true); setConfirm(false); }}
+          onPress={subscribe}
+          disabled={busy}
           activeScale={0.97}
-          style={[styles.sheetBtn, shadows.button]}
+          style={[styles.sheetBtn, shadows.button, busy && { opacity: 0.6 }]}
         >
           <Ionicons name="diamond" size={18} color={colors.white} />
-          <Text style={styles.sheetBtnText}>登録する</Text>
+          <Text style={styles.sheetBtnText}>{busy ? '開いています…' : '登録する'}</Text>
         </PressableScale>
         <PressableScale onPress={() => setConfirm(false)} activeScale={0.98} style={styles.sheetCancel}>
           <Text style={styles.sheetCancelText}>あとで</Text>
