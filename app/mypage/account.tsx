@@ -90,6 +90,7 @@ export default function Account() {
 
       <ScrollView
         keyboardDismissMode="on-drag"
+        automaticallyAdjustKeyboardInsets
         keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
         <Section title="アカウント">
           <Row label="ニックネーム" value={me.nickname || '未設定'} onPress={() => router.push('/mypage/edit')} />

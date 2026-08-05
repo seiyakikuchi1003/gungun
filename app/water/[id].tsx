@@ -80,6 +80,7 @@ export default function WaterScreen() {
 
       <ScrollView
         keyboardDismissMode="on-drag"
+        automaticallyAdjustKeyboardInsets
         keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
         {/* 水やり先（親商品） */}
         <Text style={styles.label}>水やり先（親商品）</Text>

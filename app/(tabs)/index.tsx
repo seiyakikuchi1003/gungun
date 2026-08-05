@@ -27,7 +27,7 @@ import { howToSteps } from '@/data/mock';
 import { useTree } from '@/store/tree';
 import { useBlocks } from '@/store/blocks';
 import { useNotifications } from '@/store/notifications';
-import { medium } from '@/lib/haptics';
+import { medium, success } from '@/lib/haptics';
 import { playSfx, preloadSfx } from '@/lib/sound';
 import { useMe } from '@/store/me';
 import { useLoginBonus } from '@/hooks/useLoginBonus';
@@ -191,9 +191,16 @@ export default function HomeScreen() {
               <Text style={styles.bonusValue}>毎日{'\n'}+{bonusAmount}肥料</Text>
             </View>
             <PressableScale
-              onPress={async () => { await claim(); setShowBonus(true); }}
+              onPress={async () => {
+                // 受取済みでもカレンダーは見たい（押しても何も起きないのは不親切）
+                if (!claimed) {
+                  await claim();
+                  success(); // 受け取れた手応えを返す
+                }
+                setShowBonus(true);
+              }}
               activeScale={0.95}
-              disabled={claimed || bonusBusy}
+              disabled={bonusBusy}
             >
               <LinearGradient
                 colors={claimed ? ['#D9D3C6', '#CFC8BA'] : ['#F7B23F', colors.orangeDeep]}

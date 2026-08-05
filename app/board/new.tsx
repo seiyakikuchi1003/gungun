@@ -101,6 +101,7 @@ export default function NewPost() {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
         keyboardDismissMode="on-drag"
+        automaticallyAdjustKeyboardInsets
         keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
           {error ? <View style={{ marginBottom: 12 }}><FormError message={error} /></View> : null}
 

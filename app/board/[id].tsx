@@ -45,7 +45,10 @@ export default function BoardDetail() {
         {/* 投稿カード */}
         <View style={[styles.postCard, shadows.card]}>
           <View style={styles.postHead}>
-            <Avatar uri={u.avatar} name={u.nickname} size={48} />
+            {/* 投稿者のプロフィールを見られるように（2026-08-05 指摘） */}
+            <PressableScale activeScale={0.94} onPress={() => router.push(`/user/${post.userId}`)}>
+              <Avatar uri={u.avatar} name={u.nickname} size={48} />
+            </PressableScale>
             <View style={{ flex: 1 }}>
               <View style={styles.nameRow}>
                 <Text style={styles.name}>{u.nickname}</Text>
@@ -74,7 +77,11 @@ export default function BoardDetail() {
           const mine = c.userId === me.id;
           return (
             <View key={c.id} style={[styles.comment, mine && styles.commentMine]}>
-              {!mine && <Avatar uri={cu.avatar} name={cu.nickname} size={36} />}
+              {!mine && (
+                <PressableScale activeScale={0.94} onPress={() => router.push(`/user/${c.userId}`)}>
+                  <Avatar uri={cu.avatar} name={cu.nickname} size={36} />
+                </PressableScale>
+              )}
               <View style={[styles.bubble, mine && styles.bubbleMine]}>
                 <View style={styles.cHead}>
                   <Text style={[styles.cName, mine && styles.cNameMine]}>{mine ? 'あなた' : cu.nickname}</Text>

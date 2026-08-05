@@ -67,6 +67,7 @@ export default function PlantSeedScreen() {
 
       <ScrollView
         keyboardDismissMode="on-drag"
+        automaticallyAdjustKeyboardInsets
         keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
         <View style={styles.body}>
           <NoticeBox text="いらないものを植えると、交換の輪がはじまります" />

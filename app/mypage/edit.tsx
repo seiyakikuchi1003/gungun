@@ -62,15 +62,19 @@ export default function ProfileEdit() {
   return (
     <View style={styles.root}>
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <PressableScale onPress={() => router.back()} activeScale={0.9}><Text style={styles.cancel}>キャンセル</Text></PressableScale>
-        <Text style={styles.hTitle}>プロフィール編集</Text>
-        <PressableScale onPress={save} activeScale={0.94} disabled={busy}>
+        {/* 左右の幅を揃えないと、文字数の差でタイトルが中央からずれる（2026-08-05 指摘） */}
+        <PressableScale onPress={() => router.back()} activeScale={0.9} style={styles.hSide}>
+          <Text style={styles.cancel}>キャンセル</Text>
+        </PressableScale>
+        <Text style={styles.hTitle} numberOfLines={1}>プロフィール編集</Text>
+        <PressableScale onPress={save} activeScale={0.94} disabled={busy} style={[styles.hSide, styles.hSideRight]}>
           <Text style={styles.save}>{busy ? '保存中…' : '保存'}</Text>
         </PressableScale>
       </View>
 
       <ScrollView
         keyboardDismissMode="on-drag"
+        automaticallyAdjustKeyboardInsets
         keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
         <View style={styles.avatarWrap}>
           <Avatar uri={avatar} name={nickname} size={96} />
@@ -108,9 +112,11 @@ export default function ProfileEdit() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.divider },
+  hSide: { width: 84 },
+  hSideRight: { alignItems: 'flex-end' },
+  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingBottom: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.divider },
   cancel: { fontFamily: fonts.medium, fontSize: 15, color: colors.textSecondary },
-  hTitle: { fontFamily: fonts.bold, fontSize: 17, color: colors.textPrimary },
+  hTitle: { flex: 1, textAlign: 'center', fontFamily: fonts.bold, fontSize: 17, color: colors.textPrimary },
   save: { fontFamily: fonts.bold, fontSize: 15, color: colors.green },
   avatarWrap: { alignSelf: 'center', marginVertical: spacing.xl },
   camera: { position: 'absolute', right: -2, bottom: -2, width: 34, height: 34, borderRadius: 17, backgroundColor: colors.green, justifyContent: 'center', alignItems: 'center', borderWidth: 3, borderColor: colors.bg },

@@ -71,6 +71,7 @@ export default function EditItemScreen() {
 
       <ScrollView
         keyboardDismissMode="on-drag"
+        automaticallyAdjustKeyboardInsets
         keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
         {/* 写真 */}
         <Text style={styles.label}>商品の写真</Text>

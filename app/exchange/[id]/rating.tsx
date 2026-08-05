@@ -67,6 +67,7 @@ export default function RatingScreen() {
 
       <ScrollView
         keyboardDismissMode="on-drag"
+        automaticallyAdjustKeyboardInsets
         keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
         <View style={styles.userCard}>
           <Avatar uri={u.avatar} name={u.nickname} size={64} />
