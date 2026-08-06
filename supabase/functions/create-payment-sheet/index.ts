@@ -131,11 +131,24 @@ Deno.serve(async (req) => {
 
       amount = yen;
       label = 'ぐんぐんプレミアム（月額）';
+      // サブスクの price_data は商品IDが要る（product_data は使えない）。
+      // 商品は一度作れば使い回せるので、app_settings に控えておく。
+      const prem = (settings.get('premium_product') ?? {}) as { days?: number; product_id?: string };
+      let productId = prem.product_id;
+      if (!productId) {
+        const prod = await stripe('products', sk, { name: 'ぐんぐんプレミアム' });
+        productId = prod.id;
+        await db
+          .from('app_settings')
+          .update({ value: { ...prem, days, product_id: productId }, updated_at: new Date().toISOString() })
+          .eq('key', 'premium_product');
+      }
+
       // 毎月の請求を Stripe に任せる。最初の請求書の支払いをシートで済ませる
       const sub = await stripe('subscriptions', sk, {
         customer: customer!,
         'items[0][price_data][currency]': 'jpy',
-        'items[0][price_data][product_data][name]': 'ぐんぐんプレミアム',
+        'items[0][price_data][product]': productId!,
         'items[0][price_data][recurring][interval]': 'month',
         'items[0][price_data][unit_amount]': yen,
         payment_behavior: 'default_incomplete',
