@@ -55,13 +55,7 @@
         }
       ],
       "expo-asset",
-      [
-        "@stripe/stripe-react-native",
-        {
-          "merchantIdentifier": "merchant.com.warashibe.gungun",
-          "enableGooglePay": false
-        }
-      ]
+      "@stripe/stripe-react-native"
     ],
     "experiments": {
       "typedRoutes": true

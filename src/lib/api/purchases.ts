@@ -52,8 +52,11 @@ export async function pay(kind: CheckoutKind, planId?: string): Promise<PayResul
     customerId: p.customer,
     customerEphemeralKeySecret: p.ephemeralKey,
     paymentIntentClientSecret: p.paymentIntent,
-    // Apple Pay をシートの中に出す。merchantIdentifier は app.json のプラグイン設定と揃える
-    applePay: { merchantCountryCode: 'JP' },
+    // ★ Apple Pay は Merchant ID（merchant.com.warashibe.gungun）を
+    //   Apple Developer に登録してから有効にする。
+    //   未登録のままだとプロビジョニングに Apple Pay の権限が付かず、ビルドが通らない。
+    //   登録後、ここと app.json のプラグイン設定を戻せばシートに Apple Pay が出る。
+    // applePay: { merchantCountryCode: 'JP' },
     allowsDelayedPaymentMethods: false,
     returnURL: 'gungun://purchase',
     defaultBillingDetails: {},
