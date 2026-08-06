@@ -93,14 +93,20 @@ export default function Account() {
         automaticallyAdjustKeyboardInsets
         keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
         <Section title="アカウント">
-          <Row label="ニックネーム" value={me.nickname || '未設定'} onPress={() => router.push('/mypage/edit')} />
+          {/* ニックネームは公開プロフィール側（マイページの「編集」）に任せる。
+              ここに置くと同じ項目が2か所に出て、どちらで直すのか分からなくなる */}
           <Row label="メールアドレス" value={email || '未設定'} onPress={() => setMailSheet(true)} />
           <Row label="パスワード" value="変更する" onPress={() => router.push('/(auth)/reset')} last />
         </Section>
 
         <Section title="お届け先・連絡先">
-          <Row label="お届け先" value={addressLabel} onPress={() => router.push('/address')} />
-          <Row label="電話番号" value={phoneLabel} onPress={() => router.push('/address')} last />
+          {/* お届け先と電話番号は同じ画面で登録するので、1行にまとめる（2026-08-05 指摘） */}
+          <Row
+            label="お届け先・電話番号"
+            value={address ? `${addressLabel}／${phoneLabel}` : '未登録'}
+            onPress={() => router.push('/address')}
+            last
+          />
         </Section>
 
         <Section title="通知設定">

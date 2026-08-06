@@ -36,6 +36,33 @@ export default function Address() {
     return () => { alive = false; };
   }, [me.live, me.id]);
 
+  // 郵便番号を7桁入れたら、都道府県・市区町村を自動で埋める。
+  // 引けなかったときは黙って何もしない（手入力を邪魔しない）。
+  const [lookedUp, setLookedUp] = useState('');
+  useEffect(() => {
+    const zip = f.postal.replace(/[^0-9]/g, '');
+    if (zip.length !== 7 || zip === lookedUp) return;
+    setLookedUp(zip);
+    let alive = true;
+    (async () => {
+      try {
+        const res = await fetch(`https://zipcloud.ibsnet.co.jp/api/search?zipcode=${zip}`);
+        const j = await res.json();
+        const r = j?.results?.[0];
+        if (!alive || !r) return;
+        setF((prev) => ({
+          ...prev,
+          pref: prev.pref || r.address1,
+          // 市区町村と町名までを埋める。番地から先は手入力
+          city: prev.city || `${r.address2}${r.address3}`,
+        }));
+      } catch {
+        // 通信できなくても手入力で進められるので何も出さない
+      }
+    })();
+    return () => { alive = false; };
+  }, [f.postal, lookedUp]);
+
   const submit = async () => {
     if (busy) return;
     if (!isSupabaseEnabled || !me.live) { router.back(); return; }

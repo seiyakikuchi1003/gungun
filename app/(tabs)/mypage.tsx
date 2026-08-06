@@ -20,7 +20,6 @@ import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 
 type Action = 'about' | 'contact' | 'logout' | 'withdraw';
 const MENU: { icon: keyof typeof Ionicons.glyphMap; label: string; route?: string; action?: Action; danger?: boolean }[] = [
-  { icon: 'person-circle-outline', label: '個人情報設定', route: '/mypage/account' },
   { icon: 'pricetags-outline', label: '出品履歴', route: '/mypage/items' },
   { icon: 'heart-outline', label: 'いいね一覧', route: '/mypage/likes' },
   { icon: 'time-outline', label: '閲覧履歴', route: '/mypage/history' },
@@ -95,7 +94,9 @@ export default function MyPage() {
         keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: 170 }}>
         <View style={styles.header}>
           <Text style={styles.title}>マイページ</Text>
-          <PressableScale activeScale={0.9} onPress={() => router.push('/mypage/edit')} style={styles.settingsBtn}>
+          {/* 歯車＝設定（本人確認の情報）、名前の横の「編集」＝公開プロフィール。
+              どちらもプロフィール編集に飛んでいて役割が重複していた（2026-08-05 指摘） */}
+          <PressableScale activeScale={0.9} onPress={() => router.push('/mypage/account')} style={styles.settingsBtn}>
             <Ionicons name="settings-outline" size={22} color={colors.textPrimary} />
           </PressableScale>
         </View>
