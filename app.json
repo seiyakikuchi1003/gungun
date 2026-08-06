@@ -55,7 +55,12 @@
         }
       ],
       "expo-asset",
-      "@stripe/stripe-react-native"
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": ""
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
