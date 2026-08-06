@@ -16,6 +16,11 @@ import { LikesProvider } from '@/store/likes';
 import { NotificationsProvider } from '@/store/notifications';
 import { configureNotificationHandler } from '@/lib/push';
 import { usePushNavigation } from '@/hooks/usePushNavigation';
+import { StripeProvider } from '@stripe/stripe-react-native';
+
+// 支払いシート（Apple Pay を含む）を使うために必要。
+// publishable キーは公開前提のもので、アプリに入れて問題ない。
+const STRIPE_PK = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? '';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -50,6 +55,11 @@ export default function RootLayout() {
   if (!ready) return null;
 
   return (
+    <StripeProvider
+      publishableKey={STRIPE_PK}
+      merchantIdentifier="merchant.com.warashibe.gungun"
+      urlScheme="gungun"
+    >
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <AuthProvider>
@@ -85,5 +95,6 @@ export default function RootLayout() {
         </AuthProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
+    </StripeProvider>
   );
 }

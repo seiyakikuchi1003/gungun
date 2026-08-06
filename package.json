@@ -21,12 +21,14 @@
     "log:export:all": "node scripts/export-chat-log.mjs --all",
     "check:harvest": "node scripts/check-harvest-flow.mjs",
     "check:payment": "node scripts/check-payment.mjs",
-    "check:refresh": "node scripts/check-auto-refresh.mjs"
+    "check:refresh": "node scripts/check-auto-refresh.mjs",
+    "db:apply:api": "node scripts/apply-schema-api.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/m-plus-rounded-1c": "^0.4.4",
     "@expo/vector-icons": "^15.0.2",
     "@react-native-async-storage/async-storage": "^2.2.0",
+    "@stripe/stripe-react-native": "0.50.3",
     "@supabase/supabase-js": "^2.110.8",
     "expo": "~54.0.36",
     "expo-asset": "~12.0.13",

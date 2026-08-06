@@ -54,7 +54,14 @@
           "color": "#2C8547"
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.com.warashibe.gungun",
+          "enableGooglePay": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

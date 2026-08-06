@@ -11,7 +11,7 @@ import { formatPrice } from '@/config/settings';
 import { success } from '@/lib/haptics';
 import { useTree } from '@/store/tree';
 import { useAuth } from '@/store/auth';
-import { startCheckout, openBillingPortal } from '@/lib/api/purchases';
+import { pay, openBillingPortal } from '@/lib/api/purchases';
 import { FormError } from '@/components/ui/FormError';
 
 function makeFeatures(bonus: number): { icon: keyof typeof Ionicons.glyphMap; title: string; desc: string }[] {
@@ -54,8 +54,13 @@ export default function Premium() {
     setBusy(true);
     setError(null);
     try {
-      await startCheckout('premium');
-      setConfirm(false);
+      const res = await pay('premium');
+      if (res.status === 'paid') {
+        setConfirm(false);
+        // 付与はサーバが通知を受けてから。少し待って状態を取り直す
+        setTimeout(() => { reloadProfile().catch(() => {}); }, 1500);
+        setTimeout(() => { reloadProfile().catch(() => {}); }, 4000);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : '決済画面を開けませんでした');
     } finally {
@@ -125,7 +130,7 @@ export default function Premium() {
         <View style={styles.ctaWrap}>
           <Text style={styles.note}>
             {live
-              ? '※ 登録手続きはブラウザで行います（Apple Pay・カードに対応）。いつでも解約できます'
+              ? '※ Apple Pay またはカードでお支払いいただけます。いつでも解約できます'
               : '※ 料金・提供機能は調整中です（管理画面から変更可能）'}
           </Text>
           {error ? <FormError message={error} /> : null}

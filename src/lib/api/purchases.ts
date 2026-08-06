@@ -1,42 +1,72 @@
 import { Linking } from 'react-native';
+import { initPaymentSheet, presentPaymentSheet } from '@stripe/stripe-react-native';
 import { requireSupabase } from '@/lib/supabase';
 
 /**
- * 課金（Stripe Checkout）。
+ * 課金。
  *
- * アプリは「どのプランを買いたいか」だけを送る。
- * 金額は Edge Function が DB（app_settings）から引くので、
- * アプリを改造しても値段は変えられない。
+ * アプリの中で下から出る支払いシート（Stripe Payment Sheet）で支払う。
+ * Apple Pay もこのシートの中に出る（Apple の作法どおりネイティブで動く）。
  *
- * 付与も Edge Function（stripe-webhook）が Stripe からの通知を検証してから行う。
- * アプリが「買えました」と言っても肥料は増えない。
+ * 【安全のための決まり】
+ * - 金額はアプリから送らない。Edge Function が DB（app_settings）から引く
+ * - 肥料やプレミアムを付けるのは Stripe からの通知を検証したサーバだけ。
+ *   シートが「成功」を返しただけでは付与しない（アプリは改造できるため）
  *
  * ⚠ App Store 審査ガイドライン 3.1.1 では、アプリ内で消費するデジタル財は
  *   In-App Purchase が必須とされる。審査提出前に方式を再確認すること。
- *   差し替えやすいよう、購入処理はこのファイルに閉じてある。
+ *   購入処理はこのファイルに閉じてあるので差し替えは容易。
  */
 
 export type CheckoutKind = 'fertilizer' | 'premium';
 
+type SheetParams = {
+  paymentIntent: string;
+  ephemeralKey: string;
+  customer: string;
+  amount: number;
+  label: string;
+};
+
+/** 支払いの結果。cancelled は利用者が閉じただけなのでエラー扱いしない */
+export type PayResult = { status: 'paid' | 'cancelled'; };
+
 /**
- * 決済画面のURLを作って開く。
- * 支払いが終わると gungun://purchase?status=success でアプリに戻る。
+ * 支払いシートを開いて支払う。
+ * 支払いが通っても肥料が増えるのはサーバが通知を受けた後なので、
+ * 呼び出し側は少し待ってから残高を取り直すこと。
  */
-export async function startCheckout(kind: CheckoutKind, planId?: string): Promise<void> {
-  const { data, error } = await requireSupabase().functions.invoke('create-checkout-session', {
+export async function pay(kind: CheckoutKind, planId?: string): Promise<PayResult> {
+  const { data, error } = await requireSupabase().functions.invoke('create-payment-sheet', {
     body: { kind, planId },
   });
   if (error) {
-    // Edge Function が返したエラー本文を拾えるなら、そちらを見せる
     const detail = await readError(error);
-    throw new Error(detail ?? '決済画面を開けませんでした');
+    throw new Error(detail ?? '支払いを開始できませんでした');
   }
-  const url = (data as { url?: string } | null)?.url;
-  if (!url) throw new Error('決済画面のURLを取得できませんでした');
+  const p = data as SheetParams | null;
+  if (!p?.paymentIntent) throw new Error('支払い情報を取得できませんでした');
 
-  const ok = await Linking.canOpenURL(url);
-  if (!ok) throw new Error('ブラウザを開けませんでした');
-  await Linking.openURL(url);
+  const init = await initPaymentSheet({
+    merchantDisplayName: 'ぐんぐん',
+    customerId: p.customer,
+    customerEphemeralKeySecret: p.ephemeralKey,
+    paymentIntentClientSecret: p.paymentIntent,
+    // Apple Pay をシートの中に出す。merchantIdentifier は app.json のプラグイン設定と揃える
+    applePay: { merchantCountryCode: 'JP' },
+    allowsDelayedPaymentMethods: false,
+    returnURL: 'gungun://purchase',
+    defaultBillingDetails: {},
+  });
+  if (init.error) throw new Error(init.error.message);
+
+  const res = await presentPaymentSheet();
+  if (res.error) {
+    // 利用者が閉じた場合はエラーにしない
+    if (res.error.code === 'Canceled') return { status: 'cancelled' };
+    throw new Error(res.error.message);
+  }
+  return { status: 'paid' };
 }
 
 async function readError(error: unknown): Promise<string | null> {

@@ -103,6 +103,11 @@ Deno.serve(async (req) => {
         await db.from('profiles').update({ stripe_customer_id: s.customer }).eq('id', s.metadata.user_id);
       }
     }
+  } else if (event.type === 'payment_intent.succeeded') {
+    // アプリ内の支払いシート（Payment Sheet）で払われたぶん。
+    // metadata は PaymentIntent を作るときに入れてある
+    const pi = event.data.object;
+    if (pi.metadata?.user_id) result = await grant(pi.metadata, `pi_${pi.id}`, pi);
   } else if (event.type === 'invoice.paid') {
     // プレミアムの2回目以降。metadata はサブスクから引く
     const inv = event.data.object;

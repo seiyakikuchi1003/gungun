@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { settings as fallbackSettings, formatPrice } from '@/config/settings';
 import { useTree } from '@/store/tree';
 import { useAuth } from '@/store/auth';
-import { startCheckout } from '@/lib/api/purchases';
+import { pay } from '@/lib/api/purchases';
 import { FormError } from '@/components/ui/FormError';
 
 export default function Fertilizer() {
@@ -54,9 +54,15 @@ export default function Fertilizer() {
     setBusy(true);
     setError(null);
     try {
-      await startCheckout('fertilizer', plan.id);
+      const res = await pay('fertilizer', plan.id);
+      if (res.status === 'paid') {
+        // 付与はサーバが Stripe の通知を受けてから。少し待って残高を取り直す
+        setDone(`${plan.fertilizer.toLocaleString()}肥料をチャージしました`);
+        setTimeout(() => { reloadProfile().catch(() => {}); }, 1500);
+        setTimeout(() => { reloadProfile().catch(() => {}); }, 4000);
+      }
     } catch (e) {
-      setError(e instanceof Error ? e.message : '決済画面を開けませんでした');
+      setError(e instanceof Error ? e.message : '支払いを開始できませんでした');
     } finally {
       setBusy(false);
     }
@@ -104,7 +110,7 @@ export default function Fertilizer() {
           <Ionicons name="information-circle-outline" size={16} color={colors.textSecondary} />
           <Text style={styles.noteText}>
             {live
-              ? '購入手続きはブラウザで行います（Apple Pay・カードに対応）。完了するとアプリに戻り、肥料が反映されます。'
+              ? 'Apple Pay またはカードでお支払いいただけます。反映まで数秒かかることがあります。'
               : '金額は調整中です。確定後、管理画面から反映されます。'}
           </Text>
         </View>
