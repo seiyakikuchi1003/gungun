@@ -98,6 +98,10 @@ Deno.serve(async (req) => {
     const s = event.data.object;
     if (s.payment_status === 'paid' || s.mode === 'subscription') {
       result = await grant(s.metadata ?? {}, `cs_${s.id}`, s);
+      // 解約・支払い方法の変更を Stripe のカスタマーポータルで行えるよう、顧客IDを控える
+      if (s.customer && s.metadata?.user_id) {
+        await db.from('profiles').update({ stripe_customer_id: s.customer }).eq('id', s.metadata.user_id);
+      }
     }
   } else if (event.type === 'invoice.paid') {
     // プレミアムの2回目以降。metadata はサブスクから引く

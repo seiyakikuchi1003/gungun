@@ -49,3 +49,18 @@ async function readError(error: unknown): Promise<string | null> {
     return null;
   }
 }
+
+/**
+ * プレミアムの解約・支払い方法の変更ページ（Stripe のカスタマーポータル）を開く。
+ * 解約フローを自前で作らず Stripe に任せている。
+ */
+export async function openBillingPortal(): Promise<void> {
+  const { data, error } = await requireSupabase().functions.invoke('create-portal-session', { body: {} });
+  if (error) {
+    const detail = await readError(error);
+    throw new Error(detail ?? '管理ページを開けませんでした');
+  }
+  const url = (data as { url?: string } | null)?.url;
+  if (!url) throw new Error('管理ページのURLを取得できませんでした');
+  await Linking.openURL(url);
+}

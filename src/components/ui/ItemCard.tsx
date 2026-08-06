@@ -5,7 +5,6 @@ import { colors, radius, spacing, fonts, shadows } from '@/theme';
 import { PressableScale } from './PressableScale';
 import { Thumb } from './Thumb';
 import { Avatar } from './Avatar';
-import { Sprout } from '@/components/art/Sprout';
 import { MockItem } from '@/data/mock';
 import { useUsers } from '@/store/users';
 
@@ -29,7 +28,7 @@ export function ItemCard({ item, onPress, width = 168, compact = false }: Props)
       <View style={styles.thumbWrap}>
         <Thumb source={item.local} uri={item.image} style={styles.thumb} markSize={compact ? 28 : 40} />
         <View style={[styles.waterPill, compact && styles.waterPillCompact]}>
-          <Sprout size={compact ? 11 : 13} color={colors.white} />
+          <Ionicons name="water" size={compact ? 11 : 13} color={colors.white} />
           <Text style={[styles.waterText, compact && styles.waterTextCompact]}>{item.waterCount}</Text>
         </View>
       </View>

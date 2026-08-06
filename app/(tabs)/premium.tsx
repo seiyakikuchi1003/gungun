@@ -11,7 +11,7 @@ import { formatPrice } from '@/config/settings';
 import { success } from '@/lib/haptics';
 import { useTree } from '@/store/tree';
 import { useAuth } from '@/store/auth';
-import { startCheckout } from '@/lib/api/purchases';
+import { startCheckout, openBillingPortal } from '@/lib/api/purchases';
 import { FormError } from '@/components/ui/FormError';
 
 function makeFeatures(bonus: number): { icon: keyof typeof Ionicons.glyphMap; title: string; desc: string }[] {
@@ -91,6 +91,23 @@ export default function Premium() {
             {!joined && <Ionicons name="chevron-forward" size={17} color={colors.orangeDeep} />}
           </PressableScale>
           <Text style={styles.heroNote}>いつでも解約できます</Text>
+          {/* 加入中は解約・支払い方法の変更に行けるようにする（導線が無かった：2026-08-05 指摘） */}
+          {joined && (
+            <PressableScale
+              onPress={async () => {
+                setError(null);
+                try {
+                  await openBillingPortal();
+                } catch (e) {
+                  setError(e instanceof Error ? e.message : '管理ページを開けませんでした');
+                }
+              }}
+              activeScale={0.97}
+              style={styles.manageBtn}
+            >
+              <Text style={styles.manageText}>プランを管理・解約する</Text>
+            </PressableScale>
+          )}
         </LinearGradient>
 
         <View style={styles.features}>
@@ -158,6 +175,8 @@ const styles = StyleSheet.create({
   heroCtaDone: { backgroundColor: 'rgba(255,255,255,0.28)' },
   heroCtaText: { fontFamily: fonts.black, fontSize: 16, color: colors.orangeDeep },
   heroCtaTextDone: { color: colors.white },
+  manageBtn: { marginTop: spacing.md, paddingVertical: 8, paddingHorizontal: 14, borderRadius: radius.pill, borderWidth: 1, borderColor: 'rgba(255,255,255,0.7)' },
+  manageText: { fontFamily: fonts.bold, fontSize: 13, color: colors.white },
   heroNote: { fontFamily: fonts.medium, fontSize: 11.5, color: 'rgba(255,255,255,0.9)', marginTop: 8 },
   features: { paddingHorizontal: 20, marginTop: spacing.xl, gap: spacing.md },
   feature: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.lg },

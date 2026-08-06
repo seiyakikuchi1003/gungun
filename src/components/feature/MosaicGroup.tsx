@@ -5,7 +5,6 @@ import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { Thumb } from '@/components/ui/Thumb';
 import { Ribbon } from '@/components/ui/Ribbon';
-import { Sprout } from '@/components/art/Sprout';
 import { MockItem } from '@/data/mock';
 import { like } from '@/lib/haptics';
 
@@ -53,7 +52,7 @@ function Card({ item, w, h, onPress }: { item: MockItem; w: number; h: number; o
       {rb && <Ribbon label={rb} />}
       <LikeDot />
       <View style={styles.waterPill}>
-        <Sprout size={11} color="#fff" />
+        <Ionicons name="water" size={11} color="#fff" />
         <Text style={styles.waterText}>{item.waterCount}</Text>
       </View>
     </PressableScale>
