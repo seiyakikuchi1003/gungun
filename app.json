@@ -58,7 +58,7 @@
       [
         "@stripe/stripe-react-native",
         {
-          "merchantIdentifier": ""
+          "merchantIdentifier": "merchant.com.warashibe.gungun"
         }
       ]
     ],

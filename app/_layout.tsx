@@ -57,6 +57,7 @@ export default function RootLayout() {
   return (
     <StripeProvider
       publishableKey={STRIPE_PK}
+      merchantIdentifier="merchant.com.warashibe.gungun"
       urlScheme="gungun"
     >
     <GestureHandlerRootView style={{ flex: 1 }}>
