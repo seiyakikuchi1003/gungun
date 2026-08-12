@@ -13,6 +13,7 @@ import { Mikan } from '@/components/art/Mikan';
 import { useExchange } from '@/hooks/useExchanges';
 import { FormError } from '@/components/ui/FormError';
 import { KeyboardDoneBar, KEYBOARD_DONE_ID } from '@/components/ui/KeyboardDoneBar';
+import { NotFound } from '@/components/ui/NotFound';
 
 const GOOD = ['対応が丁寧', 'スムーズ', '説明通り', '発送が早い', '梱包が丁寧'];
 
@@ -26,7 +27,7 @@ export default function RatingScreen() {
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (!trade) return <View style={styles.root} />;
+  if (!trade) return <NotFound message="この取引は見つかりませんでした" fallback="/exchange" />;
   const u = { nickname: trade.partnerName, avatar: trade.partnerAvatar };
   const isSend = trade.dir === 'send';
 

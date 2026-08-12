@@ -8,6 +8,7 @@ import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { Avatar } from '@/components/ui/Avatar';
 import { HeartButton } from '@/components/ui/HeartButton';
+import { NotFound } from '@/components/ui/NotFound';
 import { ReportSheet } from '@/components/feature/ReportSheet';
 import { TAG_META } from '@/data/mockSocial';
 import { useBoardPost } from '@/hooks/useBoard';
@@ -21,7 +22,7 @@ export default function BoardDetail() {
   const [text, setText] = useState('');
   const [report, setReport] = useState(false);
 
-  if (!post) return <View style={styles.root} />;
+  if (!post) return <NotFound message="投稿が見つかりませんでした" hint="削除されたか、URLが古い可能性があります。" fallback="/(tabs)/board" />;
   const u = { nickname: post.authorName, avatar: post.authorAvatar };
   const tag = TAG_META[post.tag];
 

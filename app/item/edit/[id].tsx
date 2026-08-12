@@ -14,6 +14,7 @@ import { FormError } from '@/components/ui/FormError';
 import { success } from '@/lib/haptics';
 import { useTree } from '@/store/tree';
 import { KeyboardDoneBar, KEYBOARD_DONE_ID } from '@/components/ui/KeyboardDoneBar';
+import { NotFound } from '@/components/ui/NotFound';
 
 const NAME_MAX = 20;
 const DESC_MAX = 200;
@@ -39,11 +40,11 @@ export default function EditItemScreen() {
   const [error, setError] = useState<string | null>(null);
 
   if (!item) {
-    return <View style={styles.notFound}><Text style={styles.notFoundText}>商品が見つかりません</Text></View>;
+    return <NotFound message="商品が見つかりませんでした" />;
   }
   // 念のため他人の商品は編集不可
   if (item.ownerId !== me.id) {
-    return <View style={styles.notFound}><Text style={styles.notFoundText}>この出品は編集できません</Text></View>;
+    return <NotFound message="この出品は編集できません" hint="取引中または収穫済みの商品は編集できません。" />;
   }
 
   const canSave = name.trim().length > 0 && condition.length > 0 && photos.length > 0 && !busy;

@@ -7,6 +7,8 @@ export type AppNotification = {
   type: NotificationType;
   body: string;
   relatedId: string | null;
+  /** この通知を起こした人。運営・自動処理からの通知では null */
+  actorId: string | null;
   read: boolean;
   createdAt: string;
 };
@@ -14,7 +16,7 @@ export type AppNotification = {
 export async function fetchNotifications(userId: string, limit = 100): Promise<AppNotification[]> {
   const { data, error } = await requireSupabase()
     .from('notifications')
-    .select('id, type, body, related_id, read_at, created_at')
+    .select('id, type, body, related_id, read_at, created_at, actor_id')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(limit);
@@ -24,6 +26,7 @@ export async function fetchNotifications(userId: string, limit = 100): Promise<A
     type: r.type,
     body: r.body,
     relatedId: r.related_id ?? null,
+    actorId: r.actor_id ?? null,
     read: Boolean(r.read_at),
     createdAt: relativeTime(r.created_at),
   }));

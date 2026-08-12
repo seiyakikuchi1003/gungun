@@ -18,6 +18,7 @@ import { useTree } from '@/store/tree';
 import { useMe } from '@/store/me';
 import { shareText } from '@/lib/share';
 import { Toast } from '@/components/ui/Toast';
+import { NotFound } from '@/components/ui/NotFound';
 import { useItemComments } from '@/hooks/useItemComments';
 import { useUsers } from '@/store/users';
 import { recordItemView } from '@/lib/api/social';
@@ -55,9 +56,7 @@ export default function ItemDetailScreen() {
 
   if (!item) {
     return (
-      <View style={styles.notFound}>
-        <Text style={styles.notFoundText}>商品が見つかりません</Text>
-      </View>
+      <NotFound message="商品が見つかりませんでした" hint="出品が取り下げられたか、収穫が済んだ可能性があります。" />
     );
   }
   const owner = users.user(item.ownerId);

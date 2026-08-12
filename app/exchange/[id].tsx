@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
 import { useExchange } from '@/hooks/useExchanges';
 import { FormError } from '@/components/ui/FormError';
+import { NotFound } from '@/components/ui/NotFound';
 import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 
 export default function ExchangeDetail() {
@@ -22,7 +23,7 @@ export default function ExchangeDetail() {
   const [report, setReport] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  if (!trade) return <View style={styles.root} />;
+  if (!trade) return <NotFound message="この取引は見つかりませんでした" hint="取引が完了しているか、通知が古い可能性があります。取引一覧からご確認ください。" fallback="/exchange" />;
   const status = trade.status;
   // 商品名・相手名は取引の行が持っている（実DBでは UUID から引けない）
   const it = { name: trade.itemName, image: trade.itemImage ?? '', local: trade.itemLocal };

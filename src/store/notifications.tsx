@@ -29,8 +29,9 @@ function toNotif(n: api.AppNotification): Notif {
     createdAt: n.createdAt,
     read: n.read,
     today: /分前|時間前|たった今/.test(n.createdAt),
-    // DB の body は主語を含む完成文なので actor は付けない
-    actorId: undefined,
+    // body は主語を含む完成文なので名前は前置しないが、
+    // アイコンを出すために「誰が起こしたか」は渡す（2026-08-12）
+    actorId: n.actorId ?? undefined,
     // 通知タップで該当ページへ飛べるように、対象IDを画面まで引き回す
     relatedId: n.relatedId ?? undefined,
   };

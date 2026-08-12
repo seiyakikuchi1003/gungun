@@ -18,6 +18,7 @@ import { success } from '@/lib/haptics';
 import { playSfx } from '@/lib/sound';
 import { useMe } from '@/store/me';
 import { FormError } from '@/components/ui/FormError';
+import { NotFound } from '@/components/ui/NotFound';
 import { useUsers } from '@/store/users';
 
 /**
@@ -41,7 +42,7 @@ export default function HarvestDetail() {
   const [target, setTarget] = useState<MockItem | null>(null);
   const [done, setDone] = useState(false);
 
-  if (!seed) return <View style={styles.root} />;
+  if (!seed) return <NotFound message="このタネは見つかりませんでした" hint="収穫が済んでいるか、通知が古い可能性があります。" fallback="/(tabs)/harvest" />;
 
   // 集まった商品＝この木にぶら下がっている商品（種そのものは除く）
   const gathered = treeItems(seed.id)
