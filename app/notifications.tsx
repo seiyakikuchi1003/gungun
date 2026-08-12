@@ -6,6 +6,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { Avatar } from '@/components/ui/Avatar';
+import { Thumb } from '@/components/ui/Thumb';
 import { NOTIF_ICON, NotificationType, Notif } from '@/data/mockSocial';
 import { useNotifications } from '@/store/notifications';
 import { notificationRoute } from '@/lib/notificationRoute';
@@ -27,11 +28,14 @@ function Row({ n, onPress }: { n: Notif; onPress: () => void }) {
   return (
     <PressableScale onPress={onPress} activeScale={0.99} style={[styles.row, !n.read && styles.unread]}>
       <View style={styles.avatarWrap}>
-        {actor ? (
-          <Avatar uri={actor.avatar} name={actor.nickname} size={44} />
+        {/* 主役は「何についての通知か」＝関係する商品の写真。
+            写真が無ければ相手のアイコン、それも無ければ種類の絵にする。
+            種類は右下の小さなバッジで添える（2026-08-12） */}
+        {n.imageUrl ? (
+          <Thumb uri={n.imageUrl} style={styles.thumb} radius={22} markSize={18} />
+        ) : n.actorAvatar || actor ? (
+          <Avatar uri={n.actorAvatar ?? actor?.avatar} name={n.actorName ?? actor?.nickname} size={44} />
         ) : (
-          // 誰が起こしたか分からない通知（運営・自動処理・古いデータ）は種類の絵で代替する。
-          // 以前は中身の無い丸だけが出ていた（2026-08-12 修正）
           <View style={[styles.avatarFallback, { backgroundColor: TONE[n.type] + '22' }]}>
             <Ionicons
               name={NOTIF_ICON[n.type] as keyof typeof Ionicons.glyphMap}
@@ -122,6 +126,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: 20, paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.divider },
   unread: { backgroundColor: colors.bgWarm },
   avatarWrap: { width: 44, height: 44 },
+  thumb: { width: 44, height: 44 },
   avatarFallback: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.greenSoft, justifyContent: 'center', alignItems: 'center' },
   badge: { position: 'absolute', right: -2, bottom: -2, width: 20, height: 20, borderRadius: 10, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: colors.bg },
   body: { fontFamily: fonts.regular, fontSize: 14, lineHeight: 20, color: colors.textPrimary },

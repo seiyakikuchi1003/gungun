@@ -9,14 +9,18 @@ export type AppNotification = {
   relatedId: string | null;
   /** この通知を起こした人。運営・自動処理からの通知では null */
   actorId: string | null;
+  actorName: string | null;
+  actorAvatar: string | null;
+  /** 関係する商品の写真。無ければ null（画面は種類の絵で代替） */
+  imageUrl: string | null;
   read: boolean;
   createdAt: string;
 };
 
 export async function fetchNotifications(userId: string, limit = 100): Promise<AppNotification[]> {
   const { data, error } = await requireSupabase()
-    .from('notifications')
-    .select('id, type, body, related_id, read_at, created_at, actor_id')
+    .from('notification_cards')
+    .select('id, type, body, related_id, read_at, created_at, actor_id, actor_nickname, actor_avatar, image_url')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(limit);
@@ -27,6 +31,9 @@ export async function fetchNotifications(userId: string, limit = 100): Promise<A
     body: r.body,
     relatedId: r.related_id ?? null,
     actorId: r.actor_id ?? null,
+    actorName: r.actor_nickname ?? null,
+    actorAvatar: r.actor_avatar ?? null,
+    imageUrl: r.image_url ?? null,
     read: Boolean(r.read_at),
     createdAt: relativeTime(r.created_at),
   }));

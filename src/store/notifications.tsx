@@ -32,6 +32,9 @@ function toNotif(n: api.AppNotification): Notif {
     // body は主語を含む完成文なので名前は前置しないが、
     // アイコンを出すために「誰が起こしたか」は渡す（2026-08-12）
     actorId: n.actorId ?? undefined,
+    actorName: n.actorName ?? undefined,
+    actorAvatar: n.actorAvatar ?? undefined,
+    imageUrl: n.imageUrl ?? undefined,
     // 通知タップで該当ページへ飛べるように、対象IDを画面まで引き回す
     relatedId: n.relatedId ?? undefined,
   };

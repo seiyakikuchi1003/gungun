@@ -68,6 +68,10 @@ export type Notif = {
    *   board_comment → 投稿ID
    */
   relatedId?: string;
+  /** 関係する商品の写真（実データのみ） */
+  imageUrl?: string;
+  actorName?: string;
+  actorAvatar?: string;
 };
 
 // body は「{actor}さん」に続く形で書く（先頭に助詞を含める）
