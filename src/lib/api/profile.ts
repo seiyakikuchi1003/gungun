@@ -218,3 +218,44 @@ export async function fetchRatings(userId: string, limit = 100): Promise<RatingC
     createdAt: relativeTime(r.created_at),
   }));
 }
+
+/** 通知の受け取り設定。キーは個人情報設定のスイッチと対応（ship は発送・受け取り両方） */
+export type NotificationPrefs = {
+  watered: boolean;
+  harvested: boolean;
+  ship: boolean;
+  message: boolean;
+  board: boolean;
+};
+
+export const defaultNotificationPrefs: NotificationPrefs = {
+  watered: true,
+  harvested: true,
+  ship: true,
+  message: true,
+  board: false,
+};
+
+export async function fetchNotificationPrefs(userId: string): Promise<NotificationPrefs> {
+  const { data, error } = await requireSupabase()
+    .from('profiles')
+    .select('notification_prefs')
+    .eq('id', userId)
+    .maybeSingle();
+  if (error) throw error;
+  const v = (data?.notification_prefs ?? {}) as Partial<NotificationPrefs>;
+  return { ...defaultNotificationPrefs, ...v };
+}
+
+/**
+ * 通知設定を保存する。
+ * 送信キュー（notifications_to_push）がこの値を見るので、
+ * オフにした種類はサーバ側で送信対象から外れる。
+ */
+export async function saveNotificationPrefs(userId: string, prefs: NotificationPrefs): Promise<void> {
+  const { error } = await requireSupabase()
+    .from('profiles')
+    .update({ notification_prefs: prefs })
+    .eq('id', userId);
+  if (error) throw error;
+}

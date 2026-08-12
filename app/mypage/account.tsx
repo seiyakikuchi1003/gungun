@@ -11,6 +11,12 @@ import { useMe } from '@/store/me';
 import { useAuth } from '@/store/auth';
 import { isSupabaseEnabled } from '@/lib/supabase';
 import { fetchAddress, type Address } from '@/lib/api/profile';
+import {
+  fetchNotificationPrefs,
+  saveNotificationPrefs,
+  defaultNotificationPrefs,
+  type NotificationPrefs,
+} from '@/lib/api/profile';
 import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -33,7 +39,7 @@ function Row({ label, value, onPress, last }: { label: string; value?: string; o
   );
 }
 
-const NOTIF = [
+const NOTIF: { key: keyof NotificationPrefs; label: string }[] = [
   { key: 'watered', label: '水やり' },
   { key: 'harvested', label: '収穫' },
   { key: 'ship', label: '発送・受け取り' },
@@ -45,7 +51,10 @@ export default function Account() {
   const insets = useSafeAreaInsets();
   const me = useMe();
   const { email: authEmail } = useAuth();
-  const [toggles, setToggles] = useState<Record<string, boolean>>({ watered: true, harvested: true, ship: true, message: true, board: false });
+  // 通知設定は DB（profiles.notification_prefs）が正。
+  // 以前は画面の中だけの状態で、切っても通知が届いていた（2026-08-12 修正）
+  const [toggles, setToggles] = useState<NotificationPrefs>(defaultNotificationPrefs);
+  const [notifError, setNotifError] = useState<string | null>(null);
   const [mailSheet, setMailSheet] = useState(false);
 
   // ★ 以前はニックネーム「めたん」／メール「demo@gungun.app」を決め打ちで出していた。
@@ -65,6 +74,11 @@ export default function Account() {
       setAddress(await fetchAddress(me.id));
     } catch {
       // 読めなくても画面は保つ
+    }
+    try {
+      setToggles(await fetchNotificationPrefs(me.id));
+    } catch {
+      // 読めなければ既定のまま
     }
   }, [me.id, me.live]);
 
@@ -115,12 +129,23 @@ export default function Account() {
               <Text style={styles.rowLabel}>{n.label}</Text>
               <Switch
                 value={toggles[n.key]}
-                onValueChange={(v) => setToggles((t) => ({ ...t, [n.key]: v }))}
+                onValueChange={(v) => {
+                  const next = { ...toggles, [n.key]: v };
+                  setToggles(next);   // 先に画面を動かして、保存は裏で
+                  setNotifError(null);
+                  if (isSupabaseEnabled && me.live) {
+                    saveNotificationPrefs(me.id, next).catch(() => {
+                      setToggles(toggles); // 保存できなければ元に戻す
+                      setNotifError('通知設定を保存できませんでした');
+                    });
+                  }
+                }}
                 trackColor={{ true: colors.green, false: colors.border }}
                 thumbColor={colors.white}
               />
             </View>
           ))}
+          {notifError ? <Text style={styles.notifError}>{notifError}</Text> : null}
         </Section>
       </ScrollView>
 
@@ -150,6 +175,7 @@ export default function Account() {
 }
 
 const styles = StyleSheet.create({
+  notifError: { fontFamily: fonts.medium, fontSize: 12.5, color: colors.orangeDeep, paddingHorizontal: 16, paddingBottom: 10 },
   root: { flex: 1, backgroundColor: colors.bg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingBottom: spacing.sm },
   hBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
