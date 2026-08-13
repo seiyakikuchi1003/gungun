@@ -23,7 +23,7 @@ import { Mikan } from '@/components/art/Mikan';
 import { GiftBox } from '@/components/art/GiftBox';
 import { WateringCan } from '@/components/art/WateringCan';
 import { LeafDecor } from '@/components/art/LeafDecor';
-import { howToSteps } from '@/data/mock';
+import { howToSteps, categories } from '@/data/mock';
 import { useTree } from '@/store/tree';
 import { useBlocks } from '@/store/blocks';
 import { useNotifications } from '@/store/notifications';
@@ -120,23 +120,39 @@ export default function HomeScreen() {
   // 水やりで出した商品も一級の商品として並べる（要件 第3章／2026-08-13 項目1）。
   // 収穫が決まった（取引中・完了）ものは出さない。
   // 出しておくと水やりできそうに見えるが、実際には受け付けられない（2026-08-05 指摘）
+  // すでに自分が関わっている木（自分のタネ・水やり済み）は水やりできない。
+  // 出しておくと押せそうに見えるので、ホームからは外す（2026-08-13 指摘）
+  const myRoots = new Set(items.filter((i) => i.ownerId === me.id).map((i) => i.rootId));
   const seedsBase = items
-    .filter((i) => i.status === 'growing' && !isBlocked(i.ownerId))
+    .filter((i) => i.status === 'growing' && !isBlocked(i.ownerId) && !myRoots.has(i.rootId))
     .reverse();
   const shift = refreshTick % Math.max(seedsBase.length, 1);
   const seeds = seedsBase.slice(shift).concat(seedsBase.slice(0, shift));
-  const COLLECTIONS: { title: string; subtitle: string; match: (c: string) => boolean }[] = [
-    { title: 'スマホ・ガジェット', subtitle: '人気の家電・ゲーム', match: (c) => ['スマホ・家電', '家電', 'ゲーム・おもちゃ'].includes(c) },
-    { title: 'ファッション・小物', subtitle: 'バッグ・時計・コスメ', match: (c) => ['レディース', 'メンズ', 'コスメ・美容', 'バッグ・小物'].includes(c) },
-    { title: 'ホビー・その他', subtitle: '本・チケット・雑貨', match: (c) => true },
-  ];
-  // 各種を最初にマッチしたコレクションへ割り当て（最後のグループが受け皿）
-  const assigned = new Set<string>();
-  const visibleGroups = COLLECTIONS.map((col) => {
-    const list = seeds.filter((s) => !assigned.has(s.id) && col.match(s.category));
-    list.forEach((s) => assigned.add(s.id));
-    return { ...col, items: list };
-  }).filter((g) => g.items.length > 0);
+  // 出品したカテゴリーのまま並べる。
+  // 以前は「ファッション・小物」などの独自のくくりに寄せていたため、
+  // 「メンズで出したのにファッション・小物に入る」と食い違って見えた（2026-08-13 指摘）。
+  // 出品時に選べる区分（categories）とホームの見出しを一致させる。
+  const SUBTITLE: Record<string, string> = {
+    'レディース': '服・バッグ・アクセサリー',
+    'メンズ': '服・バッグ・小物',
+    'スマホ・家電': 'スマホ・オーディオ・PC',
+    '家電': '生活家電・キッチン家電',
+    'ゲーム・おもちゃ': 'ゲーム機・ソフト・ホビー',
+    'コスメ・美容': 'メイク・スキンケア',
+    'インテリア': '家具・雑貨',
+    '本・音楽': '本・CD・DVD',
+    'チケット': 'イベント・優待券',
+    'その他': 'どれにも当てはまらないもの',
+  };
+  const visibleGroups = categories
+    .map((c) => ({
+      title: c,
+      subtitle: SUBTITLE[c] ?? '',
+      items: seeds.filter((s) => s.category === c),
+    }))
+    .filter((g) => g.items.length > 0)
+    // 出品が多い区分から見せる（空の見出しばかり並ばないように）
+    .sort((a, b) => b.items.length - a.items.length);
 
   return (
     <View style={styles.root}>

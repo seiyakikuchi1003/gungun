@@ -93,18 +93,22 @@ export default function ItemDetailScreen() {
               <Thumb key={i} source={src} style={{ width, height: imgH }} markSize={100} />
             ))}
           </ScrollView>
+
+      {/* 戻る・共有・メニューは画面上部に固定する。
+          以前は画像の上に置いていたので、スクロールすると消えて戻れなかった（2026-08-13 指摘） */}
+      <View style={[styles.floatHeader, { top: insets.top + 6 }]} pointerEvents="box-none">
+        <RoundBtn icon="chevron-back" onPress={() => router.back()} />
+        <View style={styles.floatRight}>
+          <RoundBtn icon="share-social-outline" onPress={share} />
+          <RoundBtn icon="ellipsis-horizontal" onPress={() => setMenu(true)} />
+        </View>
+      </View>
+
           {imgs.length > 1 && (
             <View style={styles.counter}>
               <Text style={styles.counterText}>{page + 1} / {imgs.length}</Text>
             </View>
           )}
-          <View style={[styles.floatHeader, { top: insets.top + 6 }]} pointerEvents="box-none">
-            <RoundBtn icon="chevron-back" onPress={() => router.back()} />
-            <View style={styles.floatRight}>
-              <RoundBtn icon="share-social-outline" onPress={share} />
-              <RoundBtn icon="ellipsis-horizontal" onPress={() => setMenu(true)} />
-            </View>
-          </View>
         </View>
 
         {/* コンテンツシート（画像に少し被せる） */}

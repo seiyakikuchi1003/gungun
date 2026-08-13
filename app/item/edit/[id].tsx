@@ -8,6 +8,7 @@ import { PressableScale } from '@/components/ui/PressableScale';
 import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
 import { Thumb } from '@/components/ui/Thumb';
 import { PhotoSourceSheet } from '@/components/feature/PhotoSourceSheet';
+import { cropPhoto } from '@/lib/photo';
 import { categories, conditions } from '@/data/mock';
 import { useMe } from '@/store/me';
 import { FormError } from '@/components/ui/FormError';
@@ -86,14 +87,15 @@ export default function EditItemScreen() {
         keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
         {/* 写真 */}
         <Text style={styles.label}>商品の写真</Text>
+        {/* 追加ボタンは左に固定し、写真だけを横に流す（出品フォームと揃える／2026-08-13 指摘） */}
+        <View style={styles.photoRowWrap}>
+        <PressableScale onPress={() => setPhotoSheet(true)} activeScale={0.96} style={styles.addPhoto}>
+          <Ionicons name="camera" size={26} color={colors.green} />
+          <Text style={styles.addPhotoText}>写真を追加</Text>
+        </PressableScale>
         <ScrollView
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photoRow}>
-          {/* 追加ボタンは常に左端（出品フォームと揃える） */}
-          <PressableScale onPress={() => setPhotoSheet(true)} activeScale={0.96} style={styles.addPhoto}>
-            <Ionicons name="camera" size={26} color={colors.green} />
-            <Text style={styles.addPhotoText}>写真を追加</Text>
-          </PressableScale>
           {photos.map((uri, i) => (
             <View key={uri + i} style={styles.photo}>
               <Thumb source={i === 0 ? item.local : undefined} uri={uri} style={styles.photoImg} radius={radius.md} markSize={30} />
@@ -103,6 +105,7 @@ export default function EditItemScreen() {
             </View>
           ))}
         </ScrollView>
+        </View>
 
         {/* 出品フォームと同じ順番に揃える（商品名 → 説明 → カテゴリー → 状態）*/}
         {/* 商品名 */}
@@ -197,6 +200,7 @@ const styles = StyleSheet.create({
   hTitle: { fontFamily: fonts.bold, fontSize: 16, color: colors.textPrimary },
   label: { fontFamily: fonts.bold, fontSize: 13, color: colors.textSecondary, marginBottom: spacing.sm },
   photoRow: { gap: spacing.md, paddingVertical: spacing.xs },
+  photoRowWrap: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' },
   photo: { width: 92, height: 92 },
   photoImg: { width: 92, height: 92 },
   removeBadge: { position: 'absolute', top: 5, right: 5, width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },

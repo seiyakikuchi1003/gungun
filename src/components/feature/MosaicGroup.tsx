@@ -20,9 +20,22 @@ type Props = {
 const PAD = 20; // 他セクション（みんなの種の見出し等）と左端を揃える
 const GAP = 8;
 
+/** 出品から何時間を「NEW」とみなすか */
+const NEW_HOURS = 24;
+
+/**
+ * カードの隅に出すリボン。
+ *
+ * NEW は以前「水やりが1件以下」で付けていたが、それは"新しい"ではなく
+ * "人気がない"を意味してしまい、古い商品にいつまでも NEW が付いていた
+ * （2026-08-13 指摘：NEW の定義は何か）。出品からの経過時間で判定する。
+ */
 function ribbonOf(item: MockItem): 'NEW' | 'HOT' | null {
   if (item.waterCount >= 6) return 'HOT';
-  if (item.waterCount <= 1) return 'NEW';
+  if (item.createdAt) {
+    const hours = (Date.now() - new Date(item.createdAt).getTime()) / 3600000;
+    if (hours >= 0 && hours < NEW_HOURS) return 'NEW';
+  }
   return null;
 }
 

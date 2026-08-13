@@ -1,4 +1,7 @@
 import React, { useState } from 'react';
+import { playSfx } from '@/lib/sound';
+import { useMe } from '@/store/me';
+import { PremiumNudge } from '@/components/feature/PremiumNudge';
 import { View, Text, StyleSheet, ScrollView, TextInput } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,6 +15,7 @@ import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
 import { Thumb } from '@/components/ui/Thumb';
 import { Sprout } from '@/components/art/Sprout';
 import { PhotoSourceSheet } from '@/components/feature/PhotoSourceSheet';
+import { cropPhoto } from '@/lib/photo';
 import { FormError } from '@/components/ui/FormError';
 import { categories, conditions } from '@/data/mock';
 import { success } from '@/lib/haptics';
@@ -32,7 +36,12 @@ export default function PlantSeedScreen() {
   // 初期値を入れると、選んだつもりのない状態で出品されてしまう（2026-08-12 指摘）
   const [condition, setCondition] = useState('');
   const [picker, setPicker] = useState<PickerKey>(null);
+  const me = useMe();
   const [photoSheet, setPhotoSheet] = useState(false);
+  // 出品・水やりのタイミングでだけプレミアムを案内する（2026-08-13 指摘）
+  const [nudge, setNudge] = useState(true);
+  // 出品できたことを見せるポップアップ（2026-08-13 指摘）
+  const [done, setDone] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,7 +59,10 @@ export default function PlantSeedScreen() {
     setBusy(false);
     if (res.error) { setError(res.error); return; }
     success();
-    router.back();
+    playSfx('pop');
+    // 黙って前の画面に戻ると出品できたのか分からなかった（2026-08-13 指摘）。
+    // 完了を見せてからホームへ送る
+    setDone(true);
   };
 
   return (
@@ -76,19 +88,34 @@ export default function PlantSeedScreen() {
 
           {/* 写真 */}
           <View style={styles.photoSection}>
+            {/* 追加ボタンは左に固定し、写真だけを横に流す。
+                ボタンごとスクロールすると、写真が増えたときに押せなくなる（2026-08-13 指摘） */}
+            <View style={styles.photoRowWrap}>
+            {photos.length < 10 && (
+              <PressableScale onPress={() => setPhotoSheet(true)} activeScale={0.96} style={styles.addPhoto}>
+                <Ionicons name="camera" size={30} color={colors.green} />
+                <Text style={styles.addPhotoText}>＋写真を追加</Text>
+              </PressableScale>
+            )}
             <ScrollView
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photoRow}>
-              {/* 追加ボタンは常に左端。写真が増えても位置が動かないようにする（2026-08-12 指摘） */}
-              {photos.length < 10 && (
-                <PressableScale onPress={() => setPhotoSheet(true)} activeScale={0.96} style={styles.addPhoto}>
-                  <Ionicons name="camera" size={30} color={colors.green} />
-                  <Text style={styles.addPhotoText}>＋写真を追加</Text>
-                </PressableScale>
-              )}
               {photos.map((uri, i) => (
                 <View key={uri + i} style={[styles.photo, shadows.soft]}>
-                  <Thumb uri={uri} style={styles.photoImg} radius={radius.md} markSize={44} />
+                  {/* 写真をタップすると切り抜ける（2026-08-13 指摘） */}
+                  <PressableScale
+                    activeScale={0.97}
+                    onPress={async () => {
+                      const picked = await cropPhoto();
+                      if (picked?.[0]) setPhotos((p) => p.map((v, idx) => (idx === i ? picked[0] : v)));
+                    }}
+                  >
+                    <Thumb uri={uri} style={styles.photoImg} radius={radius.md} markSize={44} />
+                    <View style={styles.cropHint}>
+                      <Ionicons name="crop" size={11} color={colors.white} />
+                      <Text style={styles.cropHintText}>切り抜く</Text>
+                    </View>
+                  </PressableScale>
                   {i === 0 && (
                     <View style={styles.thumbBadge}>
                       <Text style={styles.thumbBadgeText}>サムネイル</Text>
@@ -104,6 +131,7 @@ export default function PlantSeedScreen() {
                 </View>
               ))}
             </ScrollView>
+            </View>
             <Text style={styles.photoHint}>最大10枚・1枚目がサムネイルになります</Text>
           </View>
 
@@ -151,6 +179,27 @@ export default function PlantSeedScreen() {
       </View>
 
       {/* 写真の追加方法（カメラ / ライブラリ） */}
+      {/* 出品完了 */}
+      <BottomSheetModal visible={done} onClose={() => { setDone(false); router.dismissTo('/(tabs)'); }}>
+        <View style={styles.doneHead}>
+          <Sprout size={56} />
+          <Text style={styles.doneTitle}>出品しました！</Text>
+          <Text style={styles.doneSub}>
+            誰かが水やりしてくれると通知が届きます。{'\n'}集まったら収穫して、交換の輪をはじめましょう。
+          </Text>
+        </View>
+        <Button title="ホームに戻る" onPress={() => { setDone(false); router.dismissTo('/(tabs)'); }} />
+        <PressableScale
+          onPress={() => { setDone(false); router.dismissTo('/mypage/items'); }}
+          activeScale={0.98}
+          style={styles.doneGhost}
+        >
+          <Text style={styles.doneGhostText}>出品履歴を見る</Text>
+        </PressableScale>
+      </BottomSheetModal>
+
+      <PremiumNudge trigger={nudge} isPremium={me.isPremium} onClose={() => setNudge(false)} />
+
       <PhotoSourceSheet
         visible={photoSheet}
         onClose={() => setPhotoSheet(false)}
@@ -216,6 +265,17 @@ const styles = StyleSheet.create({
   body: { paddingHorizontal: 20, gap: spacing.lg, paddingTop: spacing.sm },
   photoSection: { gap: spacing.sm },
   photoRow: { gap: spacing.md, paddingVertical: spacing.xs },
+  photoRowWrap: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' },
+  doneHead: { alignItems: 'center', gap: spacing.sm, marginBottom: spacing.lg },
+  doneTitle: { fontFamily: fonts.black, fontSize: 20, color: colors.greenDeep },
+  doneSub: { fontFamily: fonts.medium, fontSize: 13, lineHeight: 20, color: colors.textSecondary, textAlign: 'center' },
+  doneGhost: { alignItems: 'center', paddingVertical: spacing.lg },
+  doneGhostText: { fontFamily: fonts.bold, fontSize: 15, color: colors.textSecondary },
+  cropHint: {
+    position: 'absolute', left: 4, bottom: 4, flexDirection: 'row', alignItems: 'center', gap: 3,
+    backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 999, paddingHorizontal: 6, paddingVertical: 2,
+  },
+  cropHintText: { fontFamily: fonts.bold, fontSize: 9.5, color: colors.white },
   photo: { width: 128, height: 128, borderRadius: radius.md, backgroundColor: colors.cardMuted },
   photoImg: { width: '100%', height: '100%', borderRadius: radius.md },
   thumbBadge: { position: 'absolute', left: 6, bottom: 6, backgroundColor: 'rgba(46,158,91,0.92)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: radius.pill },

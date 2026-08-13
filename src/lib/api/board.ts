@@ -77,6 +77,11 @@ export async function fetchPost(id: string, userId: string | null): Promise<Boar
   return data ? toPost(data, liked) : null;
 }
 
+/**
+ * 自分の投稿だけを取る（マイページ →「投稿履歴」）。
+ * 掲示板の一覧は最新50件しか取らないので、そこから絞ると
+ * 古い投稿が履歴から消える。ここで直接引く（2026-08-13 指摘）。
+ */
 export async function fetchMyPosts(userId: string): Promise<BoardPost[]> {
   const sb = requireSupabase();
   const [{ data, error }, liked] = await Promise.all([

@@ -22,7 +22,12 @@
         "UIBackgroundModes": [
           "remote-notification"
         ],
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "CFBundleLocalizations": [
+          "ja",
+          "en"
+        ],
+        "CFBundleDevelopmentRegion": "ja_JP"
       }
     },
     "web": {
@@ -80,6 +85,7 @@
       "url": "https://u.expo.dev/cb922a39-ddd5-4817-b3c8-473c709940ed",
       "checkAutomatically": "ON_LOAD",
       "fallbackToCacheTimeout": 8000
-    }
+    },
+    "locales": {}
   }
 }

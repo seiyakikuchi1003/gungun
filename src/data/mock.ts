@@ -37,6 +37,8 @@ export type MockItem = {
   parentId: string | null; // 水やり先（親商品）。NULL なら種（root）
   rootId: string; // 所属する木の根。種なら自分自身
   depth: number; // 根からの深さ（種=0）
+  /** 出品された日時（ISO）。NEW の判定に使う。モックでは undefined */
+  createdAt?: string;
   /** ローカル商品画像（assets/products/）。あれば remote より優先。 */
   local?: number;
   localImages?: number[];

@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { AppState } from 'react-native';
 import { notifications as seed, type Notif } from '@/data/mockSocial';
-import { isSupabaseEnabled } from '@/lib/supabase';
+import { isSupabaseEnabled, supabase } from '@/lib/supabase';
 import { useMe } from '@/store/me';
 import * as api from '@/lib/api/notifications';
 
@@ -57,6 +58,27 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  /**
+   * 通知は起動時に1回読むだけだったので、アプリを開いている間に届いた通知の
+   * 赤ポチが出なかった（2026-08-13 指摘：通知は来るのに赤ポチが来ない）。
+   *
+   * Realtime で自分あての新着を受けて即座に数え直し、
+   * 取りこぼし対策として前面復帰時にも取り直す。
+   */
+  useEffect(() => {
+    if (!live || !me.live || !supabase) return;
+    const ch = supabase
+      .channel(`notifications:${me.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${me.id}` },
+        () => { refresh(); }
+      )
+      .subscribe();
+    const sub = AppState.addEventListener('change', (st) => { if (st === 'active') refresh(); });
+    return () => { supabase?.removeChannel(ch); sub.remove(); };
+  }, [live, me.live, me.id, refresh]);
 
   const markRead = useCallback(
     (id: string) => {

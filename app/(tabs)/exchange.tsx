@@ -60,6 +60,10 @@ export default function ExchangeScreen() {
   const list = all.filter((t) => t.dir === tab);
   const accent = tab === 'receive' ? colors.green : colors.orange;
   const actionCount = list.filter((t) => (tab === 'receive' ? t.status === 'shipped' : t.status === 'pending')).length;
+  // 「送る商品3件」と「1件が対応待ち」が並ぶと、数が食い違って見えた（2026-08-13 指摘）。
+  // 見出しは進行中の件数にして、対応待ちはその内訳として書く
+  const ongoing = list.filter((t) => t.status !== 'received').length;
+  const finished = list.length - ongoing;
   // タブごとの「あなたの対応待ち」件数（表示中でない側も数える）
   const needReceive = all.filter((t) => t.dir === 'receive' && t.status === 'shipped').length;
   const needSend = all.filter((t) => t.dir === 'send' && t.status === 'pending').length;
@@ -102,10 +106,16 @@ export default function ExchangeScreen() {
           </View>
           <View style={{ flex: 1 }}>
             <Text style={[styles.summaryTitle, { color: accent }]}>
-              {tab === 'receive' ? '受け取る商品' : '送る商品'} {list.length}件
+              {tab === 'receive' ? '受け取る商品' : '送る商品'} 進行中 {ongoing}件
             </Text>
             <Text style={styles.summarySub}>
-              {actionCount > 0 ? `${actionCount}件、あなたの対応待ちです` : '対応待ちはありません'}
+              {actionCount > 0
+                ? `うち${actionCount}件があなたの対応待ちです`
+                : ongoing > 0
+                  ? '相手の対応を待っています'
+                  : finished > 0
+                    ? `対応待ちはありません（完了 ${finished}件）`
+                    : '進行中の取引はありません'}
             </Text>
           </View>
         </View>

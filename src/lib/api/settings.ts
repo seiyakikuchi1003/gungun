@@ -23,6 +23,8 @@ export type AppSettings = {
   privacyPolicy: string;
   /** 肥料の販売プラン（管理画面から変更できる） */
   chargePlans: ChargePlan[];
+  /** お問い合わせ先。運営が変わっても差し替えられるよう設定に置く */
+  contactEmail: string;
 };
 
 export const defaultSettings: AppSettings = {
@@ -41,6 +43,7 @@ export const defaultSettings: AppSettings = {
     price: p.price ?? 0,
     badge: p.badge ?? '',
   })),
+  contactEmail: 'warashibe.gungun@gmail.com',
 };
 
 /** charge_plans（jsonb の配列）を読む。壊れていれば既定値で動かす */
@@ -87,5 +90,6 @@ export async function fetchSettings(): Promise<AppSettings> {
     termsOfService: text(map.get('terms_of_service'), defaultSettings.termsOfService),
     privacyPolicy: text(map.get('privacy_policy'), defaultSettings.privacyPolicy),
     chargePlans: plans(map.get('charge_plans')),
+    contactEmail: text(map.get('contact_email'), defaultSettings.contactEmail),
   };
 }

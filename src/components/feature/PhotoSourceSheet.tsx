@@ -5,7 +5,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, spacing, fonts, radius } from '@/theme';
 import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
 import { PressableScale } from '@/components/ui/PressableScale';
-import { takePhoto, pickFromLibrary, pickOneAndCrop } from '@/lib/photo';
+import { takePhoto, pickFromLibrary } from '@/lib/photo';
 
 type Props = {
   visible: boolean;
@@ -17,10 +17,11 @@ type Picker = () => Promise<string[] | null>;
 
 /**
  * 写真の追加方法を選ぶシート。
- * 「カメラで撮影」＝その場撮影 ／ 「ライブラリから選択」＝まとめて選ぶ ／
- * 「1枚選んで切り抜く」＝トリミングしてから入れる（2026-08-13 項目4）。
+ * 「カメラで撮影」＝その場撮影（撮った直後に切り抜ける） ／
+ * 「ライブラリから選択」＝まとめて選ぶ。
  *
- * OS のピッカーは「複数選択」と「切り抜き」を同時に使えないので、入口を分けている。
+ * 切り抜きはここには置かない。追加した写真をタップすると切り抜ける
+ * （選ぶ前に決めさせるより、並べてから直す方が自然：2026-08-13 指摘）。
  *
  * ★重要：カメラ／写真ライブラリは **このシートが閉じ切ってから** 起動する。
  * モーダルが表示されている間に起動しようとすると、iOS では画面が出ず
@@ -78,17 +79,6 @@ export function PhotoSourceSheet({ visible, onClose, onPicked }: Props) {
           <Text style={styles.optSub}>フォルダから選ぶ</Text>
         </PressableScale>
       </View>
-
-      <PressableScale activeScale={0.98} onPress={() => run(pickOneAndCrop)} style={styles.cropRow}>
-        <View style={[styles.cropIcon, { backgroundColor: colors.orangeSoft }]}>
-          <Ionicons name="crop" size={20} color={colors.orangeDeep} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.optLabel}>1枚選んで切り抜く</Text>
-          <Text style={styles.optSub}>いらない部分を削ってから追加できます</Text>
-        </View>
-        <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
-      </PressableScale>
 
       <PressableScale onPress={onClose} style={styles.cancel}>
         <Text style={styles.cancelText}>キャンセル</Text>

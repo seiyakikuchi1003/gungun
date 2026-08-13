@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { router } from 'expo-router';
 import { errorMessage } from '@/lib/errorMessage';
 import { View, Text, StyleSheet, ScrollView, AppState } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -26,6 +27,8 @@ function makeFeatures(bonus: number): { icon: keyof typeof Ionicons.glyphMap; ti
 export default function Premium() {
   const insets = useSafeAreaInsets();
   const [confirm, setConfirm] = useState(false);
+  // 課金前の同意（2026-08-13 指摘）。シートを開くたびに未チェックへ戻す
+  const [agreed, setAgreed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { settings: appSettings, live } = useTree();
@@ -96,7 +99,6 @@ export default function Premium() {
             </Text>
             {!joined && <Ionicons name="chevron-forward" size={17} color={colors.orangeDeep} />}
           </PressableScale>
-          <Text style={styles.heroNote}>いつでも解約できます</Text>
           {/* 加入中は解約・支払い方法の変更に行けるようにする（導線が無かった：2026-08-05 指摘） */}
           {joined && (
             <PressableScale
@@ -131,7 +133,7 @@ export default function Premium() {
         <View style={styles.ctaWrap}>
           <Text style={styles.note}>
             {live
-              ? '※ Apple Pay またはカードでお支払いいただけます。いつでも解約できます'
+              ? '※ Apple Pay・クレジットカードでお支払いいただけます'
               : '※ 料金・提供機能は調整中です（管理画面から変更可能）'}
           </Text>
           {error ? <FormError message={error} /> : null}
@@ -139,27 +141,50 @@ export default function Premium() {
       </ScrollView>
 
       {/* 登録の確認 */}
-      <BottomSheetModal visible={confirm} onClose={() => setConfirm(false)}>
+      <BottomSheetModal visible={confirm} onClose={() => { setConfirm(false); setAgreed(false); }}>
         <View style={styles.sheetHead}>
           <Mikan size={56} />
           <Text style={styles.sheetTitle}>ぐんぐん プレミアム</Text>
           <Text style={styles.sheetPrice}>{formatPrice(price)} / 月</Text>
         </View>
-        <Text style={styles.sheetNote}>
-          {live
-            ? 'いつでも解約できます。お支払いは Apple Pay またはカードでどうぞ。'
-            : 'いつでも解約できます。料金は調整中のため、正式提供時に改めてご案内します。'}
-        </Text>
+        {/* 課金の前に読んでおくべきことを出す。押したら即決済、では後で揉める（2026-08-13 指摘） */}
+        <View style={styles.terms}>
+          {[
+            '毎月同じ日に自動で更新され、料金が請求されます。',
+            '解約はマイページ →「プランを管理・解約する」からいつでもできます。',
+            '解約しても、その月の残り期間はプレミアムのままご利用いただけます。',
+            '日割りでの返金は行っていません。',
+          ].map((t) => (
+            <View key={t} style={styles.termRow}>
+              <Text style={styles.termDot}>・</Text>
+              <Text style={styles.termText}>{t}</Text>
+            </View>
+          ))}
+        </View>
+
+        <PressableScale activeScale={0.98} onPress={() => setAgreed((v) => !v)} style={styles.agreeRow}>
+          <View style={[styles.agreeBox, agreed && styles.agreeBoxOn]}>
+            {agreed && <Ionicons name="checkmark" size={14} color={colors.white} />}
+          </View>
+          <Text style={styles.agreeText}>
+            上記の内容と
+            <Text style={styles.link} onPress={() => router.push('/mypage/terms')}>利用規約</Text>
+            ・
+            <Text style={styles.link} onPress={() => router.push('/mypage/privacy')}>プライバシーポリシー</Text>
+            に同意します
+          </Text>
+        </PressableScale>
+
         <PressableScale
           onPress={subscribe}
-          disabled={busy}
+          disabled={busy || !agreed}
           activeScale={0.97}
-          style={[styles.sheetBtn, shadows.button, busy && { opacity: 0.6 }]}
+          style={[styles.sheetBtn, shadows.button, (busy || !agreed) && { opacity: 0.5 }]}
         >
           <Ionicons name="diamond" size={18} color={colors.white} />
-          <Text style={styles.sheetBtnText}>{busy ? '開いています…' : '登録する'}</Text>
+          <Text style={styles.sheetBtnText}>{busy ? '開いています…' : '同意して登録する'}</Text>
         </PressableScale>
-        <PressableScale onPress={() => setConfirm(false)} activeScale={0.98} style={styles.sheetCancel}>
+        <PressableScale onPress={() => { setConfirm(false); setAgreed(false); }} activeScale={0.98} style={styles.sheetCancel}>
           <Text style={styles.sheetCancelText}>あとで</Text>
         </PressableScale>
       </BottomSheetModal>
@@ -168,6 +193,18 @@ export default function Premium() {
 }
 
 const styles = StyleSheet.create({
+  terms: { gap: 6, marginBottom: spacing.md },
+  termRow: { flexDirection: 'row', alignItems: 'flex-start' },
+  termDot: { fontFamily: fonts.medium, fontSize: 12.5, color: colors.textSecondary },
+  termText: { flex: 1, fontFamily: fonts.medium, fontSize: 12.5, lineHeight: 19, color: colors.textSecondary },
+  agreeRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, marginBottom: spacing.md },
+  agreeBox: {
+    width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: colors.border,
+    justifyContent: 'center', alignItems: 'center', marginTop: 1,
+  },
+  agreeBoxOn: { backgroundColor: colors.green, borderColor: colors.green },
+  agreeText: { flex: 1, fontFamily: fonts.medium, fontSize: 12.5, lineHeight: 20, color: colors.textPrimary },
+  link: { fontFamily: fonts.bold, color: colors.green, textDecorationLine: 'underline' },
   root: { flex: 1, backgroundColor: colors.bg },
   header: { alignItems: 'center', paddingBottom: spacing.lg },
   title: { fontFamily: fonts.bold, fontSize: 20, color: colors.textPrimary },

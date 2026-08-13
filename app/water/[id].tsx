@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useMe } from '@/store/me';
+import { PremiumNudge } from '@/components/feature/PremiumNudge';
 import { View, Text, StyleSheet, ScrollView, TextInput, ActivityIndicator } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -37,7 +39,10 @@ export default function WaterScreen() {
   const [category, setCategory] = useState('バッグ・小物');
   const [condition, setCondition] = useState('');
   const [picker, setPicker] = useState<PickerKey>(null);
+  const me = useMe();
   const [photoSheet, setPhotoSheet] = useState(false);
+  // 出品・水やりのタイミングでだけプレミアムを案内する（2026-08-13 指摘）
+  const [nudge, setNudge] = useState(true);
   const [busy, setBusy] = useState(false);
 
   if (!target) {
@@ -199,6 +204,8 @@ export default function WaterScreen() {
       </View>
 
       {/* 写真の追加方法（カメラ / ライブラリ） */}
+      <PremiumNudge trigger={nudge} isPremium={me.isPremium} onClose={() => setNudge(false)} />
+
       <PhotoSourceSheet
         visible={photoSheet}
         onClose={() => setPhotoSheet(false)}

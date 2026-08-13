@@ -90,8 +90,10 @@ export default function ExchangeDetail() {
     }
   };
 
-  // 宛名書きのときに見ながら書けるよう、住所をまとめて渡す。
-  // expo-clipboard を足すとネイティブビルドが必要になるので、共有シート（Web はコピー）を使う
+  // 宛名書きのときに使えるよう、住所をまとめて書き出す。
+  // 「共有」と書くと何が起きるか伝わらなかったので「住所をコピー」に改めた（2026-08-13 指摘）。
+  // expo-clipboard を足すとネイティブビルドが必要になるため、
+  // 実機では OS の共有シート（コピーを含む）、Web ではクリップボードに入る
   const copyAddress = async () => {
     const a = detail.shipTo;
     if (!a) return;
@@ -177,8 +179,8 @@ export default function ExchangeDetail() {
               <Text style={styles.panelLabel}>お届け先（{detail.partnerName}さん）</Text>
               {detail.shipTo && (
                 <PressableScale onPress={copyAddress} activeScale={0.95} style={styles.copyBtn}>
-                  <Ionicons name={copied ? 'checkmark' : 'share-outline'} size={14} color={colors.green} />
-                  <Text style={styles.copyText}>{copied ? '共有しました' : '宛先を共有'}</Text>
+                  <Ionicons name={copied ? 'checkmark' : 'copy-outline'} size={14} color={colors.green} />
+                  <Text style={styles.copyText}>{copied ? 'コピーしました' : '住所をコピー'}</Text>
                 </PressableScale>
               )}
             </View>
@@ -380,7 +382,9 @@ const styles = StyleSheet.create({
   sheetIcon: { width: 68, height: 68, borderRadius: 34, justifyContent: 'center', alignItems: 'center', marginBottom: spacing.sm },
   sheetTitle: { fontFamily: fonts.bold, fontSize: 19, color: colors.textPrimary, textAlign: 'center' },
   sheetSub: { fontFamily: fonts.regular, fontSize: 13.5, color: colors.textSecondary, textAlign: 'center', lineHeight: 21, paddingHorizontal: spacing.md },
-  checkList: { maxHeight: 320, marginTop: spacing.md },
+  // 320 だと最後の項目とボタンが同時に見えず、下まであることに気づけなかった
+  // （2026-08-13 指摘）。画面の高さに応じて伸ばす
+  checkList: { maxHeight: 440, marginTop: spacing.md },
   checkRow: { flexDirection: 'row', gap: spacing.md, paddingVertical: spacing.sm, alignItems: 'flex-start' },
   checkBox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: colors.border, justifyContent: 'center', alignItems: 'center', marginTop: 2 },
   checkBoxOn: { backgroundColor: colors.green, borderColor: colors.green },

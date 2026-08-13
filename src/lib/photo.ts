@@ -5,7 +5,7 @@ import * as ImagePicker from 'expo-image-picker';
  * 写真の取得ヘルパー。
  * - takePhoto(): その場でカメラを起動して1枚撮影（切り抜きあり）
  * - pickFromLibrary(): 写真ライブラリから選択（複数可・切り抜きなし）
- * - pickOneAndCrop(): 1枚だけ選んで切り抜く（2026-08-13 項目4）
+ * - cropPhoto(): 追加済みの写真を選び直して切り抜く（2026-08-13 指摘）
  *
  * 複数選択と切り抜きは同時に使えない（OS のピッカーの制約）。
  * そのため「まとめて選ぶ」と「1枚ずつ整えて入れる」を別の入口に分けている。
@@ -64,12 +64,15 @@ export async function pickFromLibrary(): Promise<string[] | null> {
 }
 
 /**
- * 1枚だけ選んで、その場で切り抜く（2026-08-13 項目4）。
+ * 追加済みの写真を「選び直して切り抜く」（2026-08-13 指摘）。
  *
- * OS 標準のトリミング画面が出るので、傾きや余計な写り込みを削ってから登録できる。
- * 比率は決めていない（商品によって縦横が違うため）。
+ * 並べた写真をタップしたときに呼ぶ。OS 標準のトリミング画面が出る。
+ *
+ * ※ すでに端末に取り込んだ画像をアプリ内でそのまま切り抜くには
+ *   ネイティブの画像加工モジュールが要り、追加すると新しいビルドが必要になる。
+ *   今は配信で直せる範囲を優先し、ピッカー標準の切り抜きを使っている。
  */
-export async function pickOneAndCrop(): Promise<string[] | null> {
+export async function cropPhoto(): Promise<string[] | null> {
   const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (!perm.granted && perm.accessPrivileges !== 'limited') {
     denied('写真');

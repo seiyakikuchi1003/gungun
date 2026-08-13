@@ -8,10 +8,10 @@ import { PressableScale } from '@/components/ui/PressableScale';
 import { TopTabs } from '@/components/ui/TopTabs';
 import { PostRow } from '@/components/ui/PostRow';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { useBoard } from '@/hooks/useBoard';
+import { useBoard, toUIPost, type UIPost } from '@/hooks/useBoard';
 import { useMe } from '@/store/me';
 import { isSupabaseEnabled } from '@/lib/supabase';
-import { fetchMyComments, type MyComment } from '@/lib/api/board';
+import { fetchMyComments, fetchMyPosts, type MyComment } from '@/lib/api/board';
 
 /**
  * 掲示板の履歴。
@@ -29,15 +29,19 @@ export default function MyPosts() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // 実DB接続時は自分の投稿だけ。モックでは従来のデモ用の絞り込みを維持
+  // 自分の投稿は掲示板の一覧（最新50件）からではなく、直接取る。
+  // 流れて一覧から外れると履歴に出なくなっていた（2026-08-13 指摘）
+  const [myPosts, setMyPosts] = useState<UIPost[]>([]);
   const mine = isSupabaseEnabled
-    ? posts.filter((p) => p.userId === me.id)
+    ? myPosts
     : posts.filter((p) => p.userId === 'metan' || p.id === 'p1');
 
   const load = useCallback(async () => {
     if (!isSupabaseEnabled || !me.live) { setLoading(false); return; }
     try {
-      setComments(await fetchMyComments(me.id));
+      const [cs, ps] = await Promise.all([fetchMyComments(me.id), fetchMyPosts(me.id)]);
+      setComments(cs);
+      setMyPosts(ps.map(toUIPost));
     } catch {
       // 取れなくても投稿タブは見られる
     } finally {

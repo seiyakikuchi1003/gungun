@@ -111,7 +111,7 @@ export default function Fertilizer() {
           <Ionicons name="information-circle-outline" size={16} color={colors.textSecondary} />
           <Text style={styles.noteText}>
             {live
-              ? 'Apple Pay またはカードでお支払いいただけます。反映まで数秒かかることがあります。'
+              ? 'Apple Pay・クレジットカードでお支払いいただけます。反映まで数秒かかることがあります。'
               : '金額は調整中です。確定後、管理画面から反映されます。'}
           </Text>
         </View>

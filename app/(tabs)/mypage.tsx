@@ -47,7 +47,7 @@ export default function MyPage() {
   const insets = useSafeAreaInsets();
   const { signOut, deleteAccount, profile, reloadProfile } = useAuth();
   // 肥料残高は tree ストアが持つ（水やり・チャージで増減する実際の値）
-  const { fertilizer, items } = useTree();
+  const { fertilizer, items, settings } = useTree();
   const me = useMe();
   const mine = items.filter((i) => i.ownerId === me.id);
   const planted = mine.filter((i) => i.parentId === null).length;
@@ -192,12 +192,12 @@ export default function MyPage() {
           ご不明な点・不具合のご報告は、以下までお気軽にご連絡ください。
         </Text>
         <PressableScale
-          onPress={() => { Linking.openURL('mailto:support@gungun.app').catch(() => {}); setSheet(null); }}
+          onPress={() => { Linking.openURL(`mailto:${settings.contactEmail}`).catch(() => {}); setSheet(null); }}
           activeScale={0.97}
           style={[styles.sheetBtn, shadows.button]}
         >
           <Ionicons name="mail" size={18} color={colors.white} />
-          <Text style={styles.sheetBtnText}>support@gungun.app にメール</Text>
+          <Text style={styles.sheetBtnText} numberOfLines={1}>{settings.contactEmail} にメール</Text>
         </PressableScale>
       </BottomSheetModal>
 

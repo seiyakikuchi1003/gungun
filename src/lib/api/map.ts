@@ -75,6 +75,7 @@ export function toItem(r: ItemCardRow): MockItem {
     parentId: r.parent_id,
     rootId: r.root_id,
     depth: Number(r.depth ?? 0),
+    createdAt: r.created_at,
   };
 }
 

@@ -31,7 +31,7 @@ export type UIPost = BoardPost & {
   imageUrl?: string | null;
 };
 
-function toUIPost(p: api.BoardPost): UIPost {
+export function toUIPost(p: api.BoardPost): UIPost {
   return {
     id: p.id,
     userId: p.userId,

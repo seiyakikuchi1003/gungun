@@ -70,8 +70,14 @@ export default function Celebration() {
   return (
     <View style={styles.root}>
       <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
-        <PressableScale onPress={() => router.dismissTo('/exchange')} activeScale={0.9} style={styles.hBtn}>
-          <Ionicons name="close" size={26} color={colors.textPrimary} />
+        {/* 取引詳細から開いたのに取引一覧まで戻されるのが分かりにくかった（2026-08-13 指摘）。
+            来た道が残っていれば1つ戻る。無ければ取引一覧へ */}
+        <PressableScale
+          onPress={() => (router.canGoBack() ? router.back() : router.dismissTo('/exchange'))}
+          activeScale={0.9}
+          style={styles.hBtn}
+        >
+          <Ionicons name={router.canGoBack() ? 'chevron-back' : 'close'} size={26} color={colors.textPrimary} />
         </PressableScale>
         <Text style={styles.hTitle}>{complete ? '収穫完了' : '輪のようす'}</Text>
         <View style={styles.hBtn} />

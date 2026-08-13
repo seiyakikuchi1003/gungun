@@ -83,7 +83,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg, height: 42, marginBottom: spacing.sm,
   },
   searchInput: { flex: 1, fontFamily: fonts.medium, fontSize: 15, color: colors.textPrimary },
-  list: { maxHeight: 360 },
+  // 高さを固定する。maxHeight だと絞り込むたびにシートが縮んで、
+  // 上端の位置まで動いてしまい、文字を打つたびに画面が跳ねていた（2026-08-13 指摘）。
+  // 中身が減っても枠は変えず、下が空くだけにする
+  list: { height: 360 },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.divider },
   text: { fontFamily: fonts.medium, fontSize: 15.5, color: colors.textPrimary },
   textOn: { fontFamily: fonts.bold, color: colors.green },

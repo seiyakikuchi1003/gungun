@@ -110,7 +110,9 @@ export default function Account() {
         <Section title="アカウント">
           {/* ニックネームは公開プロフィール側（マイページの「編集」）に任せる。
               ここに置くと同じ項目が2か所に出て、どちらで直すのか分からなくなる */}
-          <Row label="メールアドレス" value={email || '未設定'} onPress={() => setMailSheet(true)} />
+          {/* アドレスそのものは出さない。長いと行が崩れるうえ、
+              ここで確認する必要もない（変更画面に現在の値が入っている／2026-08-13 指摘） */}
+          <Row label="メールアドレス" value="変更する" onPress={() => setMailSheet(true)} />
           <Row label="パスワード" value="変更する" onPress={() => router.push('/(auth)/reset')} last />
         </Section>
 
