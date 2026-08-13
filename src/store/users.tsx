@@ -3,7 +3,7 @@ import { getUser, type MockUser } from '@/data/mock';
 import { isSupabaseEnabled } from '@/lib/supabase';
 import { useAuth } from '@/store/auth';
 import { fetchProfilesByIds } from '@/lib/api/profile';
-import { DELETED_USER_NAME } from '@/lib/api/map';
+import { DELETED_USER_NAME, displayName } from '@/lib/api/map';
 
 /**
  * ユーザー（ニックネーム・アイコン）を id から引く。
@@ -55,7 +55,7 @@ export function UsersProvider({ children }: { children: React.ReactNode }) {
         for (const p of found) {
           next[p.id] = {
             id: p.id,
-            nickname: p.nickname,
+            nickname: displayName(p.nickname),
             avatar: p.avatarUrl ?? '',
             ratingAvg: p.ratingAvg,
             ratingCount: p.ratingCount,

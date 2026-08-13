@@ -1,5 +1,5 @@
 import { requireSupabase } from '@/lib/supabase';
-import { DELETED_USER_NAME, relativeTime } from './map';
+import { DELETED_USER_NAME, relativeTime, displayName } from './map';
 
 /** プロフィール・肥料・お届け先。 */
 
@@ -210,7 +210,7 @@ export async function fetchRatings(userId: string, limit = 100): Promise<RatingC
     id: r.id,
     raterId: r.rater_id ?? null,
     // 退会した人の評価も残す設計なので、名前が無いときはそう見せる
-    raterName: r.rater_nickname ?? DELETED_USER_NAME,
+    raterName: displayName(r.rater_nickname),
     raterAvatar: r.rater_avatar_url ?? '',
     type: r.type,
     score: Number(r.score),

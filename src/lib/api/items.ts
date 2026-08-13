@@ -1,6 +1,6 @@
 import { requireSupabase } from '@/lib/supabase';
 import type { MockItem } from '@/data/mock';
-import { ITEM_CARD_COLUMNS, toItem, relativeTime, DELETED_USER_NAME, type ItemCardRow } from './map';
+import { ITEM_CARD_COLUMNS, toItem, relativeTime, DELETED_USER_NAME, type ItemCardRow, displayName } from './map';
 
 /**
  * 商品（＝森のノード）の読み書き。
@@ -186,7 +186,7 @@ export async function fetchItemComments(itemId: string): Promise<ItemComment[]> 
   return (data ?? []).map((r: any) => ({
     id: r.id,
     userId: r.user_id,
-    authorName: r.profiles?.nickname ?? DELETED_USER_NAME,
+    authorName: displayName(r.profiles?.nickname),
     authorAvatar: r.profiles?.avatar_url ?? '',
     body: r.body,
     createdAt: relativeTime(r.created_at),

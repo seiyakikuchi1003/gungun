@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Linking } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { displayName as toDisplayName } from '@/lib/api/map';
 import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
@@ -53,7 +54,9 @@ export default function MyPage() {
   const watered = mine.filter((i) => i.parentId !== null).length;
   const exchanging = mine.filter((i) => i.status === 'trading').length;
   // ログイン中の本人の表示名。実DB接続時は profiles の値、モックでは従来どおり。
-  const displayName = profile?.nickname ?? me.nickname;
+  // 名乗りを入れていない人は空になる（0030 でローマ字の仮置きをやめた）ので、
+  // ここで「名前未設定」と出して編集をうながす。
+  const displayName = toDisplayName(profile?.nickname ?? me.nickname);
   // 評価は profile_stats（実データ）から。以前はモックの 4.5 固定だった
   const [stats, setStats] = useState<ProfileStats | null>(null);
   // モック（画面デモ）では従来どおりデモの評価を出す。実データでは profile_stats を使い、

@@ -17,6 +17,22 @@ import type { MockItem, MockUser } from '@/data/mock';
  */
 export const DELETED_USER_NAME = '退会したユーザー';
 
+/** まだ名前を決めていない人の表示名（2026-08-12 項目23） */
+export const NO_NAME = '名前未設定';
+
+/**
+ * 画面に出す名前。
+ *
+ * 以前は登録時にメールアドレスの @ より前を名前として入れていたが、
+ * 本人が入れた覚えのないローマ字名が出るのでやめた（0030）。
+ * その代わり、空のときはここで「名前未設定」に寄せる。
+ * 退会した人（プロフィールごと消えている）とは区別する。
+ */
+export function displayName(nickname: string | null | undefined): string {
+  if (nickname === null || nickname === undefined) return DELETED_USER_NAME;
+  return nickname.trim() === '' ? NO_NAME : nickname;
+}
+
 /** item_cards ビューの1行 */
 export type ItemCardRow = {
   id: string;

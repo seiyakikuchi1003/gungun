@@ -1,5 +1,5 @@
 import { requireSupabase } from '@/lib/supabase';
-import { relativeTime, DELETED_USER_NAME } from './map';
+import { relativeTime, DELETED_USER_NAME, displayName } from './map';
 
 /** 掲示板。投稿・コメント・いいね。 */
 
@@ -123,7 +123,7 @@ export async function fetchComments(postId: string): Promise<BoardComment[]> {
     id: r.id,
     postId: r.post_id,
     userId: r.user_id,
-    authorName: r.profiles?.nickname ?? DELETED_USER_NAME,
+    authorName: displayName(r.profiles?.nickname),
     authorAvatar: r.profiles?.avatar_url ?? '',
     body: r.body,
     createdAt: relativeTime(r.created_at),
@@ -201,6 +201,6 @@ export async function fetchMyComments(userId: string, limit = 100): Promise<MyCo
     body: r.body,
     createdAt: relativeTime(r.created_at),
     postBody: r.board_posts?.body ?? '',
-    postAuthor: r.board_posts?.profiles?.nickname ?? DELETED_USER_NAME,
+    postAuthor: displayName(r.board_posts?.profiles?.nickname),
   }));
 }
