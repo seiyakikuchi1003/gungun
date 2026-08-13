@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { errorMessage } from '@/lib/errorMessage';
 import { View, Text, StyleSheet, TextInput } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, spacing, fonts, radius, shadows } from '@/theme';
@@ -60,7 +61,7 @@ export function ReportSheet({ visible, onClose, targetLabel = 'この内容', ta
         await submitReport(me.id, targetType, targetId, body);
       } catch (e) {
         setBusy(false);
-        setError(e instanceof Error ? e.message : '送信できませんでした');
+        setError(errorMessage(e, '送信できませんでした'));
         return;
       }
       setBusy(false);

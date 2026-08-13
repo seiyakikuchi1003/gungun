@@ -3,8 +3,12 @@ import * as ImagePicker from 'expo-image-picker';
 
 /**
  * 写真の取得ヘルパー。
- * - takePhoto(): その場でカメラを起動して1枚撮影
- * - pickFromLibrary(): 写真ライブラリから選択（複数可）
+ * - takePhoto(): その場でカメラを起動して1枚撮影（切り抜きあり）
+ * - pickFromLibrary(): 写真ライブラリから選択（複数可・切り抜きなし）
+ * - pickOneAndCrop(): 1枚だけ選んで切り抜く（2026-08-13 項目4）
+ *
+ * 複数選択と切り抜きは同時に使えない（OS のピッカーの制約）。
+ * そのため「まとめて選ぶ」と「1枚ずつ整えて入れる」を別の入口に分けている。
  *
  * ★呼び出し側の注意：モーダル（BottomSheetModal など）が開いている間に呼ぶと
  *   iOS では画面が出ない。閉じ切ってから呼ぶこと（PhotoSourceSheet 参照）。
@@ -32,8 +36,8 @@ export async function takePhoto(): Promise<string[] | null> {
   }
   const res = await ImagePicker.launchCameraAsync({
     mediaTypes: ['images'],
-    quality: 0.7,
-    allowsEditing: true,
+    quality: 0.6,
+    allowsEditing: true,   // 撮った直後に切り抜ける
   });
   if (res.canceled || !res.assets?.length) return null;
   return res.assets.map((a) => a.uri);
@@ -49,12 +53,36 @@ export async function pickFromLibrary(): Promise<string[] | null> {
   }
   const res = await ImagePicker.launchImageLibraryAsync({
     mediaTypes: ['images'],
-    quality: 0.7,
+    // 0.7 のままだと最近の端末の写真がアップロード上限に当たることがあった（項目3）。
+    // 商品写真は画面で見る用途なので、0.6 まで落としても見た目は変わらない。
+    quality: 0.6,
     allowsMultipleSelection: true,
     selectionLimit: 10,
   });
   if (res.canceled || !res.assets?.length) return null;
   return res.assets.map((a) => a.uri);
+}
+
+/**
+ * 1枚だけ選んで、その場で切り抜く（2026-08-13 項目4）。
+ *
+ * OS 標準のトリミング画面が出るので、傾きや余計な写り込みを削ってから登録できる。
+ * 比率は決めていない（商品によって縦横が違うため）。
+ */
+export async function pickOneAndCrop(): Promise<string[] | null> {
+  const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (!perm.granted && perm.accessPrivileges !== 'limited') {
+    denied('写真');
+    return null;
+  }
+  const res = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ['images'],
+    allowsEditing: true,
+    quality: 0.6,
+    allowsMultipleSelection: false,
+  });
+  if (res.canceled || !res.assets?.length) return null;
+  return [res.assets[0].uri];
 }
 
 /**

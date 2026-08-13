@@ -153,5 +153,6 @@ const styles = StyleSheet.create({
   doneSub: { fontFamily: fonts.regular, fontSize: 14, color: colors.textSecondary, textAlign: 'center', marginTop: spacing.sm, lineHeight: 22 },
   // 2026-07-28 MTG：ボタンずれ対策。80%幅を、Button の fullWidth（alignSelf:stretch）
   // に干渉させないよう、ラッパー View で幅を決めてから Button を置く。
-  doneCta: { width: '80%', marginTop: spacing['2xl'] },
+  // ボタン同士がくっついて見えないよう間隔をあける（2026-08-13 項目7）
+  doneCta: { width: '80%', marginTop: spacing['2xl'], gap: spacing.md },
 });

@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { errorMessage } from '@/lib/errorMessage';
 import {
   items as seedPool,
   ancestorsOf as ancestorsIn,
@@ -129,7 +130,8 @@ function recomputeTree(pool: MockItem[]): MockItem[] {
 
 /** DB のエラーを画面に出せる日本語にする */
 function jp(e: unknown): string {
-  const m = e instanceof Error ? e.message : String(e);
+  // Supabase のエラーは Error ではないので String(e) だと [object Object] になる
+  const m = errorMessage(e, '');
   if (/insufficient|肥料が足りません/.test(m)) return '肥料が足りません';
   if (/cannot water|水やりできません/.test(m)) return 'この商品には水やりできません';
   if (/already|duplicate|unique/i.test(m)) return 'すでに実行済みです';

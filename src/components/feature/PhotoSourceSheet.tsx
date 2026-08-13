@@ -1,10 +1,11 @@
 import React, { useCallback, useRef } from 'react';
+import { errorMessage } from '@/lib/errorMessage';
 import { View, Text, StyleSheet, Alert, Platform } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, spacing, fonts, radius } from '@/theme';
 import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
 import { PressableScale } from '@/components/ui/PressableScale';
-import { takePhoto, pickFromLibrary } from '@/lib/photo';
+import { takePhoto, pickFromLibrary, pickOneAndCrop } from '@/lib/photo';
 
 type Props = {
   visible: boolean;
@@ -16,7 +17,10 @@ type Picker = () => Promise<string[] | null>;
 
 /**
  * 写真の追加方法を選ぶシート。
- * 「カメラで撮影」＝その場撮影 ／ 「ライブラリから選択」＝フォルダから選ぶ。
+ * 「カメラで撮影」＝その場撮影 ／ 「ライブラリから選択」＝まとめて選ぶ ／
+ * 「1枚選んで切り抜く」＝トリミングしてから入れる（2026-08-13 項目4）。
+ *
+ * OS のピッカーは「複数選択」と「切り抜き」を同時に使えないので、入口を分けている。
  *
  * ★重要：カメラ／写真ライブラリは **このシートが閉じ切ってから** 起動する。
  * モーダルが表示されている間に起動しようとすると、iOS では画面が出ず
@@ -42,7 +46,7 @@ export function PhotoSourceSheet({ visible, onClose, onPicked }: Props) {
       // 黙って何も起きないのが一番困るので、理由を出す
       Alert.alert(
         '写真を開けませんでした',
-        e instanceof Error ? e.message : 'もう一度お試しください。'
+        errorMessage(e, 'もう一度お試しください。')
       );
     }
   }, [onPicked]);
@@ -74,6 +78,18 @@ export function PhotoSourceSheet({ visible, onClose, onPicked }: Props) {
           <Text style={styles.optSub}>フォルダから選ぶ</Text>
         </PressableScale>
       </View>
+
+      <PressableScale activeScale={0.98} onPress={() => run(pickOneAndCrop)} style={styles.cropRow}>
+        <View style={[styles.cropIcon, { backgroundColor: colors.orangeSoft }]}>
+          <Ionicons name="crop" size={20} color={colors.orangeDeep} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.optLabel}>1枚選んで切り抜く</Text>
+          <Text style={styles.optSub}>いらない部分を削ってから追加できます</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+      </PressableScale>
+
       <PressableScale onPress={onClose} style={styles.cancel}>
         <Text style={styles.cancelText}>キャンセル</Text>
       </PressableScale>
@@ -88,6 +104,12 @@ const styles = StyleSheet.create({
   icon: { width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
   optLabel: { fontFamily: fonts.bold, fontSize: 14, color: colors.textPrimary },
   optSub: { fontFamily: fonts.medium, fontSize: 11.5, color: colors.textSecondary },
+  cropRow: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.md,
+    backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.md,
+    borderWidth: 1, borderColor: colors.border,
+  },
+  cropIcon: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
   cancel: { alignItems: 'center', paddingVertical: spacing.lg, marginTop: spacing.xs },
   cancelText: { fontFamily: fonts.bold, fontSize: 15, color: colors.textSecondary },
 });

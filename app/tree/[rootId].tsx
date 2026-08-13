@@ -29,6 +29,8 @@ export default function TreeScreen() {
   const [showAll, setShowAll] = useState(true);
   const [pickWater, setPickWater] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  // 統計を押したときに開く一覧（2026-08-13 項目9）
+  const [detail, setDetail] = useState<'all' | 'direct' | 'people' | null>(null);
 
   const root = getItem(rootId ?? '');
   if (!root) return <View style={styles.root} />;
@@ -109,22 +111,27 @@ export default function TreeScreen() {
           />
         </View>
 
-        {/* 統計。3つとも違うことを指すように言い分ける（同じ数字を別名で出さない） */}
+        {/* 統計。3つとも違うことを指すように言い分ける（同じ数字を別名で出さない）。
+            数だけ出しても中身が分からないので、押すと一覧が開く（2026-08-13 項目9） */}
         <View style={styles.statRow}>
-          <Stat num={waterings} label="集まった商品" />
+          <Stat num={waterings} label="集まった商品" onPress={() => setDetail('all')} />
           <View style={styles.statDivider} />
-          <Stat num={branches} label="直接の水やり" />
+          <Stat num={branches} label="直接の水やり" onPress={() => setDetail('direct')} />
           <View style={styles.statDivider} />
-          <Stat num={joiners} label="関わった人" accent />
+          <Stat num={joiners} label="関わった人" accent onPress={() => setDetail('people')} />
         </View>
 
         {/* アクション */}
         {justWatered ? (
+          /* 1つの木につき1人1回まで。水やり直後に「もっと水やりする」を出すと
+             必ず断られるボタンになるので出さない（2026-08-13 項目2） */
           <View style={{ gap: spacing.md, marginTop: spacing.xl }}>
-            <PressableScale onPress={() => setPickWater(true)} activeScale={0.97} style={[styles.waterBtn, shadows.button]}>
-              <Ionicons name="water" size={18} color={colors.white} />
-              <Text style={styles.shareText}>この木にもっと水やりする</Text>
-            </PressableScale>
+            <View style={styles.mineNote}>
+              <Ionicons name="checkmark-circle" size={16} color={colors.green} />
+              <Text style={styles.mineNoteText}>
+                水やりが完了しました。1つの木につき水やりは1人1回までです。
+              </Text>
+            </View>
             <PressableScale onPress={() => router.dismissTo('/(tabs)')} activeScale={0.97} style={styles.ghostBtn}>
               <Text style={styles.ghostText}>ホームに戻る</Text>
             </PressableScale>
@@ -179,6 +186,62 @@ export default function TreeScreen() {
         )}
       </ScrollView>
 
+      {/* 統計の中身。数だけでは何が集まったのか分からないため（2026-08-13 項目9） */}
+      <BottomSheetModal visible={detail !== null} onClose={() => setDetail(null)}>
+        <Text style={styles.pickTitle}>
+          {detail === 'all' ? '集まった商品' : detail === 'direct' ? '直接の水やり' : '関わった人'}
+        </Text>
+        <ScrollView style={{ maxHeight: 380, marginTop: spacing.md }} showsVerticalScrollIndicator={false}>
+          {detail === 'people' ? (
+            [...new Set(all.map((i) => i.ownerId))].map((uid) => {
+              const u = users.user(uid);
+              const count = all.filter((i) => i.ownerId === uid).length;
+              return (
+                <PressableScale
+                  key={uid}
+                  activeScale={0.98}
+                  onPress={() => { setDetail(null); router.push(`/user/${uid}`); }}
+                  style={styles.sheetRow}
+                >
+                  <Avatar uri={u.avatar} name={u.nickname} size={38} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.sheetName} numberOfLines={1}>{u.nickname}さん</Text>
+                    <Text style={styles.sheetSub}>この木に{count}件</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+                </PressableScale>
+              );
+            })
+          ) : (
+            (detail === 'direct' ? rootChildren : all.filter((i) => i.id !== root.id)).map((it) => {
+              const u = users.user(it.ownerId);
+              return (
+                <PressableScale
+                  key={it.id}
+                  activeScale={0.98}
+                  onPress={() => { setDetail(null); router.push(`/item/${it.id}`); }}
+                  style={styles.sheetRow}
+                >
+                  <Thumb source={it.local} uri={it.image} style={styles.sheetThumb} radius={10} markSize={16} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.sheetName} numberOfLines={1}>{it.name}</Text>
+                    <Text style={styles.sheetSub}>{u.nickname}さん・水やり{it.waterCount}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+                </PressableScale>
+              );
+            })
+          )}
+          {((detail === 'direct' && rootChildren.length === 0) ||
+            (detail === 'all' && all.length <= 1)) && (
+            <Text style={styles.gridEmpty}>まだ水やりされていません。</Text>
+          )}
+        </ScrollView>
+        <PressableScale onPress={() => setDetail(null)} style={styles.sheetClose}>
+          <Text style={styles.ghostText}>閉じる</Text>
+        </PressableScale>
+      </BottomSheetModal>
+
       {/* 水やり対象（親）を選ぶ */}
       <BottomSheetModal visible={pickWater} onClose={() => setPickWater(false)}>
         <Text style={styles.pickTitle}>水やりする商品を選ぶ</Text>
@@ -220,12 +283,15 @@ export default function TreeScreen() {
   );
 }
 
-function Stat({ num, label, accent }: { num: number; label: string; accent?: boolean }) {
+function Stat({ num, label, accent, onPress }: { num: number; label: string; accent?: boolean; onPress?: () => void }) {
   return (
-    <View style={styles.stat}>
+    <PressableScale activeScale={onPress ? 0.94 : 1} onPress={onPress} disabled={!onPress} style={styles.stat}>
       <Text style={[styles.statNum, accent && { color: colors.orange }]}>{num}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-    </View>
+      <View style={styles.statLabelRow}>
+        <Text style={styles.statLabel}>{label}</Text>
+        {onPress && <Ionicons name="chevron-forward" size={11} color={colors.textSecondary} />}
+      </View>
+    </PressableScale>
   );
 }
 
@@ -298,6 +364,12 @@ const styles = StyleSheet.create({
   canvasCard: { backgroundColor: colors.bgWarm, borderRadius: radius.lg, marginTop: spacing.lg, overflow: 'hidden', borderWidth: 1, borderColor: colors.border },
   statRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: radius.card, paddingVertical: spacing.lg, marginTop: spacing.lg, ...shadows.soft },
   stat: { flex: 1, alignItems: 'center', gap: 3 },
+  statLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  sheetRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm },
+  sheetThumb: { width: 44, height: 44 },
+  sheetName: { fontFamily: fonts.bold, fontSize: 14, color: colors.textPrimary },
+  sheetSub: { fontFamily: fonts.medium, fontSize: 11.5, color: colors.textSecondary, marginTop: 2 },
+  sheetClose: { alignItems: 'center', paddingVertical: spacing.lg },
   // 水やり一覧（段を出さず画像で並べる：2026-08-12 指摘）
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   gridCell: { width: '31.5%', backgroundColor: colors.card, borderRadius: radius.md, padding: spacing.sm, gap: 4 },

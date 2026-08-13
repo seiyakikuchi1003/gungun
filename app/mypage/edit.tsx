@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { errorMessage } from '@/lib/errorMessage';
 import { View, Text, StyleSheet, ScrollView, TextInput } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -53,7 +54,7 @@ export default function ProfileEdit() {
       await reloadProfile();
       router.back();
     } catch (e) {
-      setError(e instanceof Error ? e.message : '保存できませんでした');
+      setError(errorMessage(e, '保存できませんでした'));
     } finally {
       setBusy(false);
     }

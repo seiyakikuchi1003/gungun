@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { errorMessage } from '@/lib/errorMessage';
 import { trades as mockTrades, tradeItem, tradeUser, chatByTrade, type Trade } from '@/data/mockSocial';
 import { isSupabaseEnabled } from '@/lib/supabase';
 import { useMe } from '@/store/me';
@@ -132,7 +133,7 @@ export function useExchange(exchangeId: string) {
       setTrade(e ? toUITrade(e) : null);
       setMessages(ms.map((m) => ({ id: m.id, body: m.body, mine: m.mine, createdAt: m.createdAt })));
     } catch (e) {
-      setError(e instanceof Error ? e.message : '取引を読み込めませんでした');
+      setError(errorMessage(e, '取引を読み込めませんでした'));
     } finally {
       setLoading(false);
     }
@@ -173,7 +174,7 @@ export function useExchange(exchangeId: string) {
       await load();
       return { error: null };
     } catch (e) {
-      return { error: e instanceof Error ? e.message : '発送を記録できませんでした' };
+      return { error: errorMessage(e, '発送を記録できませんでした') };
     } finally {
       setBusy(false);
     }
@@ -187,7 +188,7 @@ export function useExchange(exchangeId: string) {
       await load();
       return { error: null };
     } catch (e) {
-      return { error: e instanceof Error ? e.message : '受取を記録できませんでした' };
+      return { error: errorMessage(e, '受取を記録できませんでした') };
     } finally {
       setBusy(false);
     }
@@ -201,7 +202,7 @@ export function useExchange(exchangeId: string) {
         await api.submitRating(exchangeId, score, comment);
         return { error: null };
       } catch (e) {
-        return { error: e instanceof Error ? e.message : '評価を送れませんでした' };
+        return { error: errorMessage(e, '評価を送れませんでした') };
       } finally {
         setBusy(false);
       }

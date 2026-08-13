@@ -96,6 +96,15 @@ export default function MyPage() {
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: 170 }}>
         <View style={styles.header}>
+          {/* マイページはホームから開くので、戻る導線が無いと
+              ボトムナビを経由するしかなかった（2026-08-13 再掲） */}
+          <PressableScale
+            activeScale={0.9}
+            onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
+            style={styles.backBtn}
+          >
+            <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
+          </PressableScale>
           <Text style={styles.title}>マイページ</Text>
           {/* 歯車＝設定（本人確認の情報）、名前の横の「編集」＝公開プロフィール。
               どちらもプロフィール編集に飛んでいて役割が重複していた（2026-08-05 指摘） */}
@@ -248,6 +257,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20, paddingBottom: spacing.lg },
   title: { fontFamily: fonts.bold, fontSize: 20, color: colors.textPrimary },
   settingsBtn: { position: 'absolute', right: 20, padding: 4 },
+  backBtn: { position: 'absolute', left: 16, padding: 4 },
   profile: { marginHorizontal: 20, backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.xl, gap: spacing.md },
   profileTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   name: { fontFamily: fonts.bold, fontSize: 18, color: colors.textPrimary },

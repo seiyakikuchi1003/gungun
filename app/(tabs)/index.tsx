@@ -115,11 +115,13 @@ export default function HomeScreen() {
     }, rest);
   }, [refresh]);
 
-  // 「みんなの種」＝木の根（parentId=null）をテーマ別のモザイクで表示
-  // 収穫が決まった（取引中・完了）ものはホームに出さない。
+  // ホームに並べる商品。
+  // 以前はタネ（parentId=null）だけを出していたが、水やり＝出品なので
+  // 水やりで出した商品も一級の商品として並べる（要件 第3章／2026-08-13 項目1）。
+  // 収穫が決まった（取引中・完了）ものは出さない。
   // 出しておくと水やりできそうに見えるが、実際には受け付けられない（2026-08-05 指摘）
   const seedsBase = items
-    .filter((i) => i.parentId === null && i.status === 'growing' && !isBlocked(i.ownerId))
+    .filter((i) => i.status === 'growing' && !isBlocked(i.ownerId))
     .reverse();
   const shift = refreshTick % Math.max(seedsBase.length, 1);
   const seeds = seedsBase.slice(shift).concat(seedsBase.slice(0, shift));
@@ -226,12 +228,12 @@ export default function HomeScreen() {
           </View>
         </Animated.View>
 
-        {/* みんなの種（テーマ別モザイク） */}
+        {/* みんなの出品（テーマ別モザイク）。タネも水やりで出した商品も並ぶ */}
         <Animated.View entering={FadeInDown.delay(80).duration(400)}>
           <View style={styles.sectionHead}>
             <View style={styles.sectionTitleRow}>
               <Sprout size={20} />
-              <Text style={styles.sectionTitle}>みんなの種</Text>
+              <Text style={styles.sectionTitle}>みんなの出品</Text>
             </View>
             <PressableScale onPress={() => router.push('/search')}>
               <Text style={styles.seeAll}>すべて見る ›</Text>

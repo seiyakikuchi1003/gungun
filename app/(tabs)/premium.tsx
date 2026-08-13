@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { errorMessage } from '@/lib/errorMessage';
 import { View, Text, StyleSheet, ScrollView, AppState } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -62,7 +63,7 @@ export default function Premium() {
         setTimeout(() => { reloadProfile().catch(() => {}); }, 4000);
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : '決済画面を開けませんでした');
+      setError(errorMessage(e, '決済画面を開けませんでした'));
     } finally {
       setBusy(false);
     }
@@ -104,7 +105,7 @@ export default function Premium() {
                 try {
                   await openBillingPortal();
                 } catch (e) {
-                  setError(e instanceof Error ? e.message : '管理ページを開けませんでした');
+                  setError(errorMessage(e, '管理ページを開けませんでした'));
                 }
               }}
               activeScale={0.97}

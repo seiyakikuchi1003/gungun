@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { errorMessage } from '@/lib/errorMessage';
 import { isSupabaseEnabled } from '@/lib/supabase';
 import { useAuth } from '@/store/auth';
 import { useMe } from '@/store/me';
@@ -52,7 +53,7 @@ export function useLoginBonus() {
       await reloadProfile(); // 肥料残高を画面に反映
       return { amount: got, error: null };
     } catch (e) {
-      return { amount: 0, error: e instanceof Error ? e.message : '受け取れませんでした' };
+      return { amount: 0, error: errorMessage(e, '受け取れませんでした') };
     } finally {
       setBusy(false);
     }

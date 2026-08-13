@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { errorMessage } from '@/lib/errorMessage';
 import { View, Text, StyleSheet, ScrollView, AppState } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -62,7 +63,7 @@ export default function Fertilizer() {
         setTimeout(() => { reloadProfile().catch(() => {}); }, 4000);
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : '支払いを開始できませんでした');
+      setError(errorMessage(e, '支払いを開始できませんでした'));
     } finally {
       setBusy(false);
     }

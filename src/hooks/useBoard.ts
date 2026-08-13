@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { errorMessage } from '@/lib/errorMessage';
 import { boardPosts as mockPosts, type BoardPost, type BoardTag } from '@/data/mockSocial';
 import { isSupabaseEnabled } from '@/lib/supabase';
 import { useMe } from '@/store/me';
@@ -106,7 +107,7 @@ export function useBoard() {
         await load();
         return { error: null };
       } catch (e) {
-        return { error: e instanceof Error ? e.message : '投稿できませんでした' };
+        return { error: errorMessage(e, '投稿できませんでした') };
       }
     },
     [live, me.live, me.id, me.nickname, me.avatar, load]
