@@ -65,6 +65,9 @@ const STEP_ART: Record<string, React.ReactNode> = {
   harvest: <Mikan size={30} />,
 };
 
+/** 固定した上部バーの高さ（検索欄 46 ＋ 下の余白 16） */
+const TOP_BAR_H = 62;
+
 export default function HomeScreen() {
   const me = useMe();
   const insets = useSafeAreaInsets();
@@ -139,24 +142,9 @@ export default function HomeScreen() {
         <LeafDecor width={220} height={300} flip opacity={0.35} />
       </View>
 
-      <Animated.ScrollView
-        keyboardDismissMode="on-drag"
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: 170 }}
-        onScroll={onScroll}
-        scrollEventThrottle={16}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor="transparent"
-            colors={[colors.green]}
-            progressViewOffset={insets.top + 8}
-          />
-        }
-      >
-        {/* 検索 ＋ 右上アイコン */}
+      {/* 検索・通知・マイページは上部に固定する。
+          スクロールで流れると、探したいときに毎回いちばん上まで戻る必要があった（2026-08-12 指摘） */}
+      <View style={[styles.topBarFixed, { paddingTop: insets.top + 8 }]}>
         <View style={styles.topBar}>
           <PressableScale onPress={() => router.push('/search')} activeScale={0.98} style={[styles.search, shadows.soft]}>
             <Ionicons name="search" size={20} color={colors.textSecondary} />
@@ -166,7 +154,25 @@ export default function HomeScreen() {
           {/* 取引はボトムナビに移したので、ここはマイページへの導線にする（2026-08-13） */}
           <HeaderIcon name="person-circle-outline" count={0} onPress={() => router.push('/mypage')} />
         </View>
+      </View>
 
+      <Animated.ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingTop: insets.top + 8 + TOP_BAR_H, paddingBottom: 170 }}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="transparent"
+            colors={[colors.green]}
+            progressViewOffset={insets.top + 8 + TOP_BAR_H}
+          />
+        }
+      >
         {/* 肥料残高／ログインボーナス（白いカード2枚を横並び） */}
         <Animated.View entering={FadeInDown.duration(400)} style={[styles.section, styles.cardsRow]}>
           {/* 左：現在の肥料 */}
@@ -287,6 +293,10 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  topBarFixed: {
+    position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
+    backgroundColor: colors.bg,
+  },
   root: { flex: 1, backgroundColor: colors.bg, overflow: 'hidden' }, // 装飾の葉が右にはみ出す設計なので、ここで切る（全画面で横スクロールが出ていた）
   leafBg: { position: 'absolute', right: -40, top: 40 },
   topBar: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: 20, marginBottom: spacing.lg },

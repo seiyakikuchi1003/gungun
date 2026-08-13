@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput } from 'react-native';
+import { Gesture, GestureDetector, Directions } from 'react-native-gesture-handler';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -20,8 +21,17 @@ export default function MyItems() {
   const { items } = useTree();
   const [menuItem, setMenuItem] = useState<MockItem | null>(null);
   // 種植え＝自分の root（parentId=null）／水やり＝自分が水やりで出した子（parentId!=null）
+  const [q, setQ] = useState('');
   const mine = items.filter((i) => i.ownerId === me.id);
-  const list = tab === 'seed' ? mine.filter((i) => i.parentId === null) : mine.filter((i) => i.parentId !== null);
+  const base = tab === 'seed' ? mine.filter((i) => i.parentId === null) : mine.filter((i) => i.parentId !== null);
+  const key = q.trim();
+  const list = key ? base.filter((i) => i.name.includes(key) || i.category.includes(key)) : base;
+
+  // 横にはらってタブを切り替える（2026-08-12 指摘）
+  const swipe = Gesture.Race(
+    Gesture.Fling().direction(Directions.LEFT).onEnd(() => setTab('water')).runOnJS(true),
+    Gesture.Fling().direction(Directions.RIGHT).onEnd(() => setTab('seed')).runOnJS(true)
+  );
 
   return (
     <View style={styles.root}>
@@ -34,9 +44,21 @@ export default function MyItems() {
       </View>
       <TopTabs tabs={[{ key: 'seed', label: '植えたタネ' }, { key: 'water', label: '水やり' }]} active={tab} onChange={setTab} />
 
+      <View style={styles.searchWrap}>
+        <Ionicons name="search" size={18} color={colors.textSecondary} />
+        <TextInput
+          value={q}
+          onChangeText={setQ}
+          placeholder="出品を絞り込む"
+          placeholderTextColor={colors.textPlaceholder}
+          style={[styles.searchInput, { outlineStyle: 'none' } as object]}
+        />
+      </View>
+
+      <GestureDetector gesture={swipe}>
       <ScrollView
         keyboardDismissMode="on-drag"
-        keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20 }}>
+        keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={styles.grid}>
         {list.map((it) => (
           <PressableScale key={it.id} activeScale={0.98} onPress={() => router.push(`/item/${it.id}`)} style={[styles.card, shadows.soft]}>
             <Thumb source={it.local} uri={it.image} style={styles.thumb} radius={radius.md} markSize={26} />
@@ -59,6 +81,7 @@ export default function MyItems() {
           </Text>
         )}
       </ScrollView>
+      </GestureDetector>
 
       {menuItem && (
         <ItemActionSheet
@@ -78,9 +101,17 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingBottom: spacing.sm },
   hBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
   hTitle: { fontFamily: fonts.bold, fontSize: 17, color: colors.textPrimary },
-  card: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.md, marginBottom: spacing.md },
+  // 一覧は2列。1件ずつの横長より一覧性が高い（2026-08-12 指摘）
+  grid: { padding: 16, flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  card: { width: '47.5%', backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.sm, gap: spacing.xs },
+  searchWrap: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginHorizontal: 16, marginTop: spacing.md,
+    backgroundColor: colors.card, borderRadius: radius.pill, paddingHorizontal: spacing.lg, height: 42,
+    borderWidth: 1, borderColor: colors.border,
+  },
+  searchInput: { flex: 1, fontFamily: fonts.medium, fontSize: 15, color: colors.textPrimary },
   moreBtn: { width: 36, height: 36, justifyContent: 'center', alignItems: 'center' },
-  thumb: { width: 64, height: 64 },
+  thumb: { width: '100%', aspectRatio: 1 },
   name: { fontFamily: fonts.bold, fontSize: 15, color: colors.textPrimary },
   category: { fontFamily: fonts.regular, fontSize: 12, color: colors.textSecondary, marginTop: 2 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: 6 },

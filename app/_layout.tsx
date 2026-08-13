@@ -38,7 +38,10 @@ export default function RootLayout() {
   const ready = loaded || Boolean(fontError);
 
   useEffect(() => {
-    if (ready) SplashScreen.hideAsync().catch(() => {});
+    if (!ready) return;
+    // 読み込みが速いと一瞬で消えてブランドが目に入らないので、少しだけ見せる
+    const t = setTimeout(() => { SplashScreen.hideAsync().catch(() => {}); }, 900);
+    return () => clearTimeout(t);
   }, [ready]);
 
   // 通知が届いたときの見せ方（起動中でもバナーを出す）。Web では何もしない

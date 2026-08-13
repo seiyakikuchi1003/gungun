@@ -52,7 +52,10 @@ export const boardComments: Record<string, BoardComment[]> = {
   ],
 };
 
-export type NotificationType = 'watered' | 'harvested' | 'shipped' | 'received' | 'message' | 'board_comment';
+export type NotificationType =
+  | 'watered' | 'harvested' | 'shipped' | 'received' | 'message'
+  | 'board_comment'   // 掲示板の投稿へのコメント
+  | 'item_comment';   // 自分の出品へのコメント（2026-08-12 に掲示板から分離）
 export type Notif = {
   id: string;
   type: NotificationType;
@@ -91,6 +94,7 @@ export const NOTIF_ICON: Record<NotificationType, string> = {
   received: 'checkmark-done',
   message: 'chatbubble-ellipses',
   board_comment: 'chatbox',
+  item_comment: 'pricetag',
 };
 
 /** 取引（玉突きの1ペア）。dir=receive:受け取る（緑） / send:送る（オレンジ） */

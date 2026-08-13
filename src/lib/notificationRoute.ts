@@ -11,6 +11,7 @@ import type { NotificationType } from '@/data/mockSocial';
  *   harvested                    → ★収穫ID（商品IDではない）
  *   shipped / received / message → 取引ID
  *   board_comment                → 投稿ID
+ *   item_comment                 → 商品ID
  *
  * relatedId が無い通知（古いデータ・DBが埋め忘れ）は、種類に応じた一覧へ寄せる。
  */
@@ -32,6 +33,10 @@ export function notificationRoute(type: NotificationType | string, relatedId?: s
       return id ? `/exchange/${id}` : '/exchange';
     case 'board_comment':
       return id ? `/board/${id}` : '/(tabs)/board';
+    case 'item_comment':
+      // 以前は商品コメントも board_comment 型で入れていたため、
+      // /board/<商品ID> に飛んで真っ白な画面になっていた（2026-08-12 修正）
+      return id ? `/item/${id}` : '/(tabs)';
     default:
       return '/(tabs)';
   }

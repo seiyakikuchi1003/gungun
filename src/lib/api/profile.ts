@@ -226,6 +226,8 @@ export type NotificationPrefs = {
   ship: boolean;
   message: boolean;
   board: boolean;
+  /** 自分の出品へのコメント。掲示板とは別物なので分けている（2026-08-12 指摘） */
+  item_comment: boolean;
 };
 
 export const defaultNotificationPrefs: NotificationPrefs = {
@@ -234,6 +236,7 @@ export const defaultNotificationPrefs: NotificationPrefs = {
   ship: true,
   message: true,
   board: false,
+  item_comment: true,
 };
 
 export async function fetchNotificationPrefs(userId: string): Promise<NotificationPrefs> {

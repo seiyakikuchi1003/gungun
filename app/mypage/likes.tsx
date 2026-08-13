@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl, useWindowDimensions, TextInput } from 'react-native';
+import { Gesture, GestureDetector, Directions } from 'react-native-gesture-handler';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -27,6 +28,14 @@ export default function Likes() {
   const me = useMe();
   const likes = useLikes();
   const [tab, setTab] = useState('items');
+  const [q, setQ] = useState('');
+
+  // 一覧の絞り込み（2026-08-12 指摘）
+  // 横にはらってタブを切り替える（2026-08-12 指摘）
+  const swipe = Gesture.Race(
+    Gesture.Fling().direction(Directions.LEFT).onEnd(() => setTab('posts')).runOnJS(true),
+    Gesture.Fling().direction(Directions.RIGHT).onEnd(() => setTab('items')).runOnJS(true)
+  );
   const [items, setItems] = useState<MockItem[]>([]);
   const [posts, setPosts] = useState<BoardPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,6 +69,10 @@ export default function Likes() {
     setRefreshing(false);
   };
 
+  const key = q.trim();
+  const shownItems = key ? items.filter((it) => it.name.includes(key) || it.category.includes(key)) : items;
+  const shownPosts = key ? posts.filter((p) => (p.body ?? '').includes(key)) : posts;
+
   return (
     <View style={styles.root}>
       <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
@@ -79,9 +92,21 @@ export default function Likes() {
         onChange={setTab}
       />
 
+      <View style={styles.searchWrap}>
+        <Ionicons name="search" size={18} color={colors.textSecondary} />
+        <TextInput
+          value={q}
+          onChangeText={setQ}
+          placeholder={tab === 'items' ? '商品を絞り込む' : '投稿を絞り込む'}
+          placeholderTextColor={colors.textPlaceholder}
+          style={[styles.searchInput, { outlineStyle: 'none' } as object]}
+        />
+      </View>
+
       {loading ? (
         <View style={styles.center}><ActivityIndicator color={colors.green} /></View>
       ) : (
+        <GestureDetector gesture={swipe}>
         <ScrollView
           keyboardDismissMode="on-drag"
           keyboardShouldPersistTaps="handled"
@@ -90,8 +115,8 @@ export default function Likes() {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.green} />}
         >
           {tab === 'items' ? (
-            items.length ? (
-              items.map((it) => (
+            shownItems.length ? (
+              shownItems.map((it) => (
                 <View key={it.id} style={styles.cell}>
                   <ItemCard item={it} width={cardW} onPress={() => router.push(`/item/${it.id}`)} />
                 </View>
@@ -103,8 +128,8 @@ export default function Likes() {
                 note="気になる商品の♡を押すと、ここにたまっていきます。"
               />
             )
-          ) : posts.length ? (
-            posts.map((p) => (
+          ) : shownPosts.length ? (
+            shownPosts.map((p) => (
               <PostRow key={p.id} post={p as never} onPress={() => router.push(`/board/${p.id}`)} />
             ))
           ) : (
@@ -115,6 +140,7 @@ export default function Likes() {
             />
           )}
         </ScrollView>
+        </GestureDetector>
       )}
     </View>
   );
@@ -122,6 +148,12 @@ export default function Likes() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
+  searchWrap: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginHorizontal: 16, marginTop: spacing.md,
+    backgroundColor: colors.card, borderRadius: 999, paddingHorizontal: spacing.lg, height: 42,
+    borderWidth: 1, borderColor: colors.border,
+  },
+  searchInput: { flex: 1, fontFamily: fonts.medium, fontSize: 15, color: colors.textPrimary },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingBottom: spacing.sm },
   hBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
   hTitle: { fontFamily: fonts.bold, fontSize: 17, color: colors.textPrimary },

@@ -13,7 +13,8 @@ export type NotificationType =
   | 'shipped'
   | 'received'
   | 'message'
-  | 'board_comment';
+  | 'board_comment'
+  | 'item_comment';
 
 export type Profile = {
   id: string;

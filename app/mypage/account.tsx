@@ -44,7 +44,8 @@ const NOTIF: { key: keyof NotificationPrefs; label: string }[] = [
   { key: 'harvested', label: '収穫' },
   { key: 'ship', label: '発送・受け取り' },
   { key: 'message', label: '取引メッセージ' },
-  { key: 'board', label: '掲示板コメント' },
+  { key: 'item_comment', label: '自分の出品へのコメント' },
+  { key: 'board', label: '掲示板のコメント' },
 ];
 
 export default function Account() {
