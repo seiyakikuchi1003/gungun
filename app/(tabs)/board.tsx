@@ -25,6 +25,8 @@ export default function BoardScreen() {
   const [hidden, setHidden] = useState<string[]>([]); // 自分で削除した投稿ID
   const [sheetPost, setSheetPost] = useState<UIPost | null>(null);
   const [report, setReport] = useState(false);
+  // 通報の対象。メニューを閉じてからシートを出すので、対象IDは別に持つ
+  const [reportId, setReportId] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [toast, setToast] = useState<string | null>(null);
@@ -171,11 +173,23 @@ export default function BoardScreen() {
           onClose={() => setSheetPost(null)}
           authorId={sheetPost.userId}
           isOwner={sheetPost.userId === me.id}
-          onReport={() => setReport(true)}
+          onReport={() => {
+            // メニューを閉じきってから開く。同時に2枚出すと画面が操作できなくなる（2026-08-12 指摘）
+            const id = sheetPost.id;
+            setSheetPost(null);
+            setReportId(id);
+            setTimeout(() => setReport(true), 320);
+          }}
           onDelete={() => { setHidden((h) => [...h, sheetPost.id]); remove(sheetPost.id); }}
         />
       )}
-      <ReportSheet visible={report} onClose={() => setReport(false)} targetLabel="この投稿" targetType="board_post" targetId={sheetPost?.id ?? ''} />
+      <ReportSheet
+        visible={report}
+        onClose={() => { setReport(false); setReportId(null); }}
+        targetLabel="この投稿"
+        targetType="board_post"
+        targetId={reportId ?? ''}
+      />
       <Toast message={toast} onHide={() => setToast(null)} />
     </View>
   );

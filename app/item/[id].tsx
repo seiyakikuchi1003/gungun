@@ -266,7 +266,11 @@ export default function ItemDetailScreen() {
         onClose={() => setMenu(false)}
         item={item}
         isOwner={isOwner}
-        onReport={() => setReport(true)}
+        onReport={() => {
+          // メニューを閉じきってから開く（重ねると操作できなくなる）
+          setMenu(false);
+          setTimeout(() => setReport(true), 320);
+        }}
         onDeleted={() => router.back()}
       />
       <ReportSheet visible={report} onClose={() => setReport(false)} targetLabel="この出品" targetType="item" targetId={item.id} />

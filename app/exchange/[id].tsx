@@ -13,6 +13,20 @@ import { FormError } from '@/components/ui/FormError';
 import { NotFound } from '@/components/ui/NotFound';
 import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 
+/**
+ * 発送前チェックリスト（2026-08-12 確定・6項目）。
+ * 全部にチェックが入るまで「発送完了」を押せない。
+ * 4番（食品）は該当時のみ確認する内容だが、表示は常に出す。
+ */
+const SHIP_CHECKS: { title: string; detail: string }[] = [
+  { title: 'しっかり梱包しましたか？', detail: '配送中に傷や破損が起こらないように、適切な梱包をしましょう。' },
+  { title: '出品時の状態と変わっていませんか？', detail: '汚れや破損がないか、もう一度確認してください。' },
+  { title: '送料は発払いになっていますか？', detail: '着払いは受け取り側の負担になってしまうので、必ず発払いでお願いします。' },
+  { title: '食品の場合、以下の条件を満たしていますか？', detail: '未開封であること／常温保存が可能なものに限る／賞味期限または消費期限が明記されているもの' },
+  { title: '宛先の記載ミスはありませんか？', detail: '配送先の住所や氏名を間違えないよう、念のためもう一度確認しましょう。' },
+  { title: '発送通知を忘れずに！', detail: '発送が完了したら、必ず発送完了ボタンを押してください。' },
+];
+
 export default function ExchangeDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
@@ -22,6 +36,9 @@ export default function ExchangeDetail() {
   const [text, setText] = useState('');
   const [report, setReport] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [checked, setChecked] = useState<boolean[]>(() => SHIP_CHECKS.map(() => false));
+  const [received, setReceived] = useState(false);   // 受け取り完了のお知らせ
+  const allChecked = checked.every(Boolean);
 
   if (!trade) return <NotFound message="この取引は見つかりませんでした" hint="取引が完了しているか、通知が古い可能性があります。取引一覧からご確認ください。" fallback="/exchange" />;
   const status = trade.status;
@@ -109,26 +126,79 @@ export default function ExchangeDetail() {
           <View style={[styles.reportIcon, { backgroundColor: isSend ? colors.orangeSoft : colors.greenSoft }]}>
             <Ionicons name={isSend ? 'cube' : 'checkmark-done'} size={34} color={accent} />
           </View>
-          <Text style={styles.reportTitle}>{isSend ? '発送完了を報告しますか？' : '商品を受け取りましたか？'}</Text>
+          <Text style={styles.reportTitle}>
+            {isSend ? '📦 発送前に確認しよう！ 📦' : '商品を受け取りましたか？'}
+          </Text>
           <Text style={styles.reportSub}>
-            {isSend ? '相手に発送完了の通知が届きます。' : '受け取り報告をすると、相手に通知が届き、評価に進みます。'}
+            {isSend
+              ? 'スムーズな取引のために、発送前に以下のチェックをお願いします！'
+              : '受け取り報告をすると、相手に通知が届き、評価に進みます。'}
           </Text>
         </View>
+
+        {isSend && (
+          <ScrollView style={styles.checkList} showsVerticalScrollIndicator={false}>
+            {SHIP_CHECKS.map((c, i) => (
+              <PressableScale
+                key={c.title}
+                activeScale={0.99}
+                onPress={() => setChecked((prev) => prev.map((v, j) => (j === i ? !v : v)))}
+                style={styles.checkRow}
+              >
+                <View style={[styles.checkBox, checked[i] && styles.checkBoxOn]}>
+                  {checked[i] && <Ionicons name="checkmark" size={15} color={colors.white} />}
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.checkTitle}>{c.title}</Text>
+                  <Text style={styles.checkDetail}>{c.detail}</Text>
+                </View>
+              </PressableScale>
+            ))}
+            <Text style={styles.checkOutro}>丁寧な発送で、気持ちの良い取引をお願いします！✨</Text>
+          </ScrollView>
+        )}
+
         {actionError ? <FormError message={actionError} /> : null}
         <Button
           title={isSend ? '発送完了を報告' : '受け取りを報告'}
           variant={isSend ? 'accent' : 'primary'}
           loading={busy}
+          disabled={isSend && !allChecked}
           onPress={async () => {
             setActionError(null);
             const res = isSend ? await markShipped() : await markReceived();
             if (res.error) { setActionError(res.error); return; }
             setReport(false);
+            if (!isSend) setReceived(true);   // 受け取り完了 → 評価へ促す
           }}
           style={{ marginTop: spacing.lg }}
         />
+        {isSend && !allChecked && (
+          <Text style={styles.checkHint}>すべて確認するとボタンを押せます</Text>
+        )}
         <PressableScale onPress={() => setReport(false)} style={styles.cancel}>
           <Text style={styles.cancelText}>キャンセル</Text>
+        </PressableScale>
+      </BottomSheetModal>
+
+      {/* 受け取り完了 → 評価へ促す（2026-08-12 指摘） */}
+      <BottomSheetModal visible={received} onClose={() => setReceived(false)}>
+        <View style={styles.reportCenter}>
+          <View style={[styles.reportIcon, { backgroundColor: colors.greenSoft }]}>
+            <Ionicons name="checkmark-circle" size={34} color={colors.green} />
+          </View>
+          <Text style={styles.reportTitle}>受け取り完了しました</Text>
+          <Text style={styles.reportSub}>
+            取引相手と商品の評価をお願いします。評価が揃うと取引が完了します。
+          </Text>
+        </View>
+        <Button
+          title="評価する"
+          onPress={() => { setReceived(false); router.push(`/exchange/${id}/rating`); }}
+          style={{ marginTop: spacing.lg }}
+        />
+        <PressableScale onPress={() => setReceived(false)} style={styles.cancel}>
+          <Text style={styles.cancelText}>あとで</Text>
         </PressableScale>
       </BottomSheetModal>
     </View>
@@ -136,6 +206,17 @@ export default function ExchangeDetail() {
 }
 
 const styles = StyleSheet.create({
+  checkList: { maxHeight: 320, marginTop: spacing.md },
+  checkRow: { flexDirection: 'row', gap: spacing.md, paddingVertical: spacing.sm, alignItems: 'flex-start' },
+  checkBox: {
+    width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: colors.border,
+    justifyContent: 'center', alignItems: 'center', marginTop: 2,
+  },
+  checkBoxOn: { backgroundColor: colors.green, borderColor: colors.green },
+  checkTitle: { fontFamily: fonts.bold, fontSize: 14, color: colors.textPrimary, lineHeight: 20 },
+  checkDetail: { fontFamily: fonts.medium, fontSize: 12, lineHeight: 18, color: colors.textSecondary, marginTop: 2 },
+  checkOutro: { fontFamily: fonts.medium, fontSize: 12.5, color: colors.textSecondary, textAlign: 'center', marginTop: spacing.md },
+  checkHint: { fontFamily: fonts.medium, fontSize: 12, color: colors.textSecondary, textAlign: 'center', marginTop: spacing.sm },
   root: { flex: 1, backgroundColor: colors.bg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingBottom: spacing.sm },
   hBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },

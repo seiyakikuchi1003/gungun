@@ -13,7 +13,7 @@ import { FormError } from '@/components/ui/FormError';
 import { useAuth } from '@/store/auth';
 import { isSupabaseEnabled } from '@/lib/supabase';
 import { updateProfile } from '@/lib/api/profile';
-import { pickFromLibrary } from '@/lib/photo';
+import { pickAvatar } from '@/lib/photo';
 import { uploadAvatar } from '@/lib/api/storage';
 import { KeyboardDoneBar, KEYBOARD_DONE_ID } from '@/components/ui/KeyboardDoneBar';
 
@@ -30,8 +30,8 @@ export default function ProfileEdit() {
 
   /** アイコン写真を選び直す */
   const changeAvatar = async () => {
-    const picked = await pickFromLibrary();
-    if (picked?.[0]) setAvatar(picked[0]);
+    const picked = await pickAvatar();
+    if (picked) setAvatar(picked);
   };
 
   const save = async () => {

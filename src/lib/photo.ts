@@ -56,3 +56,27 @@ export async function pickFromLibrary(): Promise<string[] | null> {
   if (res.canceled || !res.assets?.length) return null;
   return res.assets.map((a) => a.uri);
 }
+
+/**
+ * プロフィール画像を選ぶ。
+ *
+ * 通常の写真選択（quality 0.7・複数選択）だと、最近の端末の写真は
+ * 2MB の上限を超えて「画像サイズが大きすぎます」で弾かれていた（2026-08-12 指摘）。
+ * アイコンは小さく表示するので、正方形に切ってもらったうえで強めに圧縮する。
+ */
+export async function pickAvatar(): Promise<string | null> {
+  const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (!perm.granted && perm.accessPrivileges !== 'limited') {
+    denied('写真');
+    return null;
+  }
+  const res = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ['images'],
+    allowsEditing: true,   // 正方形に切ってもらう＝そのぶん軽くなる
+    aspect: [1, 1],
+    quality: 0.5,
+    allowsMultipleSelection: false,
+  });
+  if (res.canceled || !res.assets?.length) return null;
+  return res.assets[0].uri;
+}
