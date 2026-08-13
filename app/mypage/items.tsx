@@ -36,7 +36,7 @@ export default function MyItems() {
   return (
     <View style={styles.root}>
       <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
-        <PressableScale onPress={() => router.back()} activeScale={0.9} style={styles.hBtn}>
+        <PressableScale onPress={() => router.dismissTo('/mypage')} activeScale={0.9} style={styles.hBtn}>
           <Ionicons name="chevron-back" size={26} color={colors.textPrimary} />
         </PressableScale>
         <Text style={styles.hTitle}>出品履歴</Text>

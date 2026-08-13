@@ -94,7 +94,20 @@ export default function ExchangeDetail() {
       {/* アクション */}
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 8) }, shadows.sheet]}>
         {status === 'received' ? (
-          <Button title="評価する" onPress={() => router.push(`/exchange/${id}/rating`)} />
+          <View style={{ gap: spacing.sm }}>
+            <Button title="評価する" onPress={() => router.push(`/exchange/${id}/rating`)} />
+            {/* 輪の全体（誰から誰へ渡ったか）はここからも見られる（2026-08-12 項目9） */}
+            {trade.harvestId && (
+              <PressableScale
+                onPress={() => router.push(`/celebration/${trade.harvestId}`)}
+                activeScale={0.97}
+                style={styles.ringLink}
+              >
+                <Ionicons name="repeat" size={16} color={colors.orange} />
+                <Text style={styles.ringLinkText}>みんなの輪を見る</Text>
+              </PressableScale>
+            )}
+          </View>
         ) : canShip || canReceive ? (
           <Button title={reportLabel} variant={isSend ? 'accent' : 'primary'} onPress={() => setReport(true)} />
         ) : (
@@ -206,6 +219,11 @@ export default function ExchangeDetail() {
 }
 
 const styles = StyleSheet.create({
+  ringLink: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    height: 44, borderRadius: radius.pill, backgroundColor: colors.orangeSoft,
+  },
+  ringLinkText: { fontFamily: fonts.bold, fontSize: 14, color: colors.orangeDeep },
   checkList: { maxHeight: 320, marginTop: spacing.md },
   checkRow: { flexDirection: 'row', gap: spacing.md, paddingVertical: spacing.sm, alignItems: 'flex-start' },
   checkBox: {

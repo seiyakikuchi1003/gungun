@@ -50,7 +50,18 @@ export default function RatingScreen() {
         <Animated.Text entering={FadeIn.delay(150)} style={styles.doneTitle}>評価を送信しました！</Animated.Text>
         <Animated.Text entering={FadeIn.delay(250)} style={styles.doneSub}>取引完了です。ありがとうございました🌱</Animated.Text>
         <View style={styles.doneCta}>
-          <Button title="取引一覧へ戻る" onPress={() => router.replace('/exchange')} />
+          {/* 輪の全体を見せるお祝い画面へ。まだ全員そろっていなければ進み具合として読める */}
+          {trade.harvestId && (
+            <Button
+              title="みんなの輪を見る"
+              onPress={() => router.replace(`/celebration/${trade.harvestId}`)}
+            />
+          )}
+          {/* replace だと下に取引詳細が残り、戻るを押すと完了済みの取引に戻ってしまう。
+              dismissTo なら取引一覧まで一気に畳める（2026-08-12 指摘の「戻るのループ」） */}
+          <PressableScale onPress={() => router.dismissTo('/exchange')} activeScale={0.97} style={styles.doneGhost}>
+            <Text style={styles.doneGhostText}>取引一覧へ戻る</Text>
+          </PressableScale>
         </View>
       </View>
     );
@@ -114,6 +125,12 @@ export default function RatingScreen() {
 }
 
 const styles = StyleSheet.create({
+  doneGhost: {
+    alignItems: 'center', justifyContent: 'center', height: 50,
+    borderRadius: radius.pill, backgroundColor: colors.card,
+    borderWidth: 1, borderColor: colors.border,
+  },
+  doneGhostText: { fontFamily: fonts.bold, fontSize: 15, color: colors.textSecondary },
   root: { flex: 1, backgroundColor: colors.bg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingBottom: spacing.sm },
   hBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },

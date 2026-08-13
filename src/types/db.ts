@@ -14,7 +14,8 @@ export type NotificationType =
   | 'received'
   | 'message'
   | 'board_comment'
-  | 'item_comment';
+  | 'item_comment'
+  | 'ring_completed';
 
 export type Profile = {
   id: string;

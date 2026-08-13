@@ -218,7 +218,8 @@ export default function HarvestDetail() {
           <Text style={styles.confirmTitle}>収穫しました！🎉</Text>
           <Text style={styles.confirmSub}>輪の全員に「発送してください」の通知を送りました。取引画面から発送を進めましょう。</Text>
         </Animated.View>
-        <Button title="取引画面へ" onPress={() => { setDone(false); setTarget(null); router.replace('/exchange'); }} style={{ marginTop: spacing.xl }} />
+        {/* 収穫画面をスタックに残さない（戻るとまた収穫画面に出てしまうため） */}
+        <Button title="取引画面へ" onPress={() => { setDone(false); setTarget(null); router.dismissTo('/exchange'); }} style={{ marginTop: spacing.xl }} />
       </BottomSheetModal>
     </View>
   );

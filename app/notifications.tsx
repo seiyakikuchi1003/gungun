@@ -21,6 +21,7 @@ const TONE: Record<NotificationType, string> = {
   message: colors.green,
   board_comment: colors.premium,
   item_comment: colors.orange,
+  ring_completed: colors.orangeDeep,
 };
 
 function Row({ n, onPress }: { n: Notif; onPress: () => void }) {

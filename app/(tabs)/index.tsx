@@ -152,7 +152,7 @@ export default function HomeScreen() {
           </PressableScale>
           <HeaderIcon name="notifications" count={unreadCount} onPress={() => router.push('/notifications')} />
           {/* 取引はボトムナビに移したので、ここはマイページへの導線にする（2026-08-13） */}
-          <HeaderIcon name="person-circle-outline" count={0} onPress={() => router.push('/mypage')} />
+          <HeaderIcon name="person-circle-outline" count={0} onPress={() => router.navigate('/mypage')} />
         </View>
       </View>
 

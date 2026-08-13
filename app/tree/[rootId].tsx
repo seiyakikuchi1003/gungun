@@ -56,7 +56,7 @@ export default function TreeScreen() {
   return (
     <View style={styles.root}>
       <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
-        <PressableScale onPress={() => (justWatered ? router.replace('/(tabs)') : router.back())} activeScale={0.9} style={styles.hBtn}>
+        <PressableScale onPress={() => (justWatered ? router.dismissTo('/(tabs)') : router.back())} activeScale={0.9} style={styles.hBtn}>
           <Ionicons name={justWatered ? 'close' : 'chevron-back'} size={26} color={colors.textPrimary} />
         </PressableScale>
         <Text style={styles.hTitle}>木の様子（マイツリー）</Text>
@@ -125,7 +125,7 @@ export default function TreeScreen() {
               <Ionicons name="water" size={18} color={colors.white} />
               <Text style={styles.shareText}>この木にもっと水やりする</Text>
             </PressableScale>
-            <PressableScale onPress={() => router.replace('/(tabs)')} activeScale={0.97} style={styles.ghostBtn}>
+            <PressableScale onPress={() => router.dismissTo('/(tabs)')} activeScale={0.97} style={styles.ghostBtn}>
               <Text style={styles.ghostText}>ホームに戻る</Text>
             </PressableScale>
           </View>
