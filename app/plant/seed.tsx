@@ -17,6 +17,7 @@ import { categories, conditions } from '@/data/mock';
 import { success } from '@/lib/haptics';
 import { useTree } from '@/store/tree';
 import { KeyboardDoneBar, KEYBOARD_DONE_ID } from '@/components/ui/KeyboardDoneBar';
+import { OptionPicker } from '@/components/ui/OptionPicker';
 
 type PickerKey = 'category' | 'condition' | null;
 
@@ -157,27 +158,15 @@ export default function PlantSeedScreen() {
       />
 
       {/* ピッカー */}
-      <BottomSheetModal visible={picker !== null} onClose={() => setPicker(null)}>
-        <Text style={styles.pickerTitle}>{picker === 'category' ? 'カテゴリー' : '商品の状態'}</Text>
-        {(picker === 'category' ? categories : conditions).map((opt) => {
-          const selected = picker === 'category' ? category === opt : condition === opt;
-          return (
-            <PressableScale
-              key={opt}
-              activeScale={0.98}
-              onPress={() => {
-                if (picker === 'category') setCategory(opt);
-                else setCondition(opt);
-                setPicker(null);
-              }}
-              style={styles.pickerRow}
-            >
-              <Text style={[styles.pickerText, selected && styles.pickerTextOn]}>{opt}</Text>
-              {selected && <Ionicons name="checkmark" size={20} color={colors.green} />}
-            </PressableScale>
-          );
-        })}
-      </BottomSheetModal>
+      <OptionPicker
+        visible={picker !== null}
+        title={picker === 'category' ? 'カテゴリー' : '商品の状態'}
+        options={picker === 'category' ? categories : conditions}
+        selected={picker === 'category' ? category : condition}
+        searchable={picker === 'category'}
+        onSelect={(v) => (picker === 'category' ? setCategory(v) : setCondition(v))}
+        onClose={() => setPicker(null)}
+      />
       <KeyboardDoneBar />
     </View>
   );

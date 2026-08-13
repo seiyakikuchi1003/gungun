@@ -18,6 +18,7 @@ import { useTree } from '@/store/tree';
 import { settings } from '@/config/settings';
 import { useUsers } from '@/store/users';
 import { KeyboardDoneBar, KEYBOARD_DONE_ID } from '@/components/ui/KeyboardDoneBar';
+import { OptionPicker } from '@/components/ui/OptionPicker';
 
 const NAME_MAX = 20;
 const DESC_MAX = 200;
@@ -205,18 +206,15 @@ export default function WaterScreen() {
       />
 
       {/* ピッカー */}
-      <BottomSheetModal visible={picker !== null} onClose={() => setPicker(null)}>
-        <Text style={styles.pickerTitle}>{picker === 'category' ? 'カテゴリ' : '商品の状態'}</Text>
-        {(picker === 'category' ? categories : conditions).map((opt) => {
-          const selected = picker === 'category' ? category === opt : condition === opt;
-          return (
-            <PressableScale key={opt} activeScale={0.98} onPress={() => { picker === 'category' ? setCategory(opt) : setCondition(opt); setPicker(null); }} style={styles.pickerRow}>
-              <Text style={[styles.pickerText, selected && styles.pickerTextOn]}>{opt}</Text>
-              {selected && <Ionicons name="checkmark" size={20} color={colors.green} />}
-            </PressableScale>
-          );
-        })}
-      </BottomSheetModal>
+      <OptionPicker
+        visible={picker !== null}
+        title={picker === 'category' ? 'カテゴリ' : '商品の状態'}
+        options={picker === 'category' ? categories : conditions}
+        selected={picker === 'category' ? category : condition}
+        searchable={picker === 'category'}
+        onSelect={(v) => (picker === 'category' ? setCategory(v) : setCondition(v))}
+        onClose={() => setPicker(null)}
+      />
     </View>
   );
 }

@@ -15,6 +15,7 @@ import { success } from '@/lib/haptics';
 import { useTree } from '@/store/tree';
 import { KeyboardDoneBar, KEYBOARD_DONE_ID } from '@/components/ui/KeyboardDoneBar';
 import { NotFound } from '@/components/ui/NotFound';
+import { OptionPicker } from '@/components/ui/OptionPicker';
 
 const NAME_MAX = 20;
 const DESC_MAX = 200;
@@ -45,6 +46,15 @@ export default function EditItemScreen() {
   // 念のため他人の商品は編集不可
   if (item.ownerId !== me.id) {
     return <NotFound message="この出品は編集できません" hint="取引中または収穫済みの商品は編集できません。" />;
+  }
+  if (item.waterCount > 0) {
+    // 水やりが集まった後に中身を変えられると詐欺になるため（2026-08-12 確定）
+    return (
+      <NotFound
+        message="水やりされた後は編集できません"
+        hint="すでに水やりしてくれた人がいます。内容を変えると交換の前提が変わってしまうため、編集できません。"
+      />
+    );
   }
 
   const canSave = name.trim().length > 0 && condition.length > 0 && photos.length > 0 && !busy;
@@ -79,6 +89,11 @@ export default function EditItemScreen() {
         <ScrollView
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photoRow}>
+          {/* 追加ボタンは常に左端（出品フォームと揃える） */}
+          <PressableScale onPress={() => setPhotoSheet(true)} activeScale={0.96} style={styles.addPhoto}>
+            <Ionicons name="camera" size={26} color={colors.green} />
+            <Text style={styles.addPhotoText}>写真を追加</Text>
+          </PressableScale>
           {photos.map((uri, i) => (
             <View key={uri + i} style={styles.photo}>
               <Thumb source={i === 0 ? item.local : undefined} uri={uri} style={styles.photoImg} radius={radius.md} markSize={30} />
@@ -87,12 +102,9 @@ export default function EditItemScreen() {
               </PressableScale>
             </View>
           ))}
-          <PressableScale onPress={() => setPhotoSheet(true)} activeScale={0.96} style={styles.addPhoto}>
-            <Ionicons name="camera" size={26} color={colors.green} />
-            <Text style={styles.addPhotoText}>写真を追加</Text>
-          </PressableScale>
         </ScrollView>
 
+        {/* 出品フォームと同じ順番に揃える（商品名 → 説明 → カテゴリー → 状態）*/}
         {/* 商品名 */}
         <View style={styles.field}>
           <View style={styles.fieldHead}>
@@ -108,15 +120,16 @@ export default function EditItemScreen() {
           />
         </View>
 
-        <SelectRow label="カテゴリ" value={category} placeholder="選択してください" onPress={() => setPicker('category')} />
-        <SelectRow label="商品の状態" value={condition} placeholder="選択してください" onPress={() => setPicker('condition')} />
-
         {/* 商品説明 */}
         <View style={styles.field}>
           <View style={styles.fieldHead}>
             <Text style={styles.fieldLabel}>商品説明</Text>
             <Text style={styles.counter}>{desc.length}/{DESC_MAX}</Text>
           </View>
+
+        <SelectRow label="カテゴリ" value={category} placeholder="選択してください" onPress={() => setPicker('category')} />
+        <SelectRow label="商品の状態" value={condition} placeholder="選択してください" onPress={() => setPicker('condition')} />
+
           <TextInput
             value={desc}
             onChangeText={(t) => t.length <= DESC_MAX && setDesc(t)}
@@ -149,18 +162,15 @@ export default function EditItemScreen() {
         onPicked={(uris) => setPhotos((p) => [...p, ...uris].slice(0, 10))}
       />
 
-      <BottomSheetModal visible={picker !== null} onClose={() => setPicker(null)}>
-        <Text style={styles.pickerTitle}>{picker === 'category' ? 'カテゴリ' : '商品の状態'}</Text>
-        {(picker === 'category' ? categories : conditions).map((opt) => {
-          const selected = picker === 'category' ? category === opt : condition === opt;
-          return (
-            <PressableScale key={opt} activeScale={0.98} onPress={() => { picker === 'category' ? setCategory(opt) : setCondition(opt); setPicker(null); }} style={styles.pickerRow}>
-              <Text style={[styles.pickerText, selected && styles.pickerTextOn]}>{opt}</Text>
-              {selected && <Ionicons name="checkmark" size={20} color={colors.green} />}
-            </PressableScale>
-          );
-        })}
-      </BottomSheetModal>
+      <OptionPicker
+        visible={picker !== null}
+        title={picker === 'category' ? 'カテゴリ' : '商品の状態'}
+        options={picker === 'category' ? categories : conditions}
+        selected={picker === 'category' ? category : condition}
+        searchable={picker === 'category'}
+        onSelect={(v) => (picker === 'category' ? setCategory(v) : setCondition(v))}
+        onClose={() => setPicker(null)}
+      />
     </View>
   );
 }
