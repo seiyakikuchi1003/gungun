@@ -53,6 +53,9 @@ export default function HarvestDetail() {
   const pathTo = (item: MockItem): MockItem[] =>
     [...ancestorsOf(item.id)].sort((a, b) => a.depth - b.depth);
 
+  // 収穫できるのは「まだ育っている」タネだけ。
+  // 一覧では止めていたが、この画面に直接来ると押せてしまっていた（2026-08-13 修正）
+  const canHarvest = seed.status === 'growing';
   const path = target ? pathTo(target) : [];
   // 輪から外れる件数（別の枝＋選んだ商品より先）＝それぞれ新しいタネとして独立する
   const detachedCount = target ? gathered.length + 1 - path.length : 0;
@@ -107,12 +110,25 @@ export default function HarvestDetail() {
                   <Text style={styles.ringChipText}>{ring.length}人の輪</Text>
                 </View>
               </View>
-              <PressableScale onPress={() => setTarget(g)} activeScale={0.94} style={styles.harvestBtn}>
-                <Text style={styles.harvestText}>収穫する</Text>
-              </PressableScale>
+              {canHarvest ? (
+                <PressableScale onPress={() => setTarget(g)} activeScale={0.94} style={styles.harvestBtn}>
+                  <Text style={styles.harvestText}>収穫する</Text>
+                </PressableScale>
+              ) : (
+                <View style={[styles.harvestBtn, styles.harvestBtnOff]}>
+                  <Text style={styles.harvestTextOff}>収穫済み</Text>
+                </View>
+              )}
             </View>
           );
         })}
+
+        {!canHarvest && (
+          <View style={styles.doneNote}>
+            <Ionicons name="checkmark-circle" size={18} color={colors.green} />
+            <Text style={styles.doneNoteText}>このタネは収穫済みです。取引画面から発送を進めてください。</Text>
+          </View>
+        )}
 
         {gathered.length === 0 && (
           <Text style={styles.empty}>まだ水やりがありません。{'\n'}誰かが水やりすると、ここに商品が集まります。</Text>
@@ -209,6 +225,14 @@ export default function HarvestDetail() {
 }
 
 const styles = StyleSheet.create({
+  harvestBtnOff: { backgroundColor: colors.cardMuted },
+  harvestTextOff: { fontFamily: fonts.bold, fontSize: 13, color: colors.textSecondary },
+  doneNote: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+    backgroundColor: colors.greenSoft, borderRadius: radius.card,
+    padding: spacing.md, marginBottom: spacing.md,
+  },
+  doneNoteText: { flex: 1, fontFamily: fonts.medium, fontSize: 12.5, lineHeight: 18, color: colors.green },
   root: { flex: 1, backgroundColor: colors.bg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingBottom: spacing.sm },
   hBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },

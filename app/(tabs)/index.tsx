@@ -163,7 +163,8 @@ export default function HomeScreen() {
             <Text style={styles.searchPlaceholder}>欲しいものを探してみよう</Text>
           </PressableScale>
           <HeaderIcon name="notifications" count={unreadCount} onPress={() => router.push('/notifications')} />
-          <HeaderIcon name="swap-horizontal" count={activeTrades} onPress={() => router.push('/exchange')} />
+          {/* 取引はボトムナビに移したので、ここはマイページへの導線にする（2026-08-13） */}
+          <HeaderIcon name="person-circle-outline" count={0} onPress={() => router.push('/mypage')} />
         </View>
 
         {/* 肥料残高／ログインボーナス（白いカード2枚を横並び） */}

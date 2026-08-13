@@ -13,6 +13,7 @@ const META: Record<string, TabMeta> = {
   board: { label: '掲示板', icon: 'chatbubble-ellipses' },
   harvest: { label: '収穫', icon: 'leaf' },
   premium: { label: 'プレミアム', icon: 'diamond' },
+  exchange: { label: '取引', icon: 'swap-horizontal' },
   mypage: { label: 'マイページ', icon: 'person' },
 };
 
@@ -26,13 +27,21 @@ type TabBarProps = {
 };
 
 /**
- * ボトムナビ 5タブ。中央の「収穫」はオレンジの円形＋みかんマスコットが一段浮き出た形。
+ * ボトムナビ。中央の「収穫」はオレンジの円形＋みかんマスコットが一段浮き出た形。
  */
+/**
+ * ナビには出さない画面。ルート自体は残す（ホーム右上などから開く）。
+ * マイページは使用頻度が低く、取引を常時見える位置に置くため外した（2026-08-13）。
+ */
+const HIDDEN = new Set(['mypage']);
+
 export function BottomNav({ state, navigation }: TabBarProps) {
   const insets = useSafeAreaInsets();
+  const shown = state.routes.filter((r) => !HIDDEN.has(r.name));
   return (
     <View style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, 10) }, shadows.sheet]}>
-      {state.routes.map((route, index) => {
+      {shown.map((route) => {
+        const index = state.routes.indexOf(route);
         const focused = state.index === index;
         const meta = META[route.name] ?? { label: route.name, icon: 'ellipse' };
         const isCenter = route.name === 'harvest';

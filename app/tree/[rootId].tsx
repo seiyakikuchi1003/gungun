@@ -38,7 +38,8 @@ export default function TreeScreen() {
   const rootChildren = childrenOf(root.id);
   // 木のノード全部（root＋子孫）。順序は付けない（ツリー表示側で親子順に並べる）
   const all = treeItems(root.id);
-  const waterings = all.length - 1;
+  // 木が読めていないときに 0 - 1 = -1 と出ていた（2026-08-13 修正）
+  const waterings = Math.max(0, all.length - 1);
   const branches = rootChildren.length;
   const canHarvest = mine && waterings > 0 && root.status === 'growing';
   // いちばん深くつながっている段数（わらしべの鎖の長さ）

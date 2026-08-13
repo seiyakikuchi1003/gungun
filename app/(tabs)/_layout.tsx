@@ -18,7 +18,9 @@ export default function TabsLayout() {
       <Tabs.Screen name="board" />
       <Tabs.Screen name="harvest" />
       <Tabs.Screen name="premium" />
-      <Tabs.Screen name="mypage" />
+      {/* 取引は頻繁に使うのでタブに出す。マイページはホーム右上から開く（2026-08-13） */}
+      <Tabs.Screen name="exchange" />
+      <Tabs.Screen name="mypage" options={{ href: null }} />
     </Tabs>
   );
 }
