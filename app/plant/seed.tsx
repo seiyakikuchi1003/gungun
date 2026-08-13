@@ -28,7 +28,8 @@ export default function PlantSeedScreen() {
   const [desc, setDesc] = useState('');
   // 初期値を入れると「選んだつもりがない物」で出品されてしまうので未選択から始める
   const [category, setCategory] = useState('');
-  const [condition, setCondition] = useState('目立った傷や汚れなし');
+  // 初期値を入れると、選んだつもりのない状態で出品されてしまう（2026-08-12 指摘）
+  const [condition, setCondition] = useState('');
   const [picker, setPicker] = useState<PickerKey>(null);
   const [photoSheet, setPhotoSheet] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -77,6 +78,13 @@ export default function PlantSeedScreen() {
             <ScrollView
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photoRow}>
+              {/* 追加ボタンは常に左端。写真が増えても位置が動かないようにする（2026-08-12 指摘） */}
+              {photos.length < 10 && (
+                <PressableScale onPress={() => setPhotoSheet(true)} activeScale={0.96} style={styles.addPhoto}>
+                  <Ionicons name="camera" size={30} color={colors.green} />
+                  <Text style={styles.addPhotoText}>＋写真を追加</Text>
+                </PressableScale>
+              )}
               {photos.map((uri, i) => (
                 <View key={uri + i} style={[styles.photo, shadows.soft]}>
                   <Thumb uri={uri} style={styles.photoImg} radius={radius.md} markSize={44} />
@@ -94,12 +102,6 @@ export default function PlantSeedScreen() {
                   </PressableScale>
                 </View>
               ))}
-              {photos.length < 10 && (
-                <PressableScale onPress={() => setPhotoSheet(true)} activeScale={0.96} style={styles.addPhoto}>
-                  <Ionicons name="camera" size={30} color={colors.green} />
-                  <Text style={styles.addPhotoText}>＋写真を追加</Text>
-                </PressableScale>
-              )}
             </ScrollView>
             <Text style={styles.photoHint}>最大10枚・1枚目がサムネイルになります</Text>
           </View>

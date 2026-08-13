@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, fonts, shadows } from '@/theme';
+import { useExchanges, type UITrade } from '@/hooks/useExchanges';
 import { PressableScale } from './PressableScale';
 import { Mikan } from '@/components/art/Mikan';
 
@@ -37,6 +38,11 @@ const HIDDEN = new Set(['mypage']);
 
 export function BottomNav({ state, navigation }: TabBarProps) {
   const insets = useSafeAreaInsets();
+  const { list } = useExchanges();
+  // 自分の対応待ち（発送すべき／受け取れる）があるか
+  const activeTrades = list.filter(
+    (t: UITrade) => (t.dir === 'send' && t.status === 'pending') || (t.dir === 'receive' && t.status === 'shipped')
+  ).length;
   const shown = state.routes.filter((r) => !HIDDEN.has(r.name));
   return (
     <View style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, 10) }, shadows.sheet]}>
@@ -66,11 +72,15 @@ export function BottomNav({ state, navigation }: TabBarProps) {
 
         return (
           <PressableScale key={route.key} onPress={onPress} activeScale={0.9} style={styles.tab}>
-            <Ionicons
-              name={focused ? meta.icon : (`${meta.icon}-outline` as keyof typeof Ionicons.glyphMap)}
-              size={24}
-              color={focused ? colors.green : colors.textSecondary}
-            />
+            <View>
+              <Ionicons
+                name={focused ? meta.icon : (`${meta.icon}-outline` as keyof typeof Ionicons.glyphMap)}
+                size={24}
+                color={focused ? colors.green : colors.textSecondary}
+              />
+              {/* 進行中の取引があれば赤ポチ。見ていないタブの用事に気づけるように（2026-08-12 指摘） */}
+              {route.name === 'exchange' && activeTrades > 0 && <View style={styles.dot} />}
+            </View>
             <Text style={[styles.label, focused && styles.labelActive]}>{meta.label}</Text>
           </PressableScale>
         );
@@ -89,6 +99,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   tab: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3, paddingTop: 4 },
+  dot: {
+    position: 'absolute', top: -1, right: -3, width: 9, height: 9, borderRadius: 5,
+    backgroundColor: '#E5484D', borderWidth: 1.5, borderColor: colors.card,
+  },
   label: { fontFamily: fonts.medium, fontSize: 10.5, color: colors.textSecondary },
   labelActive: { color: colors.green, fontFamily: fonts.bold },
   labelActiveOrange: { color: colors.orangeDeep, fontFamily: fonts.bold },

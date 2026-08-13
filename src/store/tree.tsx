@@ -202,8 +202,8 @@ export function TreeProvider({ children }: { children: React.ReactNode }) {
         return {
           ok: false,
           reason: onlySeed
-            ? '自分のタネが育っている木です（1つの木につき1人1回まで）'
-            : 'この木にはすでに水やりしています（1つの木につき1回まで）',
+            ? 'あなたのタネの木です。同じ木には水やりできません'
+            : 'この木にはすでに水やり済みです。1つの木につき1回までです',
         };
       }
       if (fertilizer < waterCost) return { ok: false, reason: '肥料が不足しています' };

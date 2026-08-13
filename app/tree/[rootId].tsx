@@ -138,10 +138,22 @@ export default function TreeScreen() {
                 <Text style={styles.shareText}>収穫する（{waterings}件から選ぶ）</Text>
               </PressableScale>
             )}
-            <PressableScale onPress={() => setPickWater(true)} activeScale={0.97} style={[styles.waterBtn, shadows.button]}>
-              <Ionicons name="water" size={18} color={colors.white} />
-              <Text style={styles.shareText}>この木に水やりする</Text>
-            </PressableScale>
+            {/* 自分のタネの木には水やりできない（1つの木につき1人1回まで）。
+                押せてしまうと必ず断られるので、そもそも出さない（2026-08-12 指摘） */}
+            {!mine && (
+              <PressableScale onPress={() => setPickWater(true)} activeScale={0.97} style={[styles.waterBtn, shadows.button]}>
+                <Ionicons name="water" size={18} color={colors.white} />
+                <Text style={styles.shareText}>この木に水やりする</Text>
+              </PressableScale>
+            )}
+            {mine && !canHarvest && (
+              <View style={styles.mineNote}>
+                <Ionicons name="information-circle" size={16} color={colors.textSecondary} />
+                <Text style={styles.mineNoteText}>
+                  あなたのタネの木です。誰かが水やりすると、ここから収穫できます。
+                </Text>
+              </View>
+            )}
             <PressableScale onPress={shareTree} activeScale={0.97} style={styles.ghostBtn}>
               <Ionicons name="share-social" size={16} color={colors.textSecondary} />
               <Text style={styles.ghostText}>あなたのツリーをシェア</Text>
@@ -356,6 +368,11 @@ function BranchList({ root, highlightId, childrenOf, canWater, onOpen, onWater }
 }
 
 const styles = StyleSheet.create({
+  mineNote: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+    backgroundColor: colors.cardMuted, borderRadius: radius.card, padding: spacing.md,
+  },
+  mineNoteText: { flex: 1, fontFamily: fonts.medium, fontSize: 12.5, lineHeight: 18, color: colors.textSecondary },
   root: { flex: 1, backgroundColor: colors.bg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingBottom: spacing.sm },
   hBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },

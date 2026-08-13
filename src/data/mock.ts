@@ -130,7 +130,7 @@ const rawItems: RawItem[] = [
   { id: 'w-books2', name: '文庫本セット', category: '本・音楽', condition: '目立った傷や汚れなし', description: '人気作家の文庫本8冊セット。', image: img('books2'), images: [img('books2')], local: P.books, localImages: [P.books], ownerId: 'sakura', waterCount: 0, likeCount: 3, treeCount: 0, status: 'growing', parentId: 'w-gift', rootId: 'speaker', depth: 2 },
 
   // ── 自分（めたん）が植えたタネに集まった水やり ──────────────────
-  // 収穫タブ「あなたの畑」が空っぽに見えないように、通知の内容と辻褄が合う形で
+  // 収穫タブ「あなたの森」が空っぽに見えないように、通知の内容と辻褄が合う形で
   // 実データとして子をぶら下げておく（通知 n1=香水/たくさん、n2=コーヒーメーカー/ゆう）。
   //   香水(めたん)        └ スニーカー(たくさん)
   //   コーヒーメーカー(めたん) ├ ミラーレスカメラ(ゆう) └ 腕時計(けんた) └ 文庫本(さくら)
