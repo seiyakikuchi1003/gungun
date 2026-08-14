@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { playSfx } from '@/lib/sound';
 import { useMe } from '@/store/me';
 import { PremiumNudge } from '@/components/feature/PremiumNudge';
 import { View, Text, StyleSheet, ScrollView, TextInput } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -15,7 +15,7 @@ import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
 import { Thumb } from '@/components/ui/Thumb';
 import { Sprout } from '@/components/art/Sprout';
 import { PhotoSourceSheet } from '@/components/feature/PhotoSourceSheet';
-import { cropPhoto } from '@/lib/photo';
+
 import { FormError } from '@/components/ui/FormError';
 import { categories, conditions } from '@/data/mock';
 import { success } from '@/lib/haptics';
@@ -42,6 +42,17 @@ export default function PlantSeedScreen() {
   const [nudge, setNudge] = useState(true);
   // 出品できたことを見せるポップアップ（2026-08-13 指摘）
   const [done, setDone] = useState(false);
+  // 切り抜き画面から戻ってきたとき、どの写真を差し替えるか
+  const cropTarget = useRef<number | null>(null);
+  // 切り抜き画面は結果を cropped パラメータで返してくる
+  const { cropped } = useLocalSearchParams<{ cropped?: string }>();
+  useEffect(() => {
+    if (!cropped) return;
+    const i = cropTarget.current;
+    if (i !== null) setPhotos((p) => p.map((v, idx) => (idx === i ? cropped : v)));
+    cropTarget.current = null;
+    router.setParams({ cropped: undefined });
+  }, [cropped]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -102,13 +113,12 @@ export default function PlantSeedScreen() {
         keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photoRow}>
               {photos.map((uri, i) => (
                 <View key={uri + i} style={[styles.photo, shadows.soft]}>
-                  {/* 写真をタップすると切り抜ける（2026-08-13 指摘） */}
+                  {/* 写真をタップすると切り抜き画面へ。
+                      以前はここで写真フォルダが開き、同じ写真を選び直す必要があった
+                      （2026-08-14 指摘） */}
                   <PressableScale
                     activeScale={0.97}
-                    onPress={async () => {
-                      const picked = await cropPhoto();
-                      if (picked?.[0]) setPhotos((p) => p.map((v, idx) => (idx === i ? picked[0] : v)));
-                    }}
+                    onPress={() => { cropTarget.current = i; router.push({ pathname: '/crop', params: { uri } }); }}
                   >
                     <Thumb uri={uri} style={styles.photoImg} radius={radius.md} markSize={44} />
                     <View style={styles.cropHint}>

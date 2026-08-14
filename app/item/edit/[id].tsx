@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, ActivityIndicator } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -8,7 +8,7 @@ import { PressableScale } from '@/components/ui/PressableScale';
 import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
 import { Thumb } from '@/components/ui/Thumb';
 import { PhotoSourceSheet } from '@/components/feature/PhotoSourceSheet';
-import { cropPhoto } from '@/lib/photo';
+
 import { categories, conditions } from '@/data/mock';
 import { useMe } from '@/store/me';
 import { FormError } from '@/components/ui/FormError';
@@ -23,7 +23,9 @@ const DESC_MAX = 200;
 type PickerKey = 'category' | 'condition' | null;
 
 export default function EditItemScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, cropped } = useLocalSearchParams<{ id: string; cropped?: string }>();
+  // 切り抜き画面から戻ってきたときに差し替える写真
+  const cropTarget = useRef<number | null>(null);
   const insets = useSafeAreaInsets();
   const { getItem, updateItem } = useTree();
   const me = useMe();
@@ -32,6 +34,13 @@ export default function EditItemScreen() {
   // 既存の写真（URI優先。ローカル画像しかない場合はサムネのみ表示できないので空で開始）
   const initialPhotos = item ? (item.images?.length ? item.images : item.image ? [item.image] : []) : [];
   const [photos, setPhotos] = useState<string[]>(initialPhotos);
+  useEffect(() => {
+    if (!cropped) return;
+    const i = cropTarget.current;
+    if (i !== null) setPhotos((p) => p.map((v, idx) => (idx === i ? cropped : v)));
+    cropTarget.current = null;
+    router.setParams({ cropped: undefined });
+  }, [cropped]);
   const [name, setName] = useState(item?.name ?? '');
   const [desc, setDesc] = useState(item?.description ?? '');
   const [category, setCategory] = useState(item?.category ?? categories[0]);
@@ -98,7 +107,17 @@ export default function EditItemScreen() {
         keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photoRow}>
           {photos.map((uri, i) => (
             <View key={uri + i} style={styles.photo}>
-              <Thumb source={i === 0 ? item.local : undefined} uri={uri} style={styles.photoImg} radius={radius.md} markSize={30} />
+              {/* タップで切り抜き（出品フォームと同じ／2026-08-14 指摘） */}
+              <PressableScale
+                activeScale={0.97}
+                onPress={() => { cropTarget.current = i; router.push({ pathname: '/crop', params: { uri } }); }}
+              >
+                <Thumb source={i === 0 ? item.local : undefined} uri={uri} style={styles.photoImg} radius={radius.md} markSize={30} />
+                <View style={styles.cropHint}>
+                  <Ionicons name="crop" size={10} color={colors.white} />
+                  <Text style={styles.cropHintText}>切り抜く</Text>
+                </View>
+              </PressableScale>
               <PressableScale onPress={() => setPhotos((p) => p.filter((_, idx) => idx !== i))} style={styles.removeBadge} activeScale={0.85}>
                 <Ionicons name="close" size={13} color={colors.white} />
               </PressableScale>
@@ -201,6 +220,11 @@ const styles = StyleSheet.create({
   label: { fontFamily: fonts.bold, fontSize: 13, color: colors.textSecondary, marginBottom: spacing.sm },
   photoRow: { gap: spacing.md, paddingVertical: spacing.xs },
   photoRowWrap: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' },
+  cropHint: {
+    position: 'absolute', left: 4, bottom: 4, flexDirection: 'row', alignItems: 'center', gap: 3,
+    backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 999, paddingHorizontal: 5, paddingVertical: 2,
+  },
+  cropHintText: { fontFamily: fonts.bold, fontSize: 9, color: colors.white },
   photo: { width: 92, height: 92 },
   photoImg: { width: 92, height: 92 },
   removeBadge: { position: 'absolute', top: 5, right: 5, width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
