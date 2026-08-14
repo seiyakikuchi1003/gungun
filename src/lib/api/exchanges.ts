@@ -79,8 +79,24 @@ export async function fetchExchange(id: string, userId: string): Promise<Exchang
   return data ? toExchange(data, userId) : null;
 }
 
-export async function ship(exchangeId: string): Promise<void> {
-  const { error } = await requireSupabase().rpc('ship_exchange', { p_exchange_id: exchangeId });
+export async function cancelHarvest(harvestId: string, reason: string): Promise<void> {
+  const { error } = await requireSupabase().rpc('cancel_harvest', {
+    p_harvest_id: harvestId,
+    p_reason: reason,
+  });
+  if (error) throw error;
+}
+
+export async function ship(
+  exchangeId: string,
+  carrier?: string | null,
+  tracking?: string | null
+): Promise<void> {
+  const { error } = await requireSupabase().rpc('ship_exchange', {
+    p_exchange_id: exchangeId,
+    p_carrier: carrier ?? null,
+    p_tracking: tracking ?? null,
+  });
   if (error) throw error;
 }
 

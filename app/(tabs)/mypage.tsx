@@ -34,12 +34,15 @@ const MENU: { icon: keyof typeof Ionicons.glyphMap; label: string; route?: strin
   { icon: 'trash-outline', label: '退会', action: 'withdraw', danger: true },
 ];
 
-function Stat({ n, label }: { n: number; label: string }) {
+function Stat({ n, label, onPress }: { n: number; label: string; onPress?: () => void }) {
   return (
-    <View style={styles.stat}>
+    <PressableScale activeScale={onPress ? 0.94 : 1} onPress={onPress} disabled={!onPress} style={styles.stat}>
       <Text style={styles.statNum}>{n}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-    </View>
+      <View style={styles.statLabelRow}>
+        <Text style={styles.statLabel}>{label}</Text>
+        {onPress && <Ionicons name="chevron-forward" size={10} color={colors.textSecondary} />}
+      </View>
+    </PressableScale>
   );
 }
 
@@ -86,7 +89,8 @@ export default function MyPage() {
   useAutoRefresh(reloadMine);
 
   const onMenu = (m: (typeof MENU)[number]) => {
-    if (m.route) { router.push(m.route as never); return; }
+    // 同じ画面を何度も積まない（2026-08-14 指摘：連続で戻らないと抜けられない）
+    if (m.route) { router.navigate(m.route as never); return; }
     if (m.action) setSheet(m.action);
   };
 
@@ -140,11 +144,12 @@ export default function MyPage() {
           )}
           {/* 固定値ではなく実データから数える（収穫タブの件数と食い違わないように） */}
           <View style={styles.stats}>
-            <Stat n={planted} label="植えたタネ" />
+            {/* 数字を押すと中身を見に行ける（2026-08-14 指摘） */}
+            <Stat n={planted} label="植えたタネ" onPress={() => router.push('/mypage/items')} />
             <View style={styles.statDivider} />
-            <Stat n={watered} label="水やり" />
+            <Stat n={watered} label="水やり" onPress={() => router.push('/mypage/items')} />
             <View style={styles.statDivider} />
-            <Stat n={exchanging} label="取引中" />
+            <Stat n={exchanging} label="取引中" onPress={() => router.push('/exchange')} />
           </View>
         </View>
 
@@ -271,6 +276,7 @@ const styles = StyleSheet.create({
   stat: { flex: 1, alignItems: 'center', gap: 2 },
   statNum: { fontFamily: fonts.black, fontSize: 22, color: colors.green },
   statLabel: { fontFamily: fonts.medium, fontSize: 11.5, color: colors.textSecondary },
+  statLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 1 },
   statDivider: { width: 1, height: 28, backgroundColor: colors.border },
   fertRow: { marginHorizontal: 20, marginTop: spacing.lg, backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.lg, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   fertLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },

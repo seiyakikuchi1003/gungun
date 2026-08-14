@@ -13,7 +13,11 @@ import { RatingSummary } from '@/components/ui/RatingSummary';
 import { Sprout } from '@/components/art/Sprout';
 import { TreeCanvas } from '@/components/feature/TreeCanvas';
 import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
-import { shareText } from '@/lib/share';
+/*
+ * 共有ボタンは外した（2026-08-14 指摘）。
+ * 文面しか渡せず、受け取った人が商品や木にたどり着けないため。
+ * App Store 公開後にアプリのURLが決まったら、リンク付きで戻す。
+ */
 import { Toast } from '@/components/ui/Toast';
 import { useTree } from '@/store/tree';
 import { useMe } from '@/store/me';
@@ -48,12 +52,6 @@ export default function TreeScreen() {
   const joiners = new Set(all.map((i) => i.ownerId)).size;
   const justWatered = !!newId;
   const cardW = width - 40;
-
-  // ツリーをシェア。Web はクリップボードに入るだけで画面が変わらないので短く知らせる
-  const shareTree = async () => {
-    const res = await shareText(`「${root.name}」の木に${waterings}件の水やりが集まっています！ #ぐんぐん`);
-    if (res === 'copied') setToast('リンクをコピーしました');
-  };
 
   return (
     <View style={styles.root}>
@@ -161,10 +159,6 @@ export default function TreeScreen() {
                 </Text>
               </View>
             )}
-            <PressableScale onPress={shareTree} activeScale={0.97} style={styles.ghostBtn}>
-              <Ionicons name="share-social" size={16} color={colors.textSecondary} />
-              <Text style={styles.ghostText}>あなたのツリーをシェア</Text>
-            </PressableScale>
           </View>
         )}
 

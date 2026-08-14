@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
+import { AppState } from 'react-native';
 import { errorMessage } from '@/lib/errorMessage';
 import { trades as mockTrades, tradeItem, tradeUser, chatByTrade, type Trade } from '@/data/mockSocial';
-import { isSupabaseEnabled } from '@/lib/supabase';
+import { isSupabaseEnabled, supabase } from '@/lib/supabase';
 import { useMe } from '@/store/me';
 import * as api from '@/lib/api/exchanges';
 
@@ -69,6 +70,9 @@ function mockToUITrade(t: Trade): UITrade {
   };
 }
 
+/** 購読ごとにチャンネル名を分けるための連番 */
+let channelSeq = 0;
+
 export function useExchanges() {
   const live = isSupabaseEnabled;
   const me = useMe();
@@ -94,6 +98,29 @@ export function useExchanges() {
   useEffect(() => {
     load();
   }, [load]);
+
+  /**
+   * 取引は起動時に1回読むだけだったので、収穫して取引が生まれても
+   * ボトムナビの赤ポチが付かなかった（2026-08-14 指摘）。
+   * 自分が関わる取引の増減・状態変化を Realtime で受けて取り直す。
+   *
+   * ★ チャンネル名は購読ごとに別にする。このフックは複数の画面から同時に
+   *   使われるので、同じ名前にすると2つ目で
+   *   「cannot add postgres_changes callbacks after subscribe」になる。
+   * ★ load を依存に入れると貼り直しが走るので ref 越しに呼ぶ。
+   */
+  const loadRef = useRef(load);
+  loadRef.current = load;
+
+  useEffect(() => {
+    if (!live || !me.live || !supabase) return;
+    const ch = supabase
+      .channel(`exchanges:${me.id}:${++channelSeq}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'exchanges' }, () => { loadRef.current(); })
+      .subscribe();
+    const sub = AppState.addEventListener('change', (st) => { if (st === 'active') loadRef.current(); });
+    return () => { supabase?.removeChannel(ch); sub.remove(); };
+  }, [live, me.live, me.id]);
 
   return { list, loading, reload: load };
 }

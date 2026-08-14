@@ -99,14 +99,14 @@ export default function SignupScreen() {
               <Text style={styles.agreeText}>
                 <Text
                   style={styles.link}
-                  onPress={(e) => { e.stopPropagation(); router.push('/mypage/terms'); }}
+                  onPress={(e) => { e.stopPropagation(); router.navigate('/mypage/terms'); }}
                 >
                   利用規約
                 </Text>
                 と
                 <Text
                   style={styles.link}
-                  onPress={(e) => { e.stopPropagation(); router.push('/mypage/privacy'); }}
+                  onPress={(e) => { e.stopPropagation(); router.navigate('/mypage/privacy'); }}
                 >
                   プライバシーポリシー
                 </Text>

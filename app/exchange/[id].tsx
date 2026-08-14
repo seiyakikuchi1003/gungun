@@ -14,10 +14,12 @@ import { NotFound } from '@/components/ui/NotFound';
 import { Stepper } from '@/components/feature/Stepper';
 import { ActionCard } from '@/components/feature/ActionCard';
 import { useExchangeDetail } from '@/hooks/useExchangeDetail';
+import { CARRIERS, carrierLabel, trackingUrl } from '@/lib/tracking';
 import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 import { currentStep, nextAction } from '@/lib/exchangeStatus';
 import { success } from '@/lib/haptics';
 import { shareText } from '@/lib/share';
+import { Linking, TextInput } from 'react-native';
 
 /**
  * 取引詳細（2026-08-13 項目8 ／ docs/gungun-retool-adopt.md 1-5）。
@@ -45,7 +47,7 @@ const SHIP_CHECKS: { title: string; detail: string }[] = [
 export default function ExchangeDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
-  const { detail, loading, busy, reload, markShipped, markReceived } = useExchangeDetail(id ?? '');
+  const { detail, loading, busy, reload, markShipped, markReceived, cancel } = useExchangeDetail(id ?? '');
   useAutoRefresh(reload, { intervalMs: 15000 });
 
   const [shipSheet, setShipSheet] = useState(false);
@@ -54,6 +56,12 @@ export default function ExchangeDetail() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [checked, setChecked] = useState<boolean[]>(() => SHIP_CHECKS.map(() => false));
   const [copied, setCopied] = useState(false);
+  // 配送情報（2026-08-14 指摘：配送後のフローを細かく）
+  const [carrier, setCarrier] = useState<string>('yamato');
+  const [tracking, setTracking] = useState('');
+  // 取引の取り消し（2026-08-14 指摘）
+  const [cancelSheet, setCancelSheet] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
   const allChecked = checked.every(Boolean);
 
   if (loading) {
@@ -199,6 +207,33 @@ export default function ExchangeDetail() {
           </View>
         )}
 
+        {/* 配送状況。発送後だけ出す */}
+        {detail.status !== 'pending' && !!detail.trackingCarrier && (
+          <View style={[styles.panel, shadows.soft]}>
+            <Text style={styles.panelLabel}>配送状況</Text>
+            <View style={styles.addr}>
+              <Text style={styles.addrName}>{carrierLabel(detail.trackingCarrier)}</Text>
+              <Text style={styles.addrLine}>
+                {detail.trackingNumber ? `追跡番号 ${detail.trackingNumber}` : '追跡番号の登録はありません'}
+              </Text>
+            </View>
+            {(() => {
+              const url = trackingUrl(detail.trackingCarrier, detail.trackingNumber);
+              if (!url) return null;
+              return (
+                <PressableScale
+                  activeScale={0.97}
+                  onPress={() => Linking.openURL(url).catch(() => {})}
+                  style={styles.trackLink}
+                >
+                  <Ionicons name="open-outline" size={16} color={colors.green} />
+                  <Text style={styles.trackLinkText}>配送状況を確認する</Text>
+                </PressableScale>
+              );
+            })()}
+          </View>
+        )}
+
         {/* 自分の住所。差出人として書くもの／届く先として確認するもの */}
         <View style={[styles.panel, shadows.soft]}>
           <View style={styles.panelHead}>
@@ -223,6 +258,14 @@ export default function ExchangeDetail() {
             </Text>
           )}
         </View>
+
+        {/* まだ誰も発送していないうちは取り消せる（2026-08-14 指摘）。
+            発送後は物が動いているので、ここには出さず運営対応にする */}
+        {detail.status === 'pending' && (
+          <PressableScale onPress={() => setCancelSheet(true)} activeScale={0.98} style={styles.cancelLink}>
+            <Text style={styles.cancelLinkText}>この取引を取り消す</Text>
+          </PressableScale>
+        )}
 
         {/* 輪の全体 */}
         {!!detail.harvestId && (
@@ -267,6 +310,33 @@ export default function ExchangeDetail() {
           <Text style={styles.checkOutro}>丁寧な発送で、気持ちの良い取引をお願いします！✨</Text>
         </ScrollView>
 
+        {/* 配送業者と追跡番号。受け取る側が「今どこか」を追えるようにする */}
+        <View style={styles.trackBox}>
+          <Text style={styles.trackLabel}>配送業者と追跡番号（任意）</Text>
+          <View style={styles.carrierRow}>
+            {CARRIERS.map((c) => (
+              <PressableScale
+                key={c.key}
+                activeScale={0.96}
+                onPress={() => setCarrier(c.key)}
+                style={[styles.carrierChip, carrier === c.key && styles.carrierChipOn]}
+              >
+                <Text style={[styles.carrierText, carrier === c.key && styles.carrierTextOn]}>{c.label}</Text>
+              </PressableScale>
+            ))}
+          </View>
+          {carrier !== 'other' && (
+            <TextInput
+              value={tracking}
+              onChangeText={setTracking}
+              placeholder="追跡番号（数字のみ）"
+              placeholderTextColor={colors.textPlaceholder}
+              keyboardType="number-pad"
+              style={[styles.trackInput, { outlineStyle: 'none' } as object]}
+            />
+          )}
+        </View>
+
         {actionError ? <FormError message={actionError} /> : null}
         <Button
           title="発送完了を報告"
@@ -275,7 +345,7 @@ export default function ExchangeDetail() {
           disabled={!allChecked}
           onPress={async () => {
             setActionError(null);
-            const res = await markShipped();
+            const res = await markShipped(carrier, tracking);
             if (res.error) { setActionError(res.error); return; }
             setShipSheet(false);
           }}
@@ -313,6 +383,45 @@ export default function ExchangeDetail() {
         />
         <PressableScale onPress={() => setRecvSheet(false)} style={styles.cancel}>
           <Text style={styles.cancelText}>キャンセル</Text>
+        </PressableScale>
+      </BottomSheetModal>
+
+      {/* 取引の取り消し */}
+      <BottomSheetModal visible={cancelSheet} onClose={() => setCancelSheet(false)}>
+        <View style={styles.sheetCenter}>
+          <View style={[styles.sheetIcon, { backgroundColor: colors.cardMuted }]}>
+            <Ionicons name="close-circle-outline" size={34} color={colors.textSecondary} />
+          </View>
+          <Text style={styles.sheetTitle}>この取引を取り消しますか？</Text>
+          <Text style={styles.sheetSub}>
+            この輪に入っている全員の取引が取り消され、商品は出品中に戻ります。{'\n'}
+            参加者にはその旨が通知されます。取り消しは元に戻せません。
+          </Text>
+        </View>
+        <TextInput
+          value={cancelReason}
+          onChangeText={setCancelReason}
+          placeholder="理由（任意・相手に伝わります）"
+          placeholderTextColor={colors.textPlaceholder}
+          style={[styles.trackInput, { outlineStyle: 'none' } as object]}
+        />
+        {actionError ? <FormError message={actionError} /> : null}
+        <PressableScale
+          activeScale={0.97}
+          disabled={busy}
+          onPress={async () => {
+            setActionError(null);
+            const res = await cancel(detail.harvestId, cancelReason);
+            if (res.error) { setActionError(res.error); return; }
+            setCancelSheet(false);
+            router.dismissTo('/exchange');
+          }}
+          style={[styles.dangerBtn, busy && { opacity: 0.6 }]}
+        >
+          <Text style={styles.dangerText}>取り消す</Text>
+        </PressableScale>
+        <PressableScale onPress={() => setCancelSheet(false)} style={styles.cancel}>
+          <Text style={styles.cancelText}>やめる</Text>
         </PressableScale>
       </BottomSheetModal>
 
@@ -392,6 +501,33 @@ const styles = StyleSheet.create({
   checkDetail: { fontFamily: fonts.medium, fontSize: 12, lineHeight: 18, color: colors.textSecondary, marginTop: 2 },
   checkOutro: { fontFamily: fonts.medium, fontSize: 12.5, color: colors.textSecondary, textAlign: 'center', marginTop: spacing.md },
   checkHint: { fontFamily: fonts.medium, fontSize: 12, color: colors.textSecondary, textAlign: 'center', marginTop: spacing.sm },
+  trackBox: { gap: spacing.sm, marginTop: spacing.md },
+  trackLabel: { fontFamily: fonts.bold, fontSize: 12.5, color: colors.textSecondary },
+  carrierRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  carrierChip: {
+    paddingHorizontal: spacing.md, paddingVertical: 7, borderRadius: radius.pill,
+    backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
+  },
+  carrierChipOn: { backgroundColor: colors.greenSoft, borderColor: colors.green },
+  carrierText: { fontFamily: fonts.medium, fontSize: 12.5, color: colors.textSecondary },
+  carrierTextOn: { fontFamily: fonts.bold, color: colors.greenDeep },
+  trackInput: {
+    backgroundColor: colors.cardMuted, borderRadius: radius.md,
+    paddingHorizontal: spacing.lg, height: 46,
+    fontFamily: fonts.medium, fontSize: 15, color: colors.textPrimary,
+  },
+  trackLink: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    height: 44, borderRadius: radius.pill, backgroundColor: colors.greenSoft, marginTop: spacing.xs,
+  },
+  trackLinkText: { fontFamily: fonts.bold, fontSize: 13.5, color: colors.greenDeep },
+  cancelLink: { alignItems: 'center', paddingVertical: spacing.md },
+  cancelLinkText: { fontFamily: fonts.medium, fontSize: 13, color: colors.textSecondary, textDecorationLine: 'underline' },
+  dangerBtn: {
+    height: 52, borderRadius: radius.pill, backgroundColor: '#E5484D',
+    justifyContent: 'center', alignItems: 'center', marginTop: spacing.md,
+  },
+  dangerText: { fontFamily: fonts.bold, fontSize: 16, color: colors.white },
   cancel: { alignItems: 'center', paddingVertical: spacing.lg },
   cancelText: { fontFamily: fonts.bold, fontSize: 15, color: colors.textSecondary },
 });

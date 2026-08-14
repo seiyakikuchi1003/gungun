@@ -193,12 +193,19 @@ export default function HomeScreen() {
       >
         {/* 肥料残高／ログインボーナス（白いカード2枚を横並び） */}
         <Animated.View entering={FadeInDown.duration(400)} style={[styles.section, styles.cardsRow]}>
-          {/* 左：現在の肥料 */}
-          <View style={[styles.infoCard, shadows.card]}>
+          {/* 左：現在の肥料。押したらチャージへ（2026-08-14 指摘：見えるだけで押せなかった） */}
+          <PressableScale
+            activeScale={0.97}
+            onPress={() => router.push('/fertilizer')}
+            style={[styles.infoCard, shadows.card]}
+          >
             <View pointerEvents="none" style={styles.cardLeaf}>
               <LeafDecor width={74} height={88} opacity={0.35} />
             </View>
-            <Text style={styles.infoLabel}>現在の肥料</Text>
+            <View style={styles.infoLabelRow}>
+              <Text style={styles.infoLabel}>現在の肥料</Text>
+              <Ionicons name="chevron-forward" size={13} color={colors.textSecondary} />
+            </View>
             <View style={styles.fertBody}>
               <Sprout size={44} base />
               <View style={styles.fertNumRow}>
@@ -206,7 +213,8 @@ export default function HomeScreen() {
                 <Text style={styles.fertUnit}>肥料</Text>
               </View>
             </View>
-          </View>
+            <Text style={styles.fertCharge}>タップでチャージ</Text>
+          </PressableScale>
 
           {/* 右：ログインボーナス */}
           <View style={[styles.infoCard, shadows.card]}>
@@ -311,6 +319,8 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  infoLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  fertCharge: { fontFamily: fonts.bold, fontSize: 10.5, color: colors.green, marginTop: 4 },
   topBarFixed: {
     position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
     backgroundColor: colors.bg,

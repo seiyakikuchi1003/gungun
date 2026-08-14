@@ -14,7 +14,11 @@ import { useMe } from '@/store/me';
 import { useBlocks } from '@/store/blocks';
 import { useUsers } from '@/store/users';
 import { isSupabaseEnabled } from '@/lib/supabase';
-import { shareText } from '@/lib/share';
+/*
+ * 共有ボタンは外した（2026-08-14 指摘）。
+ * 文面しか渡せず、受け取った人が商品や木にたどり着けないため。
+ * App Store 公開後にアプリのURLが決まったら、リンク付きで戻す。
+ */
 import { fetchStats, type ProfileStats } from '@/lib/api/profile';
 
 /**
@@ -52,13 +56,7 @@ export default function UserProfile() {
           <Ionicons name="chevron-back" size={26} color={colors.textPrimary} />
         </PressableScale>
         <Text style={styles.hTitle} numberOfLines={1}>{u.nickname}さん</Text>
-        <PressableScale
-          onPress={() => shareText(`ぐんぐんで「${u.nickname}」さんの出品を見てみませんか？🌱`)}
-          activeScale={0.9}
-          style={styles.hBtn}
-        >
-          <Ionicons name="share-outline" size={22} color={colors.textPrimary} />
-        </PressableScale>
+        <View style={styles.hBtn} />
       </View>
 
       <ScrollView

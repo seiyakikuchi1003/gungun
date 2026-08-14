@@ -16,7 +16,11 @@ import { itemImageSources } from '@/data/mock';
 import { settings } from '@/config/settings';
 import { useTree } from '@/store/tree';
 import { useMe } from '@/store/me';
-import { shareText } from '@/lib/share';
+/*
+ * 共有ボタンは外した（2026-08-14 指摘）。
+ * 文面しか渡せず、受け取った人が商品や木にたどり着けないため。
+ * App Store 公開後にアプリのURLが決まったら、リンク付きで戻す。
+ */
 import { Toast } from '@/components/ui/Toast';
 import { NotFound } from '@/components/ui/NotFound';
 import { useItemComments } from '@/hooks/useItemComments';
@@ -73,12 +77,6 @@ export default function ItemDetailScreen() {
     setPage(Math.round(e.nativeEvent.contentOffset.x / width));
   };
 
-  const share = async () => {
-    // Web はクリップボードに入るだけで画面が変わらないので、短く知らせる
-    const res = await shareText(`「${item.name}」を見つけました！ #ぐんぐん`);
-    if (res === 'copied') setToast('リンクをコピーしました');
-  };
-
   return (
     <View style={styles.root}>
       <ScrollView
@@ -99,7 +97,6 @@ export default function ItemDetailScreen() {
       <View style={[styles.floatHeader, { top: insets.top + 6 }]} pointerEvents="box-none">
         <RoundBtn icon="chevron-back" onPress={() => router.back()} />
         <View style={styles.floatRight}>
-          <RoundBtn icon="share-social-outline" onPress={share} />
           <RoundBtn icon="ellipsis-horizontal" onPress={() => setMenu(true)} />
         </View>
       </View>

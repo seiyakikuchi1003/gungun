@@ -168,9 +168,9 @@ export default function Premium() {
           </View>
           <Text style={styles.agreeText}>
             上記の内容と
-            <Text style={styles.link} onPress={() => router.push('/mypage/terms')}>利用規約</Text>
+            <Text style={styles.link} onPress={() => router.navigate('/mypage/terms')}>利用規約</Text>
             ・
-            <Text style={styles.link} onPress={() => router.push('/mypage/privacy')}>プライバシーポリシー</Text>
+            <Text style={styles.link} onPress={() => router.navigate('/mypage/privacy')}>プライバシーポリシー</Text>
             に同意します
           </Text>
         </PressableScale>

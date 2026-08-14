@@ -39,6 +39,10 @@ export type ExchangeDetail = {
 
   iRated: boolean;
   partnerRated: boolean;
+
+  /** 配送業者・追跡番号（発送時に任意で入る） */
+  trackingCarrier: string | null;
+  trackingNumber: string | null;
 };
 
 type Row = {
@@ -65,6 +69,8 @@ type Row = {
   my_address: string | null;
   i_rated: boolean;
   partner_rated: boolean;
+  tracking_carrier: string | null;
+  tracking_number: string | null;
 };
 
 function toAddress(
@@ -98,5 +104,7 @@ export async function fetchExchangeDetail(exchangeId: string): Promise<ExchangeD
     myAddress: toAddress(r.my_name, r.my_phone, r.my_postal, r.my_address),
     iRated: r.i_rated,
     partnerRated: r.partner_rated,
+    trackingCarrier: r.tracking_carrier,
+    trackingNumber: r.tracking_number,
   };
 }

@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState, useRef } from 'react';
 import { AppState } from 'react-native';
 import { notifications as seed, type Notif } from '@/data/mockSocial';
 import { isSupabaseEnabled, supabase } from '@/lib/supabase';
@@ -66,6 +66,9 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
    * Realtime で自分あての新着を受けて即座に数え直し、
    * 取りこぼし対策として前面復帰時にも取り直す。
    */
+  const refreshRef = useRef(refresh);
+  refreshRef.current = refresh;
+
   useEffect(() => {
     if (!live || !me.live || !supabase) return;
     const ch = supabase
@@ -73,12 +76,12 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${me.id}` },
-        () => { refresh(); }
+        () => { refreshRef.current(); }
       )
       .subscribe();
-    const sub = AppState.addEventListener('change', (st) => { if (st === 'active') refresh(); });
+    const sub = AppState.addEventListener('change', (st) => { if (st === 'active') refreshRef.current(); });
     return () => { supabase?.removeChannel(ch); sub.remove(); };
-  }, [live, me.live, me.id, refresh]);
+  }, [live, me.live, me.id]);
 
   const markRead = useCallback(
     (id: string) => {
