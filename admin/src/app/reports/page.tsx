@@ -41,7 +41,7 @@ export default async function ReportsPage({
 
   if (!isConnected) {
     return (
-      <Shell title="通報">
+      <Shell title="通報" current="/reports">
         <NotConnected />
       </Shell>
     );
@@ -104,7 +104,11 @@ export default async function ReportsPage({
   reportList.forEach((r) => repeat.set(r.target_id, (repeat.get(r.target_id) ?? 0) + 1));
 
   return (
-    <Shell title="通報">
+    <Shell
+      title="通報"
+      description="利用者から報告された出品・投稿・ユーザーです。内容を見て、対応済みか問題なしかを記録します。"
+      current="/reports"
+    >
       <Banner error={error ?? dbError} ok={ok} />
 
       <div className="flex gap-1 mb-4">

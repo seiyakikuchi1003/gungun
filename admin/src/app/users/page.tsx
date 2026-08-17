@@ -7,6 +7,7 @@ import { grantFertilizer, setSuspended } from '@/lib/actions';
 import { redirectWithResult } from '@/lib/result';
 import Link from 'next/link';
 import { jst, num, shortId } from '@/lib/format';
+import { ConfirmButton } from '@/components/ConfirmButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,7 +35,7 @@ export default async function UsersPage({
 
   if (!isConnected) {
     return (
-      <Shell title="ユーザー">
+      <Shell title="ユーザー" current="/users">
         <NotConnected />
       </Shell>
     );
@@ -60,7 +61,11 @@ export default async function UsersPage({
   };
 
   return (
-    <Shell title="ユーザー">
+    <Shell
+      title="ユーザー"
+      description="登録している人の一覧です。肥料を足したり、規約に反する人の利用を止めたりできます。"
+      current="/users"
+    >
       <Banner error={error ?? dbError} ok={ok} />
 
       <div className="flex flex-wrap items-center gap-3 mb-4">
@@ -133,9 +138,16 @@ export default async function UsersPage({
                         {!u.is_suspended && (
                           <input name="reason" placeholder="停止理由（本人に表示）" className="input w-44 h-8" />
                         )}
-                        <button className={`h-8 px-3 btn whitespace-nowrap ${u.is_suspended ? 'btn-ghost' : 'bg-danger text-white'}`}>
+                        <ConfirmButton
+                          message={
+                            u.is_suspended
+                              ? `${u.nickname || 'このユーザー'} の利用停止を解除します。よろしいですか？`
+                              : `${u.nickname || 'このユーザー'} の利用を停止します。ログインできなくなります。よろしいですか？`
+                          }
+                          className={`h-8 px-3 btn whitespace-nowrap ${u.is_suspended ? 'btn-ghost' : 'bg-danger text-white'}`}
+                        >
                           {u.is_suspended ? '停止を解除' : '利用を停止'}
-                        </button>
+                        </ConfirmButton>
                       </form>
                       <Link href={keep({})} className="text-xs text-muted underline">閉じる</Link>
                     </div>
@@ -150,7 +162,7 @@ export default async function UsersPage({
             {users.length === 0 && (
               <tr>
                 <td className="td text-muted" colSpan={6}>
-                  該当するユーザーがいません
+                  {q ? `「${q}」にあてはまる人はいません` : '該当する人はいません'}
                 </td>
               </tr>
             )}

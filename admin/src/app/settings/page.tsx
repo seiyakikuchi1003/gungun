@@ -188,7 +188,7 @@ export default async function SettingsPage({
 
   if (!isConnected) {
     return (
-      <Shell title="アプリ設定">
+      <Shell title="アプリ設定" current="/settings">
         <NotConnected />
       </Shell>
     );
@@ -200,13 +200,12 @@ export default async function SettingsPage({
   const others = settings.filter((s) => !grouped.has(s.key));
 
   return (
-    <Shell title="アプリ設定">
+    <Shell
+      title="アプリ設定"
+      description="アプリ内の金額・肥料の量・文章を変更します。保存するとアプリを更新しなくても反映されます。"
+      current="/settings"
+    >
       <Banner error={error ?? dbError} ok={ok} />
-
-      <p className="text-sm text-muted leading-relaxed mb-5 max-w-2xl">
-        ここで変えた内容は、アプリを更新しなくても次にデータを読み込んだ時点で反映されます。
-        金額や肥料量はアプリに直接書かず、すべてこの画面から変更します。
-      </p>
 
       {settings.length === 0 ? (
         <div className="card p-6 text-sm text-muted">
