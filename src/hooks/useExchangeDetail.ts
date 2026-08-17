@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { isSupabaseEnabled } from '@/lib/supabase';
 import { useMe } from '@/store/me';
 import { fetchExchangeDetail, type ExchangeDetail } from '@/lib/api/exchangeDetail';
-import { ship, receive, submitRating, cancelHarvest } from '@/lib/api/exchanges';
+import { ship, receive, submitRating, cancelHarvest, updateTracking } from '@/lib/api/exchanges';
 import { errorMessage } from '@/lib/errorMessage';
 import { trades as mockTrades, tradeItem, tradeUser } from '@/data/mockSocial';
 
@@ -89,6 +89,8 @@ export function useExchangeDetail(exchangeId: string) {
     reload: load,
     markShipped: (carrier?: string | null, tracking?: string | null) =>
       run(() => ship(exchangeId, carrier, tracking), '発送を記録できませんでした'),
+    saveTracking: (carrier: string, tracking: string) =>
+      run(() => updateTracking(exchangeId, carrier, tracking), '追跡番号を保存できませんでした'),
     cancel: (harvestId: string, reason: string) =>
       run(() => cancelHarvest(harvestId, reason), '取引を取り消せませんでした'),
     markReceived: () => run(() => receive(exchangeId), '受け取りを記録できませんでした'),

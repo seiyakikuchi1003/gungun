@@ -14,7 +14,7 @@ import { NotFound } from '@/components/ui/NotFound';
 import { Stepper } from '@/components/feature/Stepper';
 import { ActionCard } from '@/components/feature/ActionCard';
 import { useExchangeDetail } from '@/hooks/useExchangeDetail';
-import { CARRIERS, carrierLabel, trackingUrl } from '@/lib/tracking';
+import { CARRIERS, carrier as carrierOf, carrierLabel, checkNumber, prettyNumber, trackingUrl } from '@/lib/tracking';
 import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 import { currentStep, nextAction } from '@/lib/exchangeStatus';
 import { success } from '@/lib/haptics';
@@ -47,7 +47,7 @@ const SHIP_CHECKS: { title: string; detail: string }[] = [
 export default function ExchangeDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
-  const { detail, loading, busy, reload, markShipped, markReceived, cancel } = useExchangeDetail(id ?? '');
+  const { detail, loading, busy, reload, markShipped, markReceived, cancel, saveTracking } = useExchangeDetail(id ?? '');
   useAutoRefresh(reload, { intervalMs: 15000 });
 
   const [shipSheet, setShipSheet] = useState(false);
@@ -62,6 +62,8 @@ export default function ExchangeDetail() {
   // 取引の取り消し（2026-08-14 指摘）
   const [cancelSheet, setCancelSheet] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
+  // 発送後の追跡番号の訂正（2026-08-17）
+  const [trackSheet, setTrackSheet] = useState(false);
   const allChecked = checked.every(Boolean);
 
   if (loading) {
@@ -207,30 +209,75 @@ export default function ExchangeDetail() {
           </View>
         )}
 
-        {/* 配送状況。発送後だけ出す */}
-        {detail.status !== 'pending' && !!detail.trackingCarrier && (
+        {/* 配送状況。発送後だけ出す。
+            番号そのものを押せるようにして、追跡サイトへ直接飛べるようにする（2026-08-17） */}
+        {detail.status !== 'pending' && (
           <View style={[styles.panel, shadows.soft]}>
-            <Text style={styles.panelLabel}>配送状況</Text>
-            <View style={styles.addr}>
-              <Text style={styles.addrName}>{carrierLabel(detail.trackingCarrier)}</Text>
-              <Text style={styles.addrLine}>
-                {detail.trackingNumber ? `追跡番号 ${detail.trackingNumber}` : '追跡番号の登録はありません'}
-              </Text>
-            </View>
-            {(() => {
-              const url = trackingUrl(detail.trackingCarrier, detail.trackingNumber);
-              if (!url) return null;
-              return (
-                <PressableScale
-                  activeScale={0.97}
-                  onPress={() => Linking.openURL(url).catch(() => {})}
-                  style={styles.trackLink}
-                >
-                  <Ionicons name="open-outline" size={16} color={colors.green} />
-                  <Text style={styles.trackLinkText}>配送状況を確認する</Text>
+            <View style={styles.panelHead}>
+              <Text style={styles.panelLabel}>配送状況</Text>
+              {detail.iAmSender && detail.status === 'shipped' && (
+                <PressableScale onPress={() => setTrackSheet(true)} activeScale={0.95} style={styles.copyBtn}>
+                  <Ionicons name="create-outline" size={14} color={colors.green} />
+                  <Text style={styles.copyText}>訂正</Text>
                 </PressableScale>
-              );
-            })()}
+              )}
+            </View>
+
+            {detail.trackingNumber ? (
+              <>
+                <View style={styles.trackCard}>
+                  <View style={styles.trackTop}>
+                    <Ionicons name="cube-outline" size={16} color={colors.textSecondary} />
+                    <Text style={styles.trackCarrier}>{carrierLabel(detail.trackingCarrier)}</Text>
+                  </View>
+                  <Text style={styles.trackNoLabel}>追跡番号</Text>
+                  {(() => {
+                    const url = trackingUrl(detail.trackingCarrier, detail.trackingNumber);
+                    const body = (
+                      <Text style={[styles.trackNo, url && styles.trackNoLink]}>
+                        {prettyNumber(detail.trackingNumber)}
+                      </Text>
+                    );
+                    return url ? (
+                      <PressableScale activeScale={0.97} onPress={() => Linking.openURL(url).catch(() => {})}>
+                        {body}
+                      </PressableScale>
+                    ) : (
+                      body
+                    );
+                  })()}
+                </View>
+
+                {(() => {
+                  const url = trackingUrl(detail.trackingCarrier, detail.trackingNumber);
+                  if (!url) {
+                    return (
+                      <Text style={styles.trackHint}>
+                        この配送業者は、アプリから追跡ページを開けません。番号を控えて業者のサイトでご確認ください。
+                      </Text>
+                    );
+                  }
+                  return (
+                    <PressableScale
+                      activeScale={0.97}
+                      onPress={() => Linking.openURL(url).catch(() => {})}
+                      style={styles.trackLink}
+                    >
+                      <Ionicons name="open-outline" size={16} color={colors.white} />
+                      <Text style={styles.trackLinkText}>
+                        {carrierLabel(detail.trackingCarrier)}のサイトで追跡する
+                      </Text>
+                    </PressableScale>
+                  );
+                })()}
+              </>
+            ) : (
+              <Text style={styles.addrNone}>
+                {detail.iAmSender
+                  ? '追跡番号は登録されていません。「訂正」から追加できます。'
+                  : '追跡番号は登録されていません。気になるときは取引メッセージで相手に聞いてみてください。'}
+              </Text>
+            )}
           </View>
         )}
 
@@ -312,13 +359,13 @@ export default function ExchangeDetail() {
 
         {/* 配送業者と追跡番号。受け取る側が「今どこか」を追えるようにする */}
         <View style={styles.trackBox}>
-          <Text style={styles.trackLabel}>配送業者と追跡番号（任意）</Text>
+          <Text style={styles.trackLabel}>配送業者と追跡番号</Text>
           <View style={styles.carrierRow}>
             {CARRIERS.map((c) => (
               <PressableScale
                 key={c.key}
                 activeScale={0.96}
-                onPress={() => setCarrier(c.key)}
+                onPress={() => { setCarrier(c.key); setTracking(''); }}
                 style={[styles.carrierChip, carrier === c.key && styles.carrierChipOn]}
               >
                 <Text style={[styles.carrierText, carrier === c.key && styles.carrierTextOn]}>{c.label}</Text>
@@ -326,14 +373,29 @@ export default function ExchangeDetail() {
             ))}
           </View>
           {carrier !== 'other' && (
-            <TextInput
-              value={tracking}
-              onChangeText={setTracking}
-              placeholder="追跡番号（数字のみ）"
-              placeholderTextColor={colors.textPlaceholder}
-              keyboardType="number-pad"
-              style={[styles.trackInput, { outlineStyle: 'none' } as object]}
-            />
+            <>
+              <TextInput
+                value={tracking}
+                onChangeText={setTracking}
+                placeholder={`例：${carrierOf(carrier)?.sample ?? ''}`}
+                placeholderTextColor={colors.textPlaceholder}
+                keyboardType="number-pad"
+                style={[styles.trackInput, { outlineStyle: 'none' } as object]}
+              />
+              {/* 桁数が違うまま追跡サイトへ送ると、開いた先でエラーになる。
+                  入力した本人がその場で気づけるようにする（2026-08-17） */}
+              {(() => {
+                const v = checkNumber(carrier, tracking);
+                if (tracking.trim() === '') {
+                  return <Text style={styles.trackHint}>あとから直せます。番号がなければ「その他・追跡なし」を選んでください。</Text>;
+                }
+                return v.ok ? (
+                  <Text style={styles.trackOk}>この番号で追跡できます</Text>
+                ) : (
+                  <Text style={styles.trackNg}>{v.reason}</Text>
+                );
+              })()}
+            </>
           )}
         </View>
 
@@ -342,7 +404,7 @@ export default function ExchangeDetail() {
           title="発送完了を報告"
           variant="accent"
           loading={busy}
-          disabled={!allChecked}
+          disabled={!allChecked || (tracking.trim() !== '' && !checkNumber(carrier, tracking).ok)}
           onPress={async () => {
             setActionError(null);
             const res = await markShipped(carrier, tracking);
@@ -383,6 +445,69 @@ export default function ExchangeDetail() {
         />
         <PressableScale onPress={() => setRecvSheet(false)} style={styles.cancel}>
           <Text style={styles.cancelText}>キャンセル</Text>
+        </PressableScale>
+      </BottomSheetModal>
+
+      {/* 追跡番号の訂正（発送した本人・受け取り前のみ） */}
+      <BottomSheetModal visible={trackSheet} onClose={() => setTrackSheet(false)}>
+        <View style={styles.sheetCenter}>
+          <View style={[styles.sheetIcon, { backgroundColor: colors.greenSoft }]}>
+            <Ionicons name="cube-outline" size={34} color={colors.green} />
+          </View>
+          <Text style={styles.sheetTitle}>追跡番号を直す</Text>
+          <Text style={styles.sheetSub}>
+            {detail.partnerName}さんはこの番号で荷物を追います。伝票のとおりに入力してください。
+          </Text>
+        </View>
+
+        <View style={styles.carrierRow}>
+          {CARRIERS.map((c) => (
+            <PressableScale
+              key={c.key}
+              activeScale={0.96}
+              onPress={() => { setCarrier(c.key); setTracking(''); }}
+              style={[styles.carrierChip, carrier === c.key && styles.carrierChipOn]}
+            >
+              <Text style={[styles.carrierText, carrier === c.key && styles.carrierTextOn]}>{c.label}</Text>
+            </PressableScale>
+          ))}
+        </View>
+        {carrier !== 'other' && (
+          <>
+            <TextInput
+              value={tracking}
+              onChangeText={setTracking}
+              placeholder={`例：${carrierOf(carrier)?.sample ?? ''}`}
+              placeholderTextColor={colors.textPlaceholder}
+              keyboardType="number-pad"
+              style={[styles.trackInput, { outlineStyle: 'none' } as object, { marginTop: spacing.sm }]}
+            />
+            {tracking.trim() !== '' &&
+              (checkNumber(carrier, tracking).ok ? (
+                <Text style={styles.trackOk}>この番号で追跡できます</Text>
+              ) : (
+                <Text style={styles.trackNg}>
+                  {(checkNumber(carrier, tracking) as { reason: string }).reason}
+                </Text>
+              ))}
+          </>
+        )}
+
+        {actionError ? <FormError message={actionError} /> : null}
+        <Button
+          title="保存する"
+          loading={busy}
+          disabled={carrier !== 'other' && !checkNumber(carrier, tracking).ok}
+          onPress={async () => {
+            setActionError(null);
+            const res = await saveTracking(carrier, tracking);
+            if (res.error) { setActionError(res.error); return; }
+            setTrackSheet(false);
+          }}
+          style={{ marginTop: spacing.lg }}
+        />
+        <PressableScale onPress={() => setTrackSheet(false)} style={styles.cancel}>
+          <Text style={styles.cancelText}>やめる</Text>
         </PressableScale>
       </BottomSheetModal>
 
@@ -516,11 +641,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg, height: 46,
     fontFamily: fonts.medium, fontSize: 15, color: colors.textPrimary,
   },
+  trackHint: { fontFamily: fonts.medium, fontSize: 11.5, lineHeight: 18, color: colors.textSecondary },
+  trackOk: { fontFamily: fonts.bold, fontSize: 11.5, color: colors.green },
+  trackNg: { fontFamily: fonts.bold, fontSize: 11.5, lineHeight: 18, color: '#E5484D' },
+  trackCard: { backgroundColor: colors.bgWarm, borderRadius: radius.md, padding: spacing.md, gap: 2 },
+  trackTop: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  trackCarrier: { fontFamily: fonts.bold, fontSize: 13.5, color: colors.textPrimary },
+  trackNoLabel: { fontFamily: fonts.medium, fontSize: 11, color: colors.textSecondary, marginTop: 4 },
+  trackNo: { fontFamily: fonts.bold, fontSize: 19, letterSpacing: 0.5, color: colors.textPrimary },
+  trackNoLink: { color: colors.green, textDecorationLine: 'underline' },
   trackLink: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    height: 44, borderRadius: radius.pill, backgroundColor: colors.greenSoft, marginTop: spacing.xs,
+    height: 46, borderRadius: radius.pill, backgroundColor: colors.green, marginTop: spacing.sm,
   },
-  trackLinkText: { fontFamily: fonts.bold, fontSize: 13.5, color: colors.greenDeep },
+  trackLinkText: { fontFamily: fonts.bold, fontSize: 14, color: colors.white },
   cancelLink: { alignItems: 'center', paddingVertical: spacing.md },
   cancelLinkText: { fontFamily: fonts.medium, fontSize: 13, color: colors.textSecondary, textDecorationLine: 'underline' },
   dangerBtn: {
