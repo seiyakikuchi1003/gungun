@@ -1,0 +1,92 @@
+{
+  "configVersion": 0,
+  "apple": {
+    "version": "1.0.1",
+    "copyright": "ぐんぐん",
+    "release": {
+      "automaticRelease": false
+    },
+    "info": {
+      "ja": {
+        "description": "「ぐんぐん」は、部屋に眠っている不要品を“種”として出品し、他のユーザーの欲しいものへと“果実”に育てていく、新しい形の物々交換アプリです。\n\n仕組みはシンプルで直感的です。\n•種植え出品（無料）：まずは不要になったものを出品することから始まります。\n•水やり出品：他の人の出品に対して、自分の品物を提示して交換希望を出せます。\n•肥料（ポイント）：毎日のログインで肥料が手に入り、それを使って水やりができます。肥料はアプリ内で購入することもできます。\n•果実の完成：種植え出品者が、自分の出品物(種)に水やりされた品物の中から欲しいものを選び取引を成立させると、交換の連鎖が完結します。\n\nぐんぐんの特徴は、枝分かれしながら育っていく交換のつながりです。\n出品から新たな希望が重なり合い、思いがけない組み合わせや偶然の出会いが生まれていきます。\n「もう使わないもの」が「誰かにとっての必要なもの」へとつながる過程を楽しめるのが魅力です。\n\nまた、匿名での取引や追跡可能な配送を推奨しており、安心して利用できます。\nフリマアプリのように価格交渉や販売手数料を気にする必要はなく、シンプルに「不要品を循環させる」ことを楽しめるコミュニティ型サービスです。\n\n■ アプリ内での購入について\n水やりに使う「肥料」は毎日のログインで無料で受け取れます。足りない場合はアプリ内で購入できます。\nプレミアム（月額480円・自動更新）に登録すると、毎日受け取れる肥料が増えます。\n解約はマイページからいつでも行えます。",
+        "keywords": [
+          "物々交換",
+          "バーター",
+          "不用品",
+          "コミュニティ",
+          "循環",
+          "サステナブル",
+          "わらしべ長者",
+          "交換アプリ",
+          "無料交換",
+          "お下がり",
+          "シェア",
+          "リユース",
+          "リサイクル",
+          "断捨離",
+          "エコ",
+          "再利用",
+          "中古品"
+        ],
+        "releaseNotes": "Bug fixes and improved stability",
+        "marketingUrl": "https://www.warashibe-gungun.com",
+        "supportUrl": "https://www.warashibe-gungun.com/faq",
+        "title": "ぐんぐん-物々交換アプリ",
+        "subtitle": "モノを育てる新しい交換体験",
+        "privacyPolicyUrl": "https://www.warashibe-gungun.com/privacy-policy",
+        "screenshots": {
+          "APP_IPHONE_67": [
+            "store/apple/screenshot/ja/APP_IPHONE_67/名称未設定のデザイン (7).png",
+            "store/apple/screenshot/ja/APP_IPHONE_67/名称未設定 (1320 x 2868 px) (3).png",
+            "store/apple/screenshot/ja/APP_IPHONE_67/名称未設定のデザイン (8).png",
+            "store/apple/screenshot/ja/APP_IPHONE_67/不用品.zip - 1.png",
+            "store/apple/screenshot/ja/APP_IPHONE_67/不用品.zip - 2.png"
+          ]
+        }
+      }
+    },
+    "categories": [
+      "SHOPPING",
+      "SOCIAL_NETWORKING"
+    ],
+    "advisory": {
+      "ageRatingOverride": "NONE",
+      "alcoholTobaccoOrDrugUseOrReferences": "NONE",
+      "contests": "NONE",
+      "gambling": false,
+      "gamblingSimulated": "NONE",
+      "horrorOrFearThemes": "NONE",
+      "kidsAgeBand": null,
+      "koreaAgeRatingOverride": "NONE",
+      "lootBox": false,
+      "matureOrSuggestiveThemes": "NONE",
+      "medicalOrTreatmentInformation": "NONE",
+      "profanityOrCrudeHumor": "NONE",
+      "sexualContentGraphicAndNudity": "NONE",
+      "sexualContentOrNudity": "NONE",
+      "unrestrictedWebAccess": false,
+      "violenceCartoonOrFantasy": "NONE",
+      "violenceRealistic": "NONE",
+      "violenceRealisticProlongedGraphicOrSadistic": "NONE",
+      "advertising": false,
+      "ageAssurance": false,
+      "ageRatingOverrideV2": "NONE",
+      "developerAgeRatingInfoUrl": null,
+      "gunsOrOtherWeapons": "NONE",
+      "healthOrWellnessTopics": false,
+      "messagingAndChat": true,
+      "parentalControls": false,
+      "userGeneratedContent": true
+    },
+    "review": {
+      "firstName": "羽山",
+      "lastName": "輝",
+      "email": "warashibe.gungun@gmail.com",
+      "phone": "7044609193",
+      "demoUsername": "apple@test.com",
+      "demoPassword": "appletest",
+      "demoRequired": true,
+      "notes": "【アプリの概要】\n利用者どうしが不要になった物品を、金銭のやり取りなしに交換するサービスです。\n出品（タネを植える）→ 他の利用者が自分の持ち物を差し出す（水やり）→ 出品者が欲しいものを選ぶ（収穫）→ 発送・受け取り・評価、という流れで交換が成立します。\n交換されるのは実物の品物で、利用者間で金銭のやり取りは発生しません。\n\n【動作確認の手順】\n1. 上記のアカウントでログインしてください（肥料を3000付与済みです）。\n2. ホームに他の利用者の出品が並びます。商品を開き「水やりする」から、ご自身の持ち物を差し出す流れを確認できます。\n3. 画面下部の「収穫」タブに、自分の出品と集まった水やりが表示されます。欲しいものを選ぶと交換が成立し、「取引」タブに取引が現れます。\n4. 「取引」タブの取引を開くと、発送 → 受け取り → 評価 の各段階と、次に行う操作が1画面で確認できます。\n5. 通知一覧の「輪が完成しました」を開くと、誰から誰へ何が渡ったのかをまとめた画面が表示されます。\n\n【ユーザー生成コンテンツへの対応】\n・出品、掲示板の投稿、コメント、利用者は、いずれも画面内のメニューから通報できます。\n・利用者をブロックすると、その相手の出品・投稿は表示されなくなります。\n・利用規約で、わいせつ・暴力的・差別的な内容および迷惑行為を明確に禁止しています。\n・通報された内容は運営が確認し、24時間以内に削除・利用停止を含む措置を行います。\n・アカウントは「マイページ → 退会」からアプリ内で削除できます。\n\n【アプリ内での支払いについて】\n「肥料」の購入とプレミアム登録は、現在 Stripe による決済を実装しています。\nApple のアプリ内課金への対応方針についてご指摘があれば、ご教示ください。"
+    }
+  }
+}

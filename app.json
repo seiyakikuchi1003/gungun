@@ -29,7 +29,7 @@
         ],
         "CFBundleDevelopmentRegion": "ja_JP"
       },
-      "buildNumber": "2"
+      "buildNumber": "3"
     },
     "web": {
       "bundler": "metro",
@@ -51,8 +51,9 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "商品の写真を選ぶために写真ライブラリへのアクセスを許可してください。",
-          "cameraPermission": "商品の写真を撮影するためにカメラへのアクセスを許可してください。"
+          "photosPermission": "出品する商品の写真を選ぶために使用します。選んだ写真は、あなたの出品画像としてのみ利用されます。",
+          "cameraPermission": "出品する商品の写真をその場で撮影するために使用します。撮影した写真は、あなたの出品画像としてのみ利用されます。",
+          "microphonePermission": false
         }
       ],
       [
