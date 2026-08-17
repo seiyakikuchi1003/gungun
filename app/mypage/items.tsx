@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
+import { SwipePages } from '@/components/ui/SwipePages';
 import { View, Text, StyleSheet, ScrollView, TextInput } from 'react-native';
-import { Gesture, GestureDetector, Directions } from 'react-native-gesture-handler';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -14,6 +14,9 @@ import { type MockItem } from '@/data/mock';
 import { useTree } from '@/store/tree';
 import { useMe } from '@/store/me';
 
+/** 左右にはらって行き来する順番 */
+const TABS = ['seed', 'water'] as const;
+
 export default function MyItems() {
   const me = useMe();
   const insets = useSafeAreaInsets();
@@ -26,12 +29,6 @@ export default function MyItems() {
   const base = tab === 'seed' ? mine.filter((i) => i.parentId === null) : mine.filter((i) => i.parentId !== null);
   const key = q.trim();
   const list = key ? base.filter((i) => i.name.includes(key) || i.category.includes(key)) : base;
-
-  // 横にはらってタブを切り替える（2026-08-12 指摘）
-  const swipe = Gesture.Race(
-    Gesture.Fling().direction(Directions.LEFT).onEnd(() => setTab('water')).runOnJS(true),
-    Gesture.Fling().direction(Directions.RIGHT).onEnd(() => setTab('seed')).runOnJS(true)
-  );
 
   return (
     <View style={styles.root}>
@@ -55,7 +52,7 @@ export default function MyItems() {
         />
       </View>
 
-      <GestureDetector gesture={swipe}>
+      <SwipePages index={Math.max(0, TABS.indexOf(tab as (typeof TABS)[number]))} count={TABS.length} onChange={(i) => setTab(TABS[i])}>
       <ScrollView
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={styles.grid}>
@@ -81,7 +78,7 @@ export default function MyItems() {
           </Text>
         )}
       </ScrollView>
-      </GestureDetector>
+      </SwipePages>
 
       {menuItem && (
         <ItemActionSheet

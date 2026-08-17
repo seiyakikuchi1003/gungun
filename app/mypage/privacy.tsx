@@ -6,6 +6,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, spacing, fonts } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { useTree } from '@/store/tree';
+import { LegalDocument } from '@/components/feature/LegalDocument';
 
 /**
  * プライバシーポリシー。本文は app_settings.privacy_policy に格納する。
@@ -24,11 +25,7 @@ export default function PrivacyScreen() {
         <Text style={styles.hTitle}>プライバシーポリシー</Text>
         <View style={styles.hBtn} />
       </View>
-      <ScrollView
-        keyboardDismissMode="on-drag"
-        keyboardShouldPersistTaps="handled" contentContainerStyle={styles.body}>
-        <Text style={styles.text}>{body}</Text>
-      </ScrollView>
+      <LegalDocument title="プライバシーポリシー" body={body} updated="2026年8月14日" />
     </View>
   );
 }

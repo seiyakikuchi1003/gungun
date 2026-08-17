@@ -86,16 +86,9 @@ export default function NewPost() {
           <Ionicons name="close" size={26} color={colors.textPrimary} />
         </PressableScale>
         <Text style={styles.title}>投稿する</Text>
-        <PressableScale onPress={submit} activeScale={0.94} style={[styles.post, shadows.button, !can && styles.postOff]}>
-          {busy ? (
-            <ActivityIndicator color={colors.white} size="small" />
-          ) : (
-            <>
-              <Ionicons name="paper-plane" size={14} color={colors.white} />
-              <Text style={styles.postText}>投稿</Text>
-            </>
-          )}
-        </PressableScale>
+        {/* 投稿ボタンは右上ではなく、キーボードのすぐ上（写真・絵文字の並び）に置く。
+            書き終えた指の近くにある方が押しやすい（2026-08-17 指摘） */}
+        <View style={styles.close} />
       </View>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -198,6 +191,21 @@ export default function NewPost() {
             </PressableScale>
             <View style={{ flex: 1 }} />
             <CountRing used={text.length} />
+            <PressableScale
+              onPress={submit}
+              activeScale={0.94}
+              disabled={!can || busy}
+              style={[styles.post, shadows.button, !can && styles.postOff]}
+            >
+              {busy ? (
+                <ActivityIndicator color={colors.white} size="small" />
+              ) : (
+                <>
+                  <Ionicons name="paper-plane" size={14} color={colors.white} />
+                  <Text style={styles.postText}>投稿</Text>
+                </>
+              )}
+            </PressableScale>
           </View>
         </View>
       </KeyboardAvoidingView>

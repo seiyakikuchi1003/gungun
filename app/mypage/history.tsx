@@ -26,7 +26,11 @@ export default function History() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const { width: winW } = useWindowDimensions();
-  const cardW = Math.floor((winW - 14 * 2 - 12) / 2);
+  // 2列に並べるためのカード幅。
+  // 外側の余白（14×2）に加えて、各セルの左右余白（6×2 が2枚ぶん）も引く。
+  // これを引き忘れていたため合計が画面幅を超え、2枚目が折り返して
+  // 1列に見えていた（2026-08-17 指摘）
+  const cardW = Math.floor((winW - 14 * 2 - 6 * 4) / 2);
 
   const load = useCallback(async () => {
     if (!isSupabaseEnabled || !me.live) { setLoading(false); return; }

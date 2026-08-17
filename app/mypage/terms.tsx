@@ -6,6 +6,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, spacing, fonts } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { useTree } from '@/store/tree';
+import { LegalDocument } from '@/components/feature/LegalDocument';
 
 /**
  * 利用規約。本文は app_settings.terms_of_service に格納する（差替え可能）。
@@ -24,11 +25,7 @@ export default function TermsScreen() {
         <Text style={styles.hTitle}>利用規約</Text>
         <View style={styles.hBtn} />
       </View>
-      <ScrollView
-        keyboardDismissMode="on-drag"
-        keyboardShouldPersistTaps="handled" contentContainerStyle={styles.body}>
-        <Text style={styles.text}>{body}</Text>
-      </ScrollView>
+      <LegalDocument title="利用規約" body={body} updated="2026年8月14日" />
     </View>
   );
 }

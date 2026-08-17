@@ -38,15 +38,13 @@ export default function MyPosts() {
 
   const load = useCallback(async () => {
     if (!isSupabaseEnabled || !me.live) { setLoading(false); return; }
-    try {
-      const [cs, ps] = await Promise.all([fetchMyComments(me.id), fetchMyPosts(me.id)]);
-      setComments(cs);
-      setMyPosts(ps.map(toUIPost));
-    } catch {
-      // 取れなくても投稿タブは見られる
-    } finally {
-      setLoading(false);
-    }
+    // 片方が失敗しても、もう片方は出す。
+    // 以前は Promise.all でまとめていたため、コメントの取得が落ちると
+    // 投稿タブまで空になっていた（2026-08-17 指摘）
+    const [cs, ps] = await Promise.allSettled([fetchMyComments(me.id), fetchMyPosts(me.id)]);
+    if (cs.status === 'fulfilled') setComments(cs.value);
+    if (ps.status === 'fulfilled') setMyPosts(ps.value.map(toUIPost));
+    setLoading(false);
   }, [me.id, me.live]);
 
   useEffect(() => { load(); }, [load]);

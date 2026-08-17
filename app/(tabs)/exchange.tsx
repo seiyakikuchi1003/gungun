@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
+import { SwipePages } from '@/components/ui/SwipePages';
 import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native';
-import { Gesture, GestureDetector, Directions } from 'react-native-gesture-handler';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -40,6 +40,9 @@ function actionHint(t: UITrade): string {
   return t.status === 'received' ? '取引完了' : t.status === 'shipped' ? '相手の受け取りを待っています' : '発送して報告しましょう';
 }
 
+/** 左右にはらって行き来する順番 */
+const TABS = ['receive', 'send'] as const;
+
 export default function ExchangeScreen() {
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<'receive' | 'send'>('receive');
@@ -68,12 +71,6 @@ export default function ExchangeScreen() {
   const needReceive = all.filter((t) => t.dir === 'receive' && t.status === 'shipped').length;
   const needSend = all.filter((t) => t.dir === 'send' && t.status === 'pending').length;
 
-  // 左にはらう＝次のタブ、右にはらう＝前のタブ。縦スクロールと競合しないよう Fling を使う
-  const swipe = Gesture.Race(
-    Gesture.Fling().direction(Directions.LEFT).onEnd(() => setTab('send')).runOnJS(true),
-    Gesture.Fling().direction(Directions.RIGHT).onEnd(() => setTab('receive')).runOnJS(true)
-  );
-
   return (
     <View style={styles.root}>
       <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
@@ -95,7 +92,7 @@ export default function ExchangeScreen() {
       />
 
       {/* 横にはらうとタブが切り替わる。指で行き来できた方が自然（2026-08-05 指摘） */}
-      <GestureDetector gesture={swipe}>
+      <SwipePages index={TABS.indexOf(tab)} count={TABS.length} onChange={(i) => setTab(TABS[i])}>
       <ScrollView
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.green]} tintColor={colors.green} />}
         keyboardDismissMode="on-drag"
@@ -152,7 +149,7 @@ export default function ExchangeScreen() {
         })}
         {list.length === 0 && <Text style={styles.empty}>進行中の取引はありません</Text>}
       </ScrollView>
-      </GestureDetector>
+      </SwipePages>
     </View>
   );
 }

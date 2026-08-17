@@ -72,6 +72,9 @@ export default function MyPage() {
         : `4.5（${currentUser.ratingCount}）`;
   const [sheet, setSheet] = useState<Action | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  // 退会は2段階（理由 → 最終確認）
+  const [withdrawStep, setWithdrawStep] = useState<1 | 2>(1);
+  const [withdrawReason, setWithdrawReason] = useState<string | null>(null);
 
   // 評価・肥料・プロフィールをまとめて取り直す。
   // 画面に戻ったとき／アプリを前面に戻したときにも呼ばれる（useAutoRefresh）
@@ -221,36 +224,111 @@ export default function MyPage() {
         </PressableScale>
       </BottomSheetModal>
 
-      {/* 退会 */}
-      <BottomSheetModal visible={sheet === 'withdraw'} onClose={() => setSheet(null)}>
-        <Text style={styles.sheetTitle}>本当に退会しますか？</Text>
-        <Text style={styles.sheetBody}>
-          退会すると、出品・水やり・肥料などのデータがすべて削除され、元に戻せません。
-        </Text>
-        <FormError message={deleteError} />
-        <PressableScale
-          onPress={async () => {
-            warning();
-            setSheet(null);
-            // 実DB接続時はアカウントごと削除（RPC）。モックではログアウトのみ。
-            const res = await deleteAccount();
-            if (res.error) { setDeleteError(res.error); return; }
-            router.replace('/(auth)/login');
-          }}
-          activeScale={0.97}
-          style={[styles.sheetDanger, shadows.button]}
-        >
-          <Text style={styles.sheetBtnText}>退会する</Text>
-        </PressableScale>
-        <PressableScale onPress={() => setSheet(null)} activeScale={0.98} style={styles.sheetCancel}>
-          <Text style={styles.sheetCancelText}>キャンセル</Text>
-        </PressableScale>
+      {/* 退会。ボタン1回で消えてしまうと誤操作が怖いので、
+          「理由を選ぶ」→「もう一度確かめる」の2段階にする（2026-08-17 指摘） */}
+      <BottomSheetModal
+        visible={sheet === 'withdraw'}
+        onClose={() => { setSheet(null); setWithdrawStep(1); setWithdrawReason(null); }}
+      >
+        {withdrawStep === 1 ? (
+          <>
+            <Text style={styles.sheetTitle}>退会の前に教えてください</Text>
+            <Text style={styles.sheetBody}>
+              今後の改善に使わせていただきます。選ばずに進むこともできます。
+            </Text>
+            <View style={{ gap: spacing.sm, marginTop: spacing.md }}>
+              {WITHDRAW_REASONS.map((r) => (
+                <PressableScale
+                  key={r}
+                  activeScale={0.98}
+                  onPress={() => setWithdrawReason(r)}
+                  style={[styles.reasonRow, withdrawReason === r && styles.reasonRowOn]}
+                >
+                  <View style={[styles.reasonDot, withdrawReason === r && styles.reasonDotOn]}>
+                    {withdrawReason === r && <Ionicons name="checkmark" size={12} color={colors.white} />}
+                  </View>
+                  <Text style={[styles.reasonText, withdrawReason === r && styles.reasonTextOn]}>{r}</Text>
+                </PressableScale>
+              ))}
+            </View>
+            <PressableScale
+              onPress={() => setWithdrawStep(2)}
+              activeScale={0.97}
+              style={[styles.sheetBtn, shadows.button, { marginTop: spacing.lg }]}
+            >
+              <Text style={styles.sheetBtnText}>次へ</Text>
+            </PressableScale>
+            <PressableScale onPress={() => setSheet(null)} activeScale={0.98} style={styles.sheetCancel}>
+              <Text style={styles.sheetCancelText}>やめる</Text>
+            </PressableScale>
+          </>
+        ) : (
+          <>
+            <Text style={styles.sheetTitle}>本当に退会しますか？</Text>
+            <Text style={styles.sheetBody}>
+              退会すると、出品・水やり・肥料・取引の記録がすべて削除され、元に戻せません。{'\n'}
+              同じメールアドレスで登録し直しても、以前のデータは戻りません。
+            </Text>
+            <View style={styles.warnBox}>
+              <Ionicons name="alert-circle" size={18} color={colors.orangeDeep} />
+              <Text style={styles.warnText}>
+                進行中の取引がある場合は、相手のためにも完了してから退会してください。
+              </Text>
+            </View>
+            <FormError message={deleteError} />
+            <PressableScale
+              onPress={async () => {
+                warning();
+                setSheet(null);
+                setWithdrawStep(1);
+                const res = await deleteAccount();
+                if (res.error) { setDeleteError(res.error); return; }
+                router.replace('/(auth)/login');
+              }}
+              activeScale={0.97}
+              style={[styles.sheetDanger, shadows.button, { marginTop: spacing.md }]}
+            >
+              <Text style={styles.sheetBtnText}>退会する</Text>
+            </PressableScale>
+            <PressableScale onPress={() => setWithdrawStep(1)} activeScale={0.98} style={styles.sheetCancel}>
+              <Text style={styles.sheetCancelText}>戻る</Text>
+            </PressableScale>
+          </>
+        )}
       </BottomSheetModal>
     </View>
   );
 }
 
+const WITHDRAW_REASONS = [
+  '欲しいものが見つからなかった',
+  '交換が成立しなかった',
+  '使い方が分かりにくかった',
+  'トラブルがあった',
+  'その他・理由は言わない',
+];
+
 const styles = StyleSheet.create({
+  reasonRow: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.md,
+    backgroundColor: colors.cardMuted, borderRadius: radius.md,
+    paddingHorizontal: spacing.lg, paddingVertical: spacing.md,
+    borderWidth: 1, borderColor: 'transparent',
+  },
+  reasonRowOn: { backgroundColor: colors.greenSoft, borderColor: colors.green },
+  reasonDot: {
+    width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: colors.border,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  reasonDotOn: { backgroundColor: colors.green, borderColor: colors.green },
+  reasonText: { flex: 1, fontFamily: fonts.medium, fontSize: 14, color: colors.textPrimary },
+  reasonTextOn: { fontFamily: fonts.bold, color: colors.greenDeep },
+  warnBox: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm,
+    backgroundColor: colors.orangeSoft, borderRadius: radius.md, padding: spacing.md,
+    marginTop: spacing.md,
+  },
+  warnText: { flex: 1, fontFamily: fonts.medium, fontSize: 12.5, lineHeight: 19, color: colors.orangeDeep },
   root: { flex: 1, backgroundColor: colors.bg },
   sheetTitle: { fontFamily: fonts.bold, fontSize: 17, color: colors.textPrimary, textAlign: 'center' },
   sheetBody: { fontFamily: fonts.medium, fontSize: 13, lineHeight: 21, color: colors.textSecondary, textAlign: 'center', marginTop: 8, marginBottom: spacing.lg },

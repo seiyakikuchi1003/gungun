@@ -195,7 +195,10 @@ export type MyComment = {
 export async function fetchMyComments(userId: string, limit = 100): Promise<MyComment[]> {
   const { data, error } = await requireSupabase()
     .from('board_comments')
-    .select('id, post_id, body, created_at, board_posts(body, profiles(nickname))')
+    // profiles への経路が board_posts_user_id_fkey と board_likes 経由の2通りあり、
+    // どちらか決められず PostgREST が 300（PGRST201）を返していた。
+    // 投稿者をたどりたいので、外部キーを名指しする（2026-08-17 指摘）
+    .select('id, post_id, body, created_at, board_posts(body, profiles!board_posts_user_id_fkey(nickname))')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(limit);

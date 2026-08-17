@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { SwipePages } from '@/components/ui/SwipePages';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl, useWindowDimensions, TextInput } from 'react-native';
-import { Gesture, GestureDetector, Directions } from 'react-native-gesture-handler';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -23,6 +23,9 @@ import type { MockItem } from '@/data/mock';
  * 押したいいねをあとから見返せる導線が無かったため追加。
  * 商品と掲示板の投稿でタブを分ける（押した順＝新しい順）。
  */
+/** 左右にはらって行き来する順番 */
+const TABS = ['items', 'posts'] as const;
+
 export default function Likes() {
   const insets = useSafeAreaInsets();
   const me = useMe();
@@ -31,18 +34,17 @@ export default function Likes() {
   const [q, setQ] = useState('');
 
   // 一覧の絞り込み（2026-08-12 指摘）
-  // 横にはらってタブを切り替える（2026-08-12 指摘）
-  const swipe = Gesture.Race(
-    Gesture.Fling().direction(Directions.LEFT).onEnd(() => setTab('posts')).runOnJS(true),
-    Gesture.Fling().direction(Directions.RIGHT).onEnd(() => setTab('items')).runOnJS(true)
-  );
   const [items, setItems] = useState<MockItem[]>([]);
   const [posts, setPosts] = useState<BoardPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   // ItemCard は幅を受け取る作りなので、画面幅から2列ぶんを計算して渡す
   const { width: winW } = useWindowDimensions();
-  const cardW = Math.floor((winW - 14 * 2 - 12) / 2);
+  // 2列に並べるためのカード幅。
+  // 外側の余白（14×2）に加えて、各セルの左右余白（6×2 が2枚ぶん）も引く。
+  // これを引き忘れていたため合計が画面幅を超え、2枚目が折り返して
+  // 1列に見えていた（2026-08-17 指摘）
+  const cardW = Math.floor((winW - 14 * 2 - 6 * 4) / 2);
 
   const load = useCallback(async () => {
     if (!isSupabaseEnabled || !me.live) { setLoading(false); return; }
@@ -106,7 +108,7 @@ export default function Likes() {
       {loading ? (
         <View style={styles.center}><ActivityIndicator color={colors.green} /></View>
       ) : (
-        <GestureDetector gesture={swipe}>
+        <SwipePages index={Math.max(0, TABS.indexOf(tab as (typeof TABS)[number]))} count={TABS.length} onChange={(i) => setTab(TABS[i])}>
         <ScrollView
           keyboardDismissMode="on-drag"
           keyboardShouldPersistTaps="handled"
@@ -140,7 +142,7 @@ export default function Likes() {
             />
           )}
         </ScrollView>
-        </GestureDetector>
+        </SwipePages>
       )}
     </View>
   );
