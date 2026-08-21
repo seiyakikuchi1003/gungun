@@ -1,16 +1,25 @@
 import React, { useState } from 'react';
+import { errorMessage } from '@/lib/errorMessage';
 import { View, Text, StyleSheet, TextInput } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { success } from '@/lib/haptics';
+import { FormError } from '@/components/ui/FormError';
+import { useMe } from '@/store/me';
+import { isSupabaseEnabled } from '@/lib/supabase';
+import { submitReport, type ReportTarget } from '@/lib/api/social';
+import { KeyboardDoneBar, KEYBOARD_DONE_ID } from '@/components/ui/KeyboardDoneBar';
 
 type Props = {
   visible: boolean;
   onClose: () => void;
   /** 何を通報するか（見出しに使う） */
   targetLabel?: string;
+  /** 通報先。実DB接続時はこれが揃っていれば reports に保存する */
+  targetType?: ReportTarget;
+  targetId?: string;
 };
 
 const REASONS = [
@@ -24,12 +33,15 @@ const REASONS = [
 /**
  * 通報シート（商品・投稿で共通）。
  * 理由を選び「その他」なら自由記述、送信すると受付完了を表示する。
- * ネイティブ化時は Supabase `reports` テーブルへ INSERT する。
+ * 実DB接続時は `reports` テーブルに保存し、管理画面の「通報」に出る。
  */
-export function ReportSheet({ visible, onClose, targetLabel = 'この内容' }: Props) {
+export function ReportSheet({ visible, onClose, targetLabel = 'この内容', targetType, targetId }: Props) {
+  const me = useMe();
   const [reason, setReason] = useState<string | null>(null);
   const [detail, setDetail] = useState('');
   const [done, setDone] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const close = () => {
     onClose();
@@ -37,8 +49,23 @@ export function ReportSheet({ visible, onClose, targetLabel = 'この内容' }: 
     setTimeout(() => { setReason(null); setDetail(''); setDone(false); }, 250);
   };
 
-  const submit = () => {
-    if (!reason) return;
+  const submit = async () => {
+    if (!reason || busy) return;
+    // 理由＋自由記述をまとめて1つの文にする（DB の reason は1カラム）
+    const body = reason === 'その他' && detail.trim() ? `その他: ${detail.trim()}` : reason;
+
+    if (isSupabaseEnabled && me.live && targetType && targetId) {
+      setError(null);
+      setBusy(true);
+      try {
+        await submitReport(me.id, targetType, targetId, body);
+      } catch (e) {
+        setBusy(false);
+        setError(errorMessage(e, '送信できませんでした'));
+        return;
+      }
+      setBusy(false);
+    }
     success();
     setDone(true);
   };
@@ -47,10 +74,10 @@ export function ReportSheet({ visible, onClose, targetLabel = 'この内容' }: 
     <BottomSheetModal visible={visible} onClose={close}>
       {done ? (
         <View style={styles.doneWrap}>
-          <View style={styles.doneIcon}>
+          <View style={[styles.doneIcon, { alignSelf: 'center' }]}>
             <Ionicons name="checkmark" size={30} color={colors.white} />
           </View>
-          <Text style={styles.doneTitle}>通報を受け付けました</Text>
+          <Text style={[styles.doneTitle, { textAlign: 'center' }]}>通報を受け付けました</Text>
           <Text style={styles.doneNote}>
             ご報告ありがとうございます。運営が内容を確認します。
           </Text>
@@ -87,19 +114,22 @@ export function ReportSheet({ visible, onClose, targetLabel = 'この内容' }: 
               placeholder="内容を入力してください"
               placeholderTextColor={colors.textPlaceholder}
               multiline
+              inputAccessoryViewID={KEYBOARD_DONE_ID}
               style={[styles.input, { outlineStyle: 'none' } as object]}
             />
           )}
+          {error ? <FormError message={error} /> : null}
           <PressableScale
             onPress={submit}
-            disabled={!reason}
+            disabled={!reason || busy}
             activeScale={0.97}
             style={[styles.submit, shadows.button, !reason && styles.submitOff]}
           >
-            <Text style={styles.submitText}>通報する</Text>
+            <Text style={styles.submitText}>{busy ? '送信中…' : '通報する'}</Text>
           </PressableScale>
         </>
       )}
+      <KeyboardDoneBar />
     </BottomSheetModal>
   );
 }
@@ -118,7 +148,9 @@ const styles = StyleSheet.create({
   submit: { height: 54, borderRadius: radius.pill, backgroundColor: colors.orangeDeep, justifyContent: 'center', alignItems: 'center', marginTop: spacing.lg },
   submitOff: { backgroundColor: colors.textPlaceholder, opacity: 0.6 },
   submitText: { fontFamily: fonts.bold, fontSize: 16, color: colors.white },
-  doneWrap: { alignItems: 'center', paddingVertical: spacing.md },
+  // alignItems:'center' だと中のボタンが内容幅まで縮んでしまうので、
+  // テキストだけ中央寄せにしてボタンは stretch のままにする（stretch が既定）
+  doneWrap: { paddingVertical: spacing.md },
   doneIcon: { width: 60, height: 60, borderRadius: 30, backgroundColor: colors.green, justifyContent: 'center', alignItems: 'center', marginBottom: spacing.md },
   doneTitle: { fontFamily: fonts.bold, fontSize: 17, color: colors.textPrimary },
   doneNote: { fontFamily: fonts.medium, fontSize: 13, lineHeight: 20, color: colors.textSecondary, textAlign: 'center', marginTop: 6, marginBottom: spacing.lg },

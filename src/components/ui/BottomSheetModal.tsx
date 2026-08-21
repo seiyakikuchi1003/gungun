@@ -7,14 +7,27 @@ import { colors, radius, spacing, shadows } from '@/theme';
 type Props = {
   visible: boolean;
   onClose: () => void;
+  /**
+   * モーダルが実際に閉じ切ったあとに呼ばれる（iOS）。
+   * カメラや写真ライブラリは「モーダルが残っている間は開けない」ため、
+   * 閉じてから起動したい処理をここで実行する。
+   */
+  onDismissed?: () => void;
   children: React.ReactNode;
 };
 
 /** 下から出る白い角丸モーダル（背景は薄暗く）。 */
-export function BottomSheetModal({ visible, onClose, children }: Props) {
+export function BottomSheetModal({ visible, onClose, onDismissed, children }: Props) {
   const insets = useSafeAreaInsets();
   return (
-    <Modal visible={visible} transparent animationType="none" onRequestClose={onClose} statusBarTranslucent>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="none"
+      onRequestClose={onClose}
+      onDismiss={onDismissed}
+      statusBarTranslucent
+    >
       <View style={styles.root}>
         <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(200)} style={StyleSheet.absoluteFill}>
           <Pressable style={styles.backdrop} onPress={onClose} />
@@ -36,6 +49,9 @@ const styles = StyleSheet.create({
   root: { flex: 1, justifyContent: 'flex-end' },
   backdrop: { flex: 1, backgroundColor: colors.overlay },
   sheet: {
+    // 中身が多いと画面の上へ伸びきってしまい、上部が切れて押せなくなる。
+    // 画面の高さを超えないよう頭打ちにする（2026-08-21 指摘）
+    maxHeight: '92%',
     backgroundColor: colors.card,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,

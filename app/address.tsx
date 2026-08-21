@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { errorMessage } from '@/lib/errorMessage';
 import { View, Text, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -8,10 +9,85 @@ import { PressableScale } from '@/components/ui/PressableScale';
 import { TextField } from '@/components/ui/TextField';
 import { Button } from '@/components/ui/Button';
 import { NoticeBox } from '@/components/ui/NoticeBox';
+import { FormError } from '@/components/ui/FormError';
+import { useMe } from '@/store/me';
+import { isSupabaseEnabled } from '@/lib/supabase';
+import { fetchAddress, saveAddress } from '@/lib/api/profile';
 
 export default function Address() {
   const insets = useSafeAreaInsets();
+  const me = useMe();
   const [f, setF] = useState({ last: '', first: '', phone: '', postal: '', pref: '', city: '', street: '', building: '' });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // 既に登録済みなら読み込んで初期表示にする
+  useEffect(() => {
+    if (!isSupabaseEnabled || !me.live) return;
+    let alive = true;
+    fetchAddress(me.id)
+      .then((a) => {
+        if (!alive || !a) return;
+        setF({
+          last: a.lastName, first: a.firstName, phone: a.phone, postal: a.postalCode,
+          pref: a.prefecture, city: a.city, street: a.street, building: a.building,
+        });
+        // 読み込んだ値でいきなり上書きしないよう、この郵便番号は引き済みにする
+        setLookedUp(a.postalCode.replace(/[^0-9]/g, ''));
+      })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [me.live, me.id]);
+
+  // 郵便番号を7桁入れたら、都道府県・市区町村を自動で埋める。
+  // 引けなかったときは黙って何もしない（手入力を邪魔しない）。
+  //
+  // ★ 以前は「空のときだけ入れる」形にしていたため、
+  //   すでに住所が入っている人が郵便番号を直しても古い住所のままだった
+  //   （2026-08-21 指摘）。引けたら上書きする。
+  //   ただし読み込み直後に上書きしないよう、最初の値は済み扱いにしておく。
+  const [lookedUp, setLookedUp] = useState('');
+  useEffect(() => {
+    const zip = f.postal.replace(/[^0-9]/g, '');
+    if (zip.length !== 7 || zip === lookedUp) return;
+    setLookedUp(zip);
+    let alive = true;
+    (async () => {
+      try {
+        const res = await fetch(`https://zipcloud.ibsnet.co.jp/api/search?zipcode=${zip}`);
+        const j = await res.json();
+        const r = j?.results?.[0];
+        if (!alive || !r) return;
+        setF((prev) => ({
+          ...prev,
+          pref: r.address1,
+          // 市区町村と町名までを埋める。番地から先は手入力
+          city: `${r.address2}${r.address3}`,
+        }));
+      } catch {
+        // 通信できなくても手入力で進められるので何も出さない
+      }
+    })();
+    return () => { alive = false; };
+  }, [f.postal, lookedUp]);
+
+  const submit = async () => {
+    if (busy) return;
+    if (!isSupabaseEnabled || !me.live) { router.back(); return; }
+    setError(null);
+    setBusy(true);
+    try {
+      await saveAddress(me.id, {
+        lastName: f.last, firstName: f.first, phone: f.phone, postalCode: f.postal,
+        prefecture: f.pref, city: f.city, street: f.street, building: f.building,
+      });
+      router.back();
+    } catch (e) {
+      setError(errorMessage(e, '保存できませんでした'));
+    } finally {
+      setBusy(false);
+    }
+  };
   const set = (k: keyof typeof f) => (v: string) => setF((s) => ({ ...s, [k]: v }));
   const ok = f.last && f.first && f.phone && f.postal && f.pref && f.city && f.street;
 
@@ -26,7 +102,10 @@ export default function Address() {
       </View>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
+        <ScrollView
+        keyboardDismissMode="on-drag"
+        automaticallyAdjustKeyboardInsets
+        keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
           <NoticeBox text="初めての出品前に、発送のためのお届け先が必要です" />
           <View style={styles.form}>
             <View style={styles.rowFields}>
@@ -44,7 +123,8 @@ export default function Address() {
       </KeyboardAvoidingView>
 
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
-        <Button title="保存する" disabled={!ok} onPress={() => router.back()} />
+        {error ? <View style={{ marginBottom: 10 }}><FormError message={error} /></View> : null}
+        <Button title="保存する" disabled={!ok} loading={busy} onPress={submit} />
       </View>
     </View>
   );

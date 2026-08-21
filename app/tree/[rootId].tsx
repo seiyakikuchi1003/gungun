@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, useWindowDimensions, Share, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, useWindowDimensions } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -9,57 +9,59 @@ import { PressableScale } from '@/components/ui/PressableScale';
 import { Thumb } from '@/components/ui/Thumb';
 import { Avatar } from '@/components/ui/Avatar';
 import { Badge } from '@/components/ui/Badge';
-import { StarRating } from '@/components/ui/StarRating';
+import { RatingSummary } from '@/components/ui/RatingSummary';
 import { Sprout } from '@/components/art/Sprout';
 import { TreeCanvas } from '@/components/feature/TreeCanvas';
 import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
-import { getUser, currentUser, treeGrowth } from '@/data/mock';
+/*
+ * 共有ボタンは外した（2026-08-14 指摘）。
+ * 文面しか渡せず、受け取った人が商品や木にたどり着けないため。
+ * App Store 公開後にアプリのURLが決まったら、リンク付きで戻す。
+ */
+import { Toast } from '@/components/ui/Toast';
 import { useTree } from '@/store/tree';
+import { useMe } from '@/store/me';
+import { useUsers } from '@/store/users';
 
 export default function TreeScreen() {
+  const users = useUsers();
+  const me = useMe();
   const { rootId, new: newId } = useLocalSearchParams<{ rootId: string; new?: string }>();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const { getItem, childrenOf, treeItems, canWater } = useTree();
   const [showAll, setShowAll] = useState(true);
   const [pickWater, setPickWater] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  // 統計を押したときに開く一覧（2026-08-13 項目9）
+  const [detail, setDetail] = useState<'all' | 'direct' | 'people' | null>(null);
 
-  const root = getItem(rootId ?? '');
+  // 通知からは「水やりされた子商品」のIDで来ることがある。
+  // そのまま根として扱うと、自分のタネの木なのに他人の木に見えて
+  // 「この木に水やりする」が出てしまっていた（2026-08-21 指摘）。
+  // 渡されたIDから本当の根までたどり直す。
+  const entered = getItem(rootId ?? '');
+  const root = entered ? (getItem(entered.rootId) ?? entered) : null;
   if (!root) return <View style={styles.root} />;
 
-  const owner = getUser(root.ownerId);
-  const mine = root.ownerId === currentUser.id;
+  const owner = users.user(root.ownerId);
+  const mine = root.ownerId === me.id;
   const rootChildren = childrenOf(root.id);
-  const all = treeItems(root.id).sort((a, b) => a.depth - b.depth);
-  const waterings = all.length - 1;
+  // 木のノード全部（root＋子孫）。順序は付けない（ツリー表示側で親子順に並べる）
+  const all = treeItems(root.id);
+  // 木が読めていないときに 0 - 1 = -1 と出ていた（2026-08-13 修正）
+  const waterings = Math.max(0, all.length - 1);
   const branches = rootChildren.length;
-  const harvestable = mine && waterings > 0 ? 1 : 0;
+  const canHarvest = mine && waterings > 0 && root.status === 'growing';
+  // 段（深さ）は見せない方針（2026-08-12 指摘）。代わりに「何人が関わったか」を出す
+  const joiners = new Set(all.map((i) => i.ownerId)).size;
   const justWatered = !!newId;
   const cardW = width - 40;
-  // 成長段階（木に属する総数で決まる）と、次の段階までの進捗
-  const growth = treeGrowth(all.length);
-  const progress = growth.next ? Math.min((all.length - growth.min) / (growth.next - growth.min), 1) : 1;
-
-  // ツリーをシェア（OSの共有シート。Webは navigator.share → クリップボードの順にフォールバック）
-  const shareTree = async () => {
-    const message = `「${root.name}」の木に${waterings}件の水やりが集まっています！ #ぐんぐん`;
-    try {
-      if (Platform.OS === 'web') {
-        const nav = globalThis.navigator as Navigator | undefined;
-        if (nav?.share) await nav.share({ text: message });
-        else await nav?.clipboard?.writeText(message);
-      } else {
-        await Share.share({ message });
-      }
-    } catch {
-      // ユーザーがキャンセルした場合など。何もしない
-    }
-  };
 
   return (
     <View style={styles.root}>
       <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
-        <PressableScale onPress={() => (justWatered ? router.replace('/(tabs)') : router.back())} activeScale={0.9} style={styles.hBtn}>
+        <PressableScale onPress={() => (justWatered ? router.dismissTo('/(tabs)') : router.back())} activeScale={0.9} style={styles.hBtn}>
           <Ionicons name={justWatered ? 'close' : 'chevron-back'} size={26} color={colors.textPrimary} />
         </PressableScale>
         <Text style={styles.hTitle}>木の様子（マイツリー）</Text>
@@ -68,7 +70,9 @@ export default function TreeScreen() {
         </PressableScale>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
+      <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
         {/* 完了バナー */}
         {justWatered && (
           <Animated.View entering={FadeInDown.duration(400)} style={styles.doneBanner}>
@@ -92,14 +96,13 @@ export default function TreeScreen() {
             <View style={styles.rootMeta}>
               <Avatar uri={owner.avatar} name={owner.nickname} size={18} />
               <Text style={styles.rootOwner}>{owner.nickname}さん</Text>
-              <StarRating value={4.5} size={12} gap={1} />
-              <Text style={styles.rootSub}>(12)</Text>
+              <RatingSummary avg={owner.ratingAvg ?? null} count={owner.ratingCount} size={12} gap={1} />
             </View>
-            <Text style={styles.rootSub}>水やり数：{root.waterCount}</Text>
+            <Text style={styles.rootSub}>この種への直接の水やり：{branches}件</Text>
           </View>
         </View>
 
-        {/* 木のイラスト（成長段階で見た目が変わる） */}
+        {/* 木のイラスト */}
         <View style={[styles.canvasCard, shadows.card]}>
           <TreeCanvas
             width={cardW - 4}
@@ -111,52 +114,56 @@ export default function TreeScreen() {
           />
         </View>
 
-        {/* 成長メーター */}
-        <View style={[styles.growthCard, shadows.soft]}>
-          <View style={styles.growthHead}>
-            <Text style={styles.growthLabel}>{growth.emoji} {growth.label}</Text>
-            {growth.next ? (
-              <Text style={styles.growthNext}>次の成長まであと {growth.next - all.length}</Text>
-            ) : (
-              <Text style={styles.growthMax}>MAX まで育ちました！</Text>
-            )}
-          </View>
-          <View style={styles.growthTrack}>
-            <View style={[styles.growthFill, { width: `${Math.round(progress * 100)}%` }]} />
-          </View>
-          <Text style={styles.growthHint}>商品がぶら下がるほど、木はぐんぐん育ちます</Text>
-        </View>
-
-        {/* 統計 */}
+        {/* 統計。3つとも違うことを指すように言い分ける（同じ数字を別名で出さない）。
+            数だけ出しても中身が分からないので、押すと一覧が開く（2026-08-13 項目9） */}
         <View style={styles.statRow}>
-          <Stat num={waterings} label="水やり数" />
+          <Stat num={waterings} label="集まった商品" onPress={() => setDetail('all')} />
           <View style={styles.statDivider} />
-          <Stat num={branches} label="枝分かれ" />
+          <Stat num={branches} label="直接の水やり" onPress={() => setDetail('direct')} />
           <View style={styles.statDivider} />
-          <Stat num={harvestable} label="収穫できる" accent />
+          <Stat num={joiners} label="関わった人" accent onPress={() => setDetail('people')} />
         </View>
 
         {/* アクション */}
         {justWatered ? (
+          /* 1つの木につき1人1回まで。水やり直後に「もっと水やりする」を出すと
+             必ず断られるボタンになるので出さない（2026-08-13 項目2） */
           <View style={{ gap: spacing.md, marginTop: spacing.xl }}>
-            <PressableScale onPress={() => setPickWater(true)} activeScale={0.97} style={[styles.waterBtn, shadows.button]}>
-              <Ionicons name="water" size={18} color={colors.white} />
-              <Text style={styles.shareText}>この木にもっと水やりする</Text>
-            </PressableScale>
-            <PressableScale onPress={() => router.replace('/(tabs)')} activeScale={0.97} style={styles.ghostBtn}>
+            <View style={styles.mineNote}>
+              <Ionicons name="checkmark-circle" size={16} color={colors.green} />
+              <Text style={styles.mineNoteText}>
+                水やりが完了しました。1つの木につき水やりは1人1回までです。
+              </Text>
+            </View>
+            <PressableScale onPress={() => router.dismissTo('/(tabs)')} activeScale={0.97} style={styles.ghostBtn}>
               <Text style={styles.ghostText}>ホームに戻る</Text>
             </PressableScale>
           </View>
         ) : (
           <View style={{ gap: spacing.md, marginTop: spacing.xl }}>
-            <PressableScale onPress={() => setPickWater(true)} activeScale={0.97} style={[styles.waterBtn, shadows.button]}>
-              <Ionicons name="water" size={18} color={colors.white} />
-              <Text style={styles.shareText}>この木に水やりする</Text>
-            </PressableScale>
-            <PressableScale onPress={shareTree} activeScale={0.97} style={styles.ghostBtn}>
-              <Ionicons name="share-social" size={16} color={colors.textSecondary} />
-              <Text style={styles.ghostText}>あなたのツリーをシェア</Text>
-            </PressableScale>
+            {/* 自分の種に水やりが集まっていれば、ここから収穫へ進める */}
+            {canHarvest && (
+              <PressableScale onPress={() => router.push(`/harvest/${root.id}`)} activeScale={0.97} style={[styles.harvestBtn, shadows.button]}>
+                <Ionicons name="sparkles" size={18} color={colors.white} />
+                <Text style={styles.shareText}>収穫する（{waterings}件から選ぶ）</Text>
+              </PressableScale>
+            )}
+            {/* 自分のタネの木には水やりできない（1つの木につき1人1回まで）。
+                押せてしまうと必ず断られるので、そもそも出さない（2026-08-12 指摘） */}
+            {!mine && (
+              <PressableScale onPress={() => setPickWater(true)} activeScale={0.97} style={[styles.waterBtn, shadows.button]}>
+                <Ionicons name="water" size={18} color={colors.white} />
+                <Text style={styles.shareText}>この木に水やりする</Text>
+              </PressableScale>
+            )}
+            {mine && !canHarvest && (
+              <View style={styles.mineNote}>
+                <Ionicons name="information-circle" size={16} color={colors.textSecondary} />
+                <Text style={styles.mineNoteText}>
+                  あなたのタネの木です。誰かが水やりすると、ここから収穫できます。
+                </Text>
+              </View>
+            )}
           </View>
         )}
 
@@ -168,49 +175,81 @@ export default function TreeScreen() {
         </PressableScale>
 
         {showAll && (
-          <Animated.View entering={FadeIn.duration(250)} style={{ gap: spacing.sm }}>
-            {all.map((it) => {
-              const u = getUser(it.ownerId);
-              const parent = it.parentId ? getItem(it.parentId) : null;
-              const isNew = it.id === newId;
-              const indent = Math.min(it.depth, 3) * 18;
-              return (
-                <View key={it.id} style={{ marginLeft: indent }}>
-                  {it.depth > 0 && (
-                    <Text style={styles.chainHint} numberOfLines={1}>
-                      ↳ {parent ? `${parent.name}に水やり` : '水やり'}
-                    </Text>
-                  )}
-                  <PressableScale activeScale={0.98} onPress={() => router.push(`/item/${it.id}`)} style={[styles.allRow, shadows.soft, isNew && styles.allRowNew]}>
-                    {it.depth > 0 && <View style={styles.branchMark} />}
-                    <Thumb source={it.local} uri={it.image} style={styles.allThumb} radius={10} markSize={18} />
-                    <View style={{ flex: 1 }}>
-                      <View style={styles.allTop}>
-                        <Text style={styles.allName} numberOfLines={1}>{it.name}</Text>
-                        {isNew && <View style={styles.newTag}><Text style={styles.newTagText}>NEW</Text></View>}
-                      </View>
-                      <View style={styles.allMeta}>
-                        <Avatar uri={u.avatar} name={u.nickname} size={15} />
-                        <Text style={styles.allOwner}>{u.nickname}さん</Text>
-                        <Text style={styles.allSub}>水やり{it.waterCount}</Text>
-                      </View>
-                    </View>
-                    <Badge label={it.depth === 0 ? '元の種' : `${it.depth}段目`} tone={it.depth === 0 ? 'green' : 'orange'} />
-                  </PressableScale>
-                </View>
-              );
-            })}
+          <Animated.View entering={FadeIn.duration(250)} style={{ gap: spacing.xs }}>
+            <WaterGrid
+              items={all.filter((i) => i.id !== root.id)}
+              highlightId={newId ?? null}
+              onOpen={(it) => router.push(`/item/${it.id}`)}
+            />
           </Animated.View>
         )}
       </ScrollView>
+
+      {/* 統計の中身。数だけでは何が集まったのか分からないため（2026-08-13 項目9） */}
+      <BottomSheetModal visible={detail !== null} onClose={() => setDetail(null)}>
+        <Text style={styles.pickTitle}>
+          {detail === 'all' ? '集まった商品' : detail === 'direct' ? '直接の水やり' : '関わった人'}
+        </Text>
+        <ScrollView style={{ maxHeight: 380, marginTop: spacing.md }} showsVerticalScrollIndicator={false}>
+          {detail === 'people' ? (
+            [...new Set(all.map((i) => i.ownerId))].map((uid) => {
+              const u = users.user(uid);
+              const count = all.filter((i) => i.ownerId === uid).length;
+              return (
+                <PressableScale
+                  key={uid}
+                  activeScale={0.98}
+                  onPress={() => { setDetail(null); router.push(`/user/${uid}`); }}
+                  style={styles.sheetRow}
+                >
+                  <Avatar uri={u.avatar} name={u.nickname} size={38} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.sheetName} numberOfLines={1}>{u.nickname}さん</Text>
+                    <Text style={styles.sheetSub}>この木に{count}件</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+                </PressableScale>
+              );
+            })
+          ) : (
+            (detail === 'direct' ? rootChildren : all.filter((i) => i.id !== root.id)).map((it) => {
+              const u = users.user(it.ownerId);
+              return (
+                <PressableScale
+                  key={it.id}
+                  activeScale={0.98}
+                  onPress={() => { setDetail(null); router.push(`/item/${it.id}`); }}
+                  style={styles.sheetRow}
+                >
+                  <Thumb source={it.local} uri={it.image} style={styles.sheetThumb} radius={10} markSize={16} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.sheetName} numberOfLines={1}>{it.name}</Text>
+                    <Text style={styles.sheetSub}>{u.nickname}さん・水やり{it.waterCount}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+                </PressableScale>
+              );
+            })
+          )}
+          {((detail === 'direct' && rootChildren.length === 0) ||
+            (detail === 'all' && all.length <= 1)) && (
+            <Text style={styles.gridEmpty}>まだ水やりされていません。</Text>
+          )}
+        </ScrollView>
+        <PressableScale onPress={() => setDetail(null)} style={styles.sheetClose}>
+          <Text style={styles.ghostText}>閉じる</Text>
+        </PressableScale>
+      </BottomSheetModal>
 
       {/* 水やり対象（親）を選ぶ */}
       <BottomSheetModal visible={pickWater} onClose={() => setPickWater(false)}>
         <Text style={styles.pickTitle}>水やりする商品を選ぶ</Text>
         <Text style={styles.pickSub}>成長中の商品に水やり＝あなたの商品を子として出品します</Text>
-        <ScrollView style={{ maxHeight: 380 }} showsVerticalScrollIndicator={false}>
+        <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" style={{ maxHeight: 380 }} showsVerticalScrollIndicator={false}>
           {all.filter((i) => i.status === 'growing').map((it) => {
-            const u = getUser(it.ownerId);
+            const u = users.user(it.ownerId);
             const gate = canWater(it.id);
             return (
               <PressableScale
@@ -238,20 +277,73 @@ export default function TreeScreen() {
           })}
         </ScrollView>
       </BottomSheetModal>
+      <Toast message={toast} onHide={() => setToast(null)} />
     </View>
   );
 }
 
-function Stat({ num, label, accent }: { num: number; label: string; accent?: boolean }) {
+function Stat({ num, label, accent, onPress }: { num: number; label: string; accent?: boolean; onPress?: () => void }) {
   return (
-    <View style={styles.stat}>
+    <PressableScale activeScale={onPress ? 0.94 : 1} onPress={onPress} disabled={!onPress} style={styles.stat}>
       <Text style={[styles.statNum, accent && { color: colors.orange }]}>{num}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
+      <View style={styles.statLabelRow}>
+        <Text style={styles.statLabel}>{label}</Text>
+        {onPress && <Ionicons name="chevron-forward" size={11} color={colors.textSecondary} />}
+      </View>
+    </PressableScale>
+  );
+}
+
+/**
+ * 水やりの一覧（2026-08-12 指摘で作り直し）。
+ *
+ * もとは分岐を段でインデントして描いていたが、
+ * 「何段目」はユーザーにとって意味のない情報だった（連鎖は無限に伸びる）。
+ * 大事なのは「この木にどんな物が集まっているか」なので、
+ * 段をやめて画像のタイルで並べるだけにした。描画も軽い。
+ */
+function WaterGrid({ items, highlightId, onOpen }: {
+  items: import('@/data/mock').MockItem[];
+  highlightId: string | null;
+  onOpen: (it: import('@/data/mock').MockItem) => void;
+}) {
+  const users = useUsers();
+  if (!items.length) {
+    return <Text style={styles.gridEmpty}>まだ水やりされていません。最初の1つになりませんか？</Text>;
+  }
+  return (
+    <View style={styles.grid}>
+      {items.map((item) => {
+        const owner = users.user(item.ownerId);
+        return (
+          <PressableScale
+            key={item.id}
+            activeScale={0.96}
+            onPress={() => onOpen(item)}
+            style={[styles.gridCell, item.id === highlightId && styles.gridCellNew]}
+          >
+            <Thumb source={item.local} uri={item.image} style={styles.gridThumb} radius={10} markSize={18} />
+            {item.id === highlightId && (
+              <View style={styles.newTag}><Text style={styles.newTagText}>NEW</Text></View>
+            )}
+            <Text style={styles.gridName} numberOfLines={1}>{item.name}</Text>
+            <View style={styles.gridMeta}>
+              <Avatar uri={owner.avatar} name={owner.nickname} size={13} />
+              <Text style={styles.gridOwner} numberOfLines={1}>{owner.nickname}</Text>
+            </View>
+          </PressableScale>
+        );
+      })}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  mineNote: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+    backgroundColor: colors.cardMuted, borderRadius: radius.card, padding: spacing.md,
+  },
+  mineNoteText: { flex: 1, fontFamily: fonts.medium, fontSize: 12.5, lineHeight: 18, color: colors.textSecondary },
   root: { flex: 1, backgroundColor: colors.bg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingBottom: spacing.sm },
   hBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
@@ -269,20 +361,28 @@ const styles = StyleSheet.create({
   rootOwner: { fontFamily: fonts.medium, fontSize: 12, color: colors.textSecondary },
   rootSub: { fontFamily: fonts.medium, fontSize: 11.5, color: colors.textSecondary, marginTop: 3 },
   canvasCard: { backgroundColor: colors.bgWarm, borderRadius: radius.lg, marginTop: spacing.lg, overflow: 'hidden', borderWidth: 1, borderColor: colors.border },
-  growthCard: { backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.lg, marginTop: spacing.lg, gap: spacing.sm },
-  growthHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  growthLabel: { fontFamily: fonts.black, fontSize: 15, color: colors.greenDeep },
-  growthNext: { fontFamily: fonts.bold, fontSize: 12, color: colors.textSecondary },
-  growthMax: { fontFamily: fonts.bold, fontSize: 12, color: colors.orange },
-  growthTrack: { height: 10, borderRadius: 5, backgroundColor: colors.greenSoft, overflow: 'hidden' },
-  growthFill: { height: '100%', borderRadius: 5, backgroundColor: colors.green },
-  growthHint: { fontFamily: fonts.medium, fontSize: 11.5, color: colors.textSecondary },
   statRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: radius.card, paddingVertical: spacing.lg, marginTop: spacing.lg, ...shadows.soft },
   stat: { flex: 1, alignItems: 'center', gap: 3 },
+  statLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  sheetRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm },
+  sheetThumb: { width: 44, height: 44 },
+  sheetName: { fontFamily: fonts.bold, fontSize: 14, color: colors.textPrimary },
+  sheetSub: { fontFamily: fonts.medium, fontSize: 11.5, color: colors.textSecondary, marginTop: 2 },
+  sheetClose: { alignItems: 'center', paddingVertical: spacing.lg },
+  // 水やり一覧（段を出さず画像で並べる：2026-08-12 指摘）
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  gridCell: { width: '31.5%', backgroundColor: colors.card, borderRadius: radius.md, padding: spacing.sm, gap: 4 },
+  gridCellNew: { borderWidth: 1.5, borderColor: colors.green },
+  gridThumb: { width: '100%', aspectRatio: 1 },
+  gridName: { fontFamily: fonts.bold, fontSize: 11.5, color: colors.textPrimary },
+  gridMeta: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  gridOwner: { flex: 1, fontFamily: fonts.medium, fontSize: 10.5, color: colors.textSecondary },
+  gridEmpty: { fontFamily: fonts.medium, fontSize: 13, color: colors.textSecondary, padding: spacing.lg, textAlign: 'center' },
   statNum: { fontFamily: fonts.black, fontSize: 24, color: colors.green },
   statLabel: { fontFamily: fonts.medium, fontSize: 11.5, color: colors.textSecondary },
   statDivider: { width: 1, height: 32, backgroundColor: colors.divider },
   waterBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, height: 54, borderRadius: radius.pill, backgroundColor: colors.waterBlue },
+  harvestBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, height: 54, borderRadius: radius.pill, backgroundColor: colors.orangeDeep },
   shareText: { fontFamily: fonts.bold, fontSize: 16, color: colors.white },
   ghostBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, height: 50, borderRadius: radius.pill, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
   ghostText: { fontFamily: fonts.bold, fontSize: 15, color: colors.textSecondary },
@@ -299,16 +399,8 @@ const styles = StyleSheet.create({
   pickCtaText: { fontFamily: fonts.bold, fontSize: 12.5, color: colors.white },
   allToggle: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing['2xl'], marginBottom: spacing.md, paddingVertical: spacing.sm },
   allToggleText: { flex: 1, fontFamily: fonts.bold, fontSize: 15, color: colors.textPrimary },
-  allRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.md },
-  allRowNew: { borderWidth: 1.5, borderColor: colors.orange },
-  branchMark: { position: 'absolute', left: -12, top: '50%', width: 12, height: 2, backgroundColor: colors.greenSoftBorder },
-  chainHint: { fontFamily: fonts.medium, fontSize: 11, color: colors.textSecondary, marginBottom: 3, marginLeft: 2 },
-  allThumb: { width: 46, height: 46 },
-  allTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  allName: { fontFamily: fonts.bold, fontSize: 14, color: colors.textPrimary, flexShrink: 1 },
+  // 子であることを示す短い横棒（親からぶら下がっている見た目をつくる）
+  // flexShrink を効かせて、深い階層でも中身が縦積みにならないようにする
   newTag: { backgroundColor: colors.orange, paddingHorizontal: 6, paddingVertical: 1, borderRadius: radius.pill },
   newTagText: { fontFamily: fonts.black, fontSize: 8, color: colors.white },
-  allMeta: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 3 },
-  allOwner: { fontFamily: fonts.medium, fontSize: 11.5, color: colors.textSecondary },
-  allSub: { fontFamily: fonts.medium, fontSize: 11, color: colors.textPlaceholder },
 });

@@ -26,10 +26,17 @@ yarn-error.*
 # macOS
 .DS_Store
 
+# 生の会話ログ。176MB 級で、APIキーやパスワードがそのまま入っているためコミットしない。
+# 読める形は docs/logs/ に、伏せ字をかけて書き出す（npm run log:export）
+*.jsonl
+
 # env
 .env
 .env.local
 .env*.local
+.env.mock-stash
+# 接続先を切り替えるときに作る控え。鍵が入るので絶対に上げない
+.env*.bak-*
 
 # IDE
 .vscode/
@@ -40,3 +47,6 @@ gungun-preview.html
 shots-audit/
 shots-water/
 shots-tree/
+
+# 実DB接続ビルドの出力（dist と同じく成果物なのでコミットしない）
+dist-live/

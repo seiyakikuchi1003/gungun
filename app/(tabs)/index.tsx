@@ -1,4 +1,6 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
+import { isSupabaseEnabled } from '@/lib/supabase';
+import { fetchViewHistory } from '@/lib/api/social';
 import {
   View,
   Text,
@@ -23,18 +25,38 @@ import { Mikan } from '@/components/art/Mikan';
 import { GiftBox } from '@/components/art/GiftBox';
 import { WateringCan } from '@/components/art/WateringCan';
 import { LeafDecor } from '@/components/art/LeafDecor';
-import { currentUser, howToSteps } from '@/data/mock';
+import { howToSteps, categories } from '@/data/mock';
 import { useTree } from '@/store/tree';
 import { useBlocks } from '@/store/blocks';
 import { useNotifications } from '@/store/notifications';
-import { medium } from '@/lib/haptics';
+import { medium, success } from '@/lib/haptics';
 import { playSfx, preloadSfx } from '@/lib/sound';
+import { useMe } from '@/store/me';
+import { useLoginBonus } from '@/hooks/useLoginBonus';
+import { useExchanges } from '@/hooks/useExchanges';
+import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 
-function HeaderIcon({ name, badge, onPress }: { name: keyof typeof Ionicons.glyphMap; badge?: boolean; onPress?: () => void }) {
+/**
+ * ヘッダーのアイコン。未読件数を数字で出す（点だけだと何件あるか分からない）。
+ * 99件を超えたら「99+」に丸める。
+ */
+function HeaderIcon({
+  name,
+  count = 0,
+  onPress,
+}: {
+  name: keyof typeof Ionicons.glyphMap;
+  count?: number;
+  onPress?: () => void;
+}) {
   return (
     <PressableScale onPress={onPress} activeScale={0.9} style={styles.headerIcon}>
       <Ionicons name={name} size={23} color={colors.textPrimary} />
-      {badge && <View style={styles.redDot} />}
+      {count > 0 && (
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>{count > 99 ? '99+' : count}</Text>
+        </View>
+      )}
     </PressableScale>
   );
 }
@@ -45,13 +67,33 @@ const STEP_ART: Record<string, React.ReactNode> = {
   harvest: <Mikan size={30} />,
 };
 
+/** 固定した上部バーの高さ（検索欄 46 ＋ 下の余白 16） */
+const TOP_BAR_H = 62;
+
+/** ホームの並び替え */
+const SORTS = [
+  { key: 'recommend', label: 'おすすめ', note: '最近見たものに近い順' },
+  { key: 'new', label: '新着順', note: '出品が新しい順' },
+  { key: 'water', label: '水やりが多い順', note: '多くの人が交換を希望している順' },
+  { key: 'like', label: '人気順', note: 'いいねが多い順' },
+] as const;
+type SortKey = (typeof SORTS)[number]['key'];
+
 export default function HomeScreen() {
+  const me = useMe();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-  const { items } = useTree();
+  // 肥料残高は tree ストアが持つ（水やり・チャージ・ボーナスで増減する実際の値）
+  const { items, fertilizer, refresh } = useTree();
+  // 画面に戻ったとき・アプリを前面に戻したときに最新を取り直す
+  useAutoRefresh(refresh);
   const { isBlocked } = useBlocks();
   const { unreadCount } = useNotifications();
-  const [claimed, setClaimed] = useState(false);
+  // 取引アイコンのバッジ。以前は常時点灯（badge 固定）だったので、
+  // 「まだ発送・受け取りが終わっていない取引」の件数に変えた
+  const { list: trades } = useExchanges();
+  const activeTrades = trades.filter((t) => t.status !== 'received').length;
+  const { claimed, busy: bonusBusy, amount: bonusAmount, claim } = useLoginBonus();
   const [showBonus, setShowBonus] = useState(false);
   React.useEffect(() => { preloadSfx(); }, []); // 初回再生の遅延を減らす
 
@@ -59,37 +101,108 @@ export default function HomeScreen() {
   // モックでは並びを回転させて「新しい内容が届いた」感を出す
   const [refreshing, setRefreshing] = useState(false);
   const [refreshTick, setRefreshTick] = useState(0);
+  const [sort, setSort] = useState<SortKey>('recommend');
+  // 「おすすめ」で最近見た区分を優先するために、閲覧履歴のカテゴリーを取る
+  const [viewedCategories, setViewedCategories] = useState<string[]>([]);
+  useEffect(() => {
+    if (!isSupabaseEnabled || !me.live) return;
+    fetchViewHistory(me.id)
+      .then((list) => setViewedCategories([...new Set(list.slice(0, 20).map((i) => i.category))]))
+      .catch(() => {});
+  }, [me.live, me.id]);
   const scrollY = useSharedValue(0); // 引っ張り量 → カスタムスピナーの回転に連動
   const onScroll = useAnimatedScrollHandler((e) => {
     scrollY.value = e.contentOffset.y;
   });
-  const onRefresh = useCallback(() => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
     medium(); // 引っ張った瞬間の「トン」
     preloadSfx();
+    // 実データを取り直す。以前はここで待つだけで並べ替えしかしておらず、
+    // 他の人が出した新しいタネが引っ張っても出てこなかった（2026-08-05 修正）
+    const started = Date.now();
+    try {
+      await refresh();
+    } catch {
+      // 取得に失敗しても画面は保つ（オフラインでも操作を止めない）
+    }
+    // 速すぎると更新された感じがしないので、最低限アニメーションを見せる
+    const rest = Math.max(0, 700 - (Date.now() - started));
     setTimeout(() => {
       setRefreshTick((t) => t + 1);
       setRefreshing(false);
       playSfx('pop'); // 更新完了の「プチッ」
-    }, 1300);
-  }, []);
+    }, rest);
+  }, [refresh]);
 
-  // 「みんなの種」＝木の根（parentId=null）をテーマ別のモザイクで表示
-  const seedsBase = items.filter((i) => i.parentId === null && !isBlocked(i.ownerId)).reverse();
+  // ホームに並べる商品。
+  // 以前はタネ（parentId=null）だけを出していたが、水やり＝出品なので
+  // 水やりで出した商品も一級の商品として並べる（要件 第3章／2026-08-13 項目1）。
+  // 収穫が決まった（取引中・完了）ものは出さない。
+  // 出しておくと水やりできそうに見えるが、実際には受け付けられない（2026-08-05 指摘）
+  // すでに自分が関わっている木（自分のタネ・水やり済み）は水やりできない。
+  // 出しておくと押せそうに見えるので、ホームからは外す（2026-08-13 指摘）
+  const myRoots = new Set(items.filter((i) => i.ownerId === me.id).map((i) => i.rootId));
+  const seedsBase = items
+    .filter((i) => i.status === 'growing' && !isBlocked(i.ownerId) && !myRoots.has(i.rootId))
+    .reverse();
   const shift = refreshTick % Math.max(seedsBase.length, 1);
   const seeds = seedsBase.slice(shift).concat(seedsBase.slice(0, shift));
-  const COLLECTIONS: { title: string; subtitle: string; match: (c: string) => boolean }[] = [
-    { title: 'スマホ・ガジェット', subtitle: '人気の家電・ゲーム', match: (c) => ['スマホ・家電', '家電', 'ゲーム・おもちゃ'].includes(c) },
-    { title: 'ファッション・小物', subtitle: 'バッグ・時計・コスメ', match: (c) => ['レディース', 'メンズ', 'コスメ・美容', 'バッグ・小物'].includes(c) },
-    { title: 'ホビー・その他', subtitle: '本・チケット・雑貨', match: (c) => true },
-  ];
-  // 各種を最初にマッチしたコレクションへ割り当て（最後のグループが受け皿）
-  const assigned = new Set<string>();
-  const visibleGroups = COLLECTIONS.map((col) => {
-    const list = seeds.filter((s) => !assigned.has(s.id) && col.match(s.category));
-    list.forEach((s) => assigned.add(s.id));
-    return { ...col, items: list };
-  }).filter((g) => g.items.length > 0);
+  // 出品したカテゴリーのまま並べる。
+  // 以前は「ファッション・小物」などの独自のくくりに寄せていたため、
+  // 「メンズで出したのにファッション・小物に入る」と食い違って見えた（2026-08-13 指摘）。
+  // 出品時に選べる区分（categories）とホームの見出しを一致させる。
+  const SUBTITLE: Record<string, string> = {
+    'レディース': '服・バッグ・アクセサリー',
+    'メンズ': '服・バッグ・小物',
+    'スマホ・家電': 'スマホ・オーディオ・PC',
+    '家電': '生活家電・キッチン家電',
+    'ゲーム・おもちゃ': 'ゲーム機・ソフト・ホビー',
+    'コスメ・美容': 'メイク・スキンケア',
+    'インテリア': '家具・雑貨',
+    '本・音楽': '本・CD・DVD',
+    'チケット': 'イベント・優待券',
+    'その他': 'どれにも当てはまらないもの',
+  };
+  /**
+   * 並び替え（2026-08-21 指摘）。
+   *
+   * 既定の「おすすめ」はカテゴリー別に並べる。そのとき、
+   * 最近見た商品と同じカテゴリーを先に出す（閲覧履歴に基づく関連順）。
+   * それ以外を選んだときは、カテゴリーの区切りをやめて1本の並びで見せる。
+   * 「水やりが多い順」と「新着順」は区切ったままだと比べにくいため。
+   */
+  const recentCats = new Set(viewedCategories);
+  const visibleGroups =
+    sort === 'recommend'
+      ? categories
+          .map((c) => ({
+            title: c,
+            subtitle: SUBTITLE[c] ?? '',
+            items: seeds.filter((s) => s.category === c),
+          }))
+          .filter((g) => g.items.length > 0)
+          .sort((a, b) => {
+            // 最近見た区分を優先し、その中では出品の多い順
+            const ra = recentCats.has(a.title) ? 1 : 0;
+            const rb = recentCats.has(b.title) ? 1 : 0;
+            if (ra !== rb) return rb - ra;
+            return b.items.length - a.items.length;
+          })
+      : [
+          {
+            title: SORTS.find((x) => x.key === sort)?.label ?? '',
+            subtitle: SORTS.find((x) => x.key === sort)?.note ?? '',
+            items: [...seeds].sort((a, b) => {
+              if (sort === 'water') return b.waterCount - a.waterCount;
+              if (sort === 'like') return b.likeCount - a.likeCount;
+              // 新着順。createdAt が無いモックでは並びを変えない
+              const ta = a.createdAt ? Date.parse(a.createdAt) : 0;
+              const tb = b.createdAt ? Date.parse(b.createdAt) : 0;
+              return tb - ta;
+            }),
+          },
+        ].filter((g) => g.items.length > 0);
 
   return (
     <View style={styles.root}>
@@ -97,9 +210,25 @@ export default function HomeScreen() {
         <LeafDecor width={220} height={300} flip opacity={0.35} />
       </View>
 
+      {/* 検索・通知・マイページは上部に固定する。
+          スクロールで流れると、探したいときに毎回いちばん上まで戻る必要があった（2026-08-12 指摘） */}
+      <View style={[styles.topBarFixed, { paddingTop: insets.top + 8 }]}>
+        <View style={styles.topBar}>
+          <PressableScale onPress={() => router.push('/search')} activeScale={0.98} style={[styles.search, shadows.soft]}>
+            <Ionicons name="search" size={20} color={colors.textSecondary} />
+            <Text style={styles.searchPlaceholder}>欲しいものを探してみよう</Text>
+          </PressableScale>
+          <HeaderIcon name="notifications" count={unreadCount} onPress={() => router.push('/notifications')} />
+          {/* 取引はボトムナビに移したので、ここはマイページへの導線にする（2026-08-13） */}
+          <HeaderIcon name="person-circle-outline" count={0} onPress={() => router.navigate('/mypage')} />
+        </View>
+      </View>
+
       <Animated.ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: 170 }}
+        contentContainerStyle={{ paddingTop: insets.top + 8 + TOP_BAR_H, paddingBottom: 170 }}
         onScroll={onScroll}
         scrollEventThrottle={16}
         refreshControl={
@@ -108,48 +237,53 @@ export default function HomeScreen() {
             onRefresh={onRefresh}
             tintColor="transparent"
             colors={[colors.green]}
-            progressViewOffset={insets.top + 8}
+            progressViewOffset={insets.top + 8 + TOP_BAR_H}
           />
         }
       >
-        {/* 検索 ＋ 右上アイコン */}
-        <View style={styles.topBar}>
-          <PressableScale onPress={() => router.push('/search')} activeScale={0.98} style={[styles.search, shadows.soft]}>
-            <Ionicons name="search" size={20} color={colors.textSecondary} />
-            <Text style={styles.searchPlaceholder}>欲しいものを探してみよう</Text>
-          </PressableScale>
-          <HeaderIcon name="notifications" badge={unreadCount > 0} onPress={() => router.push('/notifications')} />
-          <HeaderIcon name="swap-horizontal" badge onPress={() => router.push('/exchange')} />
-        </View>
-
         {/* 肥料残高／ログインボーナス（白いカード2枚を横並び） */}
         <Animated.View entering={FadeInDown.duration(400)} style={[styles.section, styles.cardsRow]}>
-          {/* 左：現在の肥料 */}
-          <View style={[styles.infoCard, shadows.card]}>
+          {/* 左：現在の肥料。押したらチャージへ（2026-08-14 指摘：見えるだけで押せなかった） */}
+          <PressableScale
+            activeScale={0.97}
+            onPress={() => router.push('/fertilizer')}
+            style={[styles.infoCard, shadows.card]}
+          >
             <View pointerEvents="none" style={styles.cardLeaf}>
               <LeafDecor width={74} height={88} opacity={0.35} />
             </View>
-            <Text style={styles.infoLabel}>現在の肥料</Text>
+            <View style={styles.infoLabelRow}>
+              <Text style={styles.infoLabel}>現在の肥料</Text>
+              <Ionicons name="chevron-forward" size={13} color={colors.textSecondary} />
+            </View>
             <View style={styles.fertBody}>
               <Sprout size={44} base />
               <View style={styles.fertNumRow}>
-                <Text style={styles.fertNum}>{currentUser.fertilizer.toLocaleString()}</Text>
+                <Text style={styles.fertNum}>{fertilizer.toLocaleString()}</Text>
                 <Text style={styles.fertUnit}>肥料</Text>
               </View>
             </View>
-          </View>
+            <Text style={styles.fertCharge}>タップでチャージ</Text>
+          </PressableScale>
 
           {/* 右：ログインボーナス */}
           <View style={[styles.infoCard, shadows.card]}>
             <Text style={styles.infoLabel}>ログインボーナス</Text>
             <View style={styles.bonusBody}>
               <GiftBox size={46} />
-              <Text style={styles.bonusValue}>毎日{'\n'}+40肥料</Text>
+              <Text style={styles.bonusValue}>毎日{'\n'}+{bonusAmount}肥料</Text>
             </View>
             <PressableScale
-              onPress={() => { setClaimed(true); setShowBonus(true); }}
+              onPress={async () => {
+                // 受取済みでもカレンダーは見たい（押しても何も起きないのは不親切）
+                if (!claimed) {
+                  await claim();
+                  success(); // 受け取れた手応えを返す
+                }
+                setShowBonus(true);
+              }}
               activeScale={0.95}
-              disabled={claimed}
+              disabled={bonusBusy}
             >
               <LinearGradient
                 colors={claimed ? ['#D9D3C6', '#CFC8BA'] : ['#F7B23F', colors.orangeDeep]}
@@ -168,17 +302,35 @@ export default function HomeScreen() {
           </View>
         </Animated.View>
 
-        {/* みんなの種（テーマ別モザイク） */}
+        {/* みんなの出品（テーマ別モザイク）。タネも水やりで出した商品も並ぶ */}
         <Animated.View entering={FadeInDown.delay(80).duration(400)}>
           <View style={styles.sectionHead}>
             <View style={styles.sectionTitleRow}>
               <Sprout size={20} />
-              <Text style={styles.sectionTitle}>みんなの種</Text>
+              <Text style={styles.sectionTitle}>みんなの出品</Text>
             </View>
             <PressableScale onPress={() => router.push('/search')}>
               <Text style={styles.seeAll}>すべて見る ›</Text>
             </PressableScale>
           </View>
+
+          {/* 並び替え。押した順番で見え方が変わるので、選んでいるものを塗って示す */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.sortRow}
+          >
+            {SORTS.map((o) => (
+              <PressableScale
+                key={o.key}
+                activeScale={0.95}
+                onPress={() => setSort(o.key)}
+                style={[styles.sortChip, sort === o.key && styles.sortChipOn]}
+              >
+                <Text style={[styles.sortText, sort === o.key && styles.sortTextOn]}>{o.label}</Text>
+              </PressableScale>
+            ))}
+          </ScrollView>
           {/* 更新のたびに key が変わり、新しい並びがふわっと入れ替わる */}
           <Animated.View key={refreshTick} entering={FadeIn.duration(420)}>
             {visibleGroups.map((g) => (
@@ -229,13 +381,27 @@ export default function HomeScreen() {
       />
 
       {/* ログインボーナスのスタンプカレンダー */}
-      <LoginBonusSheet visible={showBonus} claimedToday={claimed} onClose={() => setShowBonus(false)} />
+      <LoginBonusSheet visible={showBonus} claimedToday={claimed} amount={bonusAmount} onClose={() => setShowBonus(false)} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.bg },
+  sortRow: { gap: spacing.sm, paddingHorizontal: 20, paddingBottom: spacing.md },
+  sortChip: {
+    paddingHorizontal: spacing.lg, paddingVertical: 7, borderRadius: 999,
+    backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
+  },
+  sortChipOn: { backgroundColor: colors.green, borderColor: colors.green },
+  sortText: { fontFamily: fonts.medium, fontSize: 12.5, color: colors.textSecondary },
+  sortTextOn: { fontFamily: fonts.bold, color: colors.white },
+  infoLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  fertCharge: { fontFamily: fonts.bold, fontSize: 10.5, color: colors.green, marginTop: 4 },
+  topBarFixed: {
+    position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
+    backgroundColor: colors.bg,
+  },
+  root: { flex: 1, backgroundColor: colors.bg, overflow: 'hidden' }, // 装飾の葉が右にはみ出す設計なので、ここで切る（全画面で横スクロールが出ていた）
   leafBg: { position: 'absolute', right: -40, top: 40 },
   topBar: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: 20, marginBottom: spacing.lg },
   search: {
@@ -249,6 +415,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   searchPlaceholder: { fontFamily: fonts.regular, fontSize: 14.5, color: colors.textPlaceholder },
+  badge: {
+    position: 'absolute', top: 2, right: 0, minWidth: 17, height: 17, borderRadius: 8.5,
+    backgroundColor: '#E4796F', justifyContent: 'center', alignItems: 'center',
+    paddingHorizontal: 4, borderWidth: 1.5, borderColor: colors.bg,
+  },
+  badgeText: { fontFamily: fonts.bold, fontSize: 10, color: colors.white, lineHeight: 13 },
   headerIcon: {
     width: 44,
     height: 44,

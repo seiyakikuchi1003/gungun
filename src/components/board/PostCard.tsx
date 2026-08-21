@@ -6,13 +6,22 @@ import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { Avatar } from '@/components/ui/Avatar';
 import { HeartButton } from '@/components/ui/HeartButton';
-import { BoardPost, TAG_META } from '@/data/mockSocial';
-import { getUser } from '@/data/mock';
+import { TAG_META } from '@/data/mockSocial';
+import type { UIPost } from '@/hooks/useBoard';
+import { shareText } from '@/lib/share';
 
 /** モダンなカード型の投稿。掲示板フィードの主役。 */
-export function PostCard({ post, onPress, onMore }: { post: BoardPost; onPress?: () => void; onMore?: () => void }) {
-  const u = getUser(post.userId);
+export function PostCard({ post, onPress, onMore, onCopied }: { post: UIPost; onPress?: () => void; onMore?: () => void; onCopied?: () => void }) {
+  // 著者名・アバターは投稿の行が持っている（実DBでは UUID から引けないため）
+  const u = { nickname: post.authorName, avatar: post.authorAvatar };
   const tag = TAG_META[post.tag];
+
+  /** 投稿の本文を共有。Web でコピーになったときは呼び出し側に知らせる */
+  const share = async () => {
+    const res = await shareText(`${u.nickname}さんの投稿（ぐんぐん）\n\n${post.body}`);
+    if (res === 'copied') onCopied?.();
+  };
+
   return (
     <PressableScale onPress={onPress} activeScale={0.985} style={[styles.card, shadows.card]}>
       {post.pinned && (
@@ -39,8 +48,13 @@ export function PostCard({ post, onPress, onMore }: { post: BoardPost; onPress?:
 
       <Text style={styles.body}>{post.body}</Text>
 
-      {post.image != null && (
-        <Image source={post.image} style={styles.image} contentFit="cover" transition={200} />
+      {(post.image != null || post.imageUrl) && (
+        <Image
+          source={post.image ?? { uri: post.imageUrl! }}
+          style={styles.image}
+          contentFit="cover"
+          transition={200}
+        />
       )}
 
       <View style={styles.actions}>
@@ -49,7 +63,7 @@ export function PostCard({ post, onPress, onMore }: { post: BoardPost; onPress?:
           <Ionicons name="chatbubble-outline" size={17} color={colors.textSecondary} />
           <Text style={styles.actionText}>{post.commentCount}</Text>
         </View>
-        <PressableScale activeScale={0.85} style={[styles.action, { marginLeft: 'auto' }]}>
+        <PressableScale activeScale={0.85} onPress={share} hitSlop={8} style={[styles.action, { marginLeft: 'auto' }]}>
           <Ionicons name="share-outline" size={18} color={colors.textSecondary} />
         </PressableScale>
       </View>

@@ -6,24 +6,29 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { Avatar } from '@/components/ui/Avatar';
-import { getUser } from '@/data/mock';
 import { useBlocks } from '@/store/blocks';
+import { isSupabaseEnabled } from '@/lib/supabase';
+import { useUsers } from '@/store/users';
 
 export default function Blocks() {
+  const users = useUsers();
   const insets = useSafeAreaInsets();
-  const { blocked, unblock } = useBlocks();
+  const { blocked, blockedUsers, unblock } = useBlocks();
+  const live = isSupabaseEnabled;
 
   return (
     <View style={styles.root}>
       <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
-        <PressableScale onPress={() => router.back()} activeScale={0.9} style={styles.hBtn}>
+        <PressableScale onPress={() => router.dismissTo('/mypage')} activeScale={0.9} style={styles.hBtn}>
           <Ionicons name="chevron-back" size={26} color={colors.textPrimary} />
         </PressableScale>
         <Text style={styles.hTitle}>ブロックリスト</Text>
         <View style={styles.hBtn} />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20 }}>
+      <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20 }}>
         {blocked.length === 0 ? (
           <View style={styles.empty}>
             <Ionicons name="checkmark-circle-outline" size={48} color={colors.greenSoftBorder} />
@@ -31,7 +36,11 @@ export default function Blocks() {
           </View>
         ) : (
           blocked.map((id) => {
-            const u = getUser(id);
+            // 実DB接続時は名前・アバターを blocks の取得結果から引く（UUID から引けないため）
+            const dbUser = blockedUsers.find((x) => x.id === id);
+            const u = live
+              ? { nickname: dbUser?.nickname ?? '(不明なユーザー)', avatar: dbUser?.avatarUrl ?? '' }
+              : users.user(id);
             return (
               <View key={id} style={[styles.row, shadows.soft]}>
                 <Avatar uri={u.avatar} name={u.nickname} size={44} />

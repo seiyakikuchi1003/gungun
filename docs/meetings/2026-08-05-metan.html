@@ -1,0 +1,447 @@
+<title>ぐんぐん 定例MTG 議事録 2026-08-05</title>
+<style>
+  :root {
+    --ground: #FDF8F0;
+    --surface: #FFFFFF;
+    --ink: #24312A;
+    --muted: #5E6E62;
+    --faint: #8B9A8E;
+    --line: #E4E0D4;
+    --accent: #2C8547;
+    --accent-soft: #E8F1DE;
+    --accent-line: #C3DBAF;
+    --alert: #C4741C;
+    --alert-soft: #FBEEDC;
+    --shadow: 0 1px 2px rgba(36,49,42,.05), 0 8px 24px rgba(36,49,42,.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground: #171D18;
+      --surface: #1E251F;
+      --ink: #E8EDE6;
+      --muted: #A2AFA4;
+      --faint: #7B887D;
+      --line: #2E372F;
+      --accent: #7CBE8A;
+      --accent-soft: #23301F;
+      --accent-line: #3B5A3F;
+      --alert: #E0A55E;
+      --alert-soft: #2F2618;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+    }
+  }
+  :root[data-theme="light"] {
+    --ground: #FDF8F0; --surface: #FFFFFF; --ink: #24312A; --muted: #5E6E62;
+    --faint: #8B9A8E; --line: #E4E0D4; --accent: #2C8547; --accent-soft: #E8F1DE;
+    --accent-line: #C3DBAF; --alert: #C4741C; --alert-soft: #FBEEDC;
+    --shadow: 0 1px 2px rgba(36,49,42,.05), 0 8px 24px rgba(36,49,42,.05);
+  }
+  :root[data-theme="dark"] {
+    --ground: #171D18; --surface: #1E251F; --ink: #E8EDE6; --muted: #A2AFA4;
+    --faint: #7B887D; --line: #2E372F; --accent: #7CBE8A; --accent-soft: #23301F;
+    --accent-line: #3B5A3F; --alert: #E0A55E; --alert-soft: #2F2618;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP",
+                 system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 16px;
+    line-height: 1.85;
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: "palt" 1;
+  }
+
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px 96px; }
+  .layout { display: grid; gap: 48px; }
+  @media (min-width: 980px) { .layout { grid-template-columns: 208px minmax(0, 1fr); } }
+
+  /* ── ヘッダー ───────────────────────────── */
+  header.top { padding: 64px 0 40px; border-bottom: 1px solid var(--line); margin-bottom: 44px; }
+  .eyebrow {
+    font-size: 11.5px; font-weight: 700; letter-spacing: .16em;
+    color: var(--accent); margin: 0 0 18px;
+    display: flex; align-items: center; gap: 9px;
+  }
+  .eyebrow::after { content: ""; flex: 1; height: 1px; background: var(--accent-line); }
+  h1 {
+    margin: 0 0 14px; font-size: clamp(28px, 4.6vw, 42px); line-height: 1.28;
+    font-weight: 800; letter-spacing: -.015em; text-wrap: balance;
+  }
+  .lede { margin: 0 0 26px; font-size: 17px; color: var(--muted); max-width: 44em; }
+  .meta { display: flex; flex-wrap: wrap; gap: 10px 28px; font-size: 13.5px; color: var(--muted); }
+  .meta b { color: var(--ink); font-weight: 700; }
+
+  /* ── 目次 ───────────────────────────────── */
+  nav.toc { font-size: 13.5px; }
+  @media (min-width: 980px) { nav.toc { position: sticky; top: 32px; align-self: start; } }
+  nav.toc .label {
+    font-size: 11px; font-weight: 700; letter-spacing: .14em;
+    color: var(--faint); margin-bottom: 12px;
+  }
+  nav.toc ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+  nav.toc a {
+    display: flex; gap: 10px; padding: 6px 10px; margin-left: -10px;
+    border-radius: 7px; color: var(--muted); text-decoration: none; line-height: 1.5;
+  }
+  nav.toc a:hover { background: var(--accent-soft); color: var(--accent); }
+  nav.toc a:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  nav.toc .n { color: var(--faint); font-variant-numeric: tabular-nums; font-weight: 700; }
+
+  /* ── 本文 ───────────────────────────────── */
+  section { margin-bottom: 64px; scroll-margin-top: 24px; }
+  h2 {
+    display: flex; align-items: baseline; gap: 14px;
+    margin: 0 0 8px; font-size: 22px; font-weight: 800; letter-spacing: -.01em;
+  }
+  h2 .num {
+    font-size: 13px; font-weight: 700; color: var(--accent);
+    font-variant-numeric: tabular-nums; letter-spacing: .04em;
+    padding-top: 2px; flex: none;
+  }
+  h3 { margin: 36px 0 10px; font-size: 16.5px; font-weight: 700; }
+  h4 { margin: 24px 0 6px; font-size: 14.5px; font-weight: 700; color: var(--muted); }
+  p { margin: 0 0 16px; }
+  .sub { color: var(--muted); font-size: 14.5px; margin: -2px 0 22px; }
+  ul, ol.plain { margin: 0 0 18px; padding-left: 1.35em; }
+  li { margin-bottom: 6px; }
+  strong { font-weight: 700; }
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: .87em; background: var(--accent-soft); color: var(--accent);
+    padding: 2px 6px; border-radius: 5px;
+  }
+
+  /* ── 表 ─────────────────────────────────── */
+  .scroller { overflow-x: auto; margin: 0 0 22px; border-radius: 12px; box-shadow: var(--shadow); }
+  table { width: 100%; border-collapse: collapse; background: var(--surface); font-size: 14.5px; }
+  th, td { text-align: left; padding: 13px 16px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th {
+    font-size: 11.5px; font-weight: 700; letter-spacing: .08em; color: var(--faint);
+    background: var(--ground); white-space: nowrap;
+  }
+  tr:last-child td { border-bottom: none; }
+  td.who, td.when { white-space: nowrap; }
+  td.num { font-variant-numeric: tabular-nums; color: var(--faint); width: 1%; }
+
+  /* ── ピル ───────────────────────────────── */
+  .pill {
+    display: inline-block; font-size: 11.5px; font-weight: 700; line-height: 1.6;
+    padding: 1px 9px; border-radius: 999px; white-space: nowrap;
+  }
+  .pill.done { background: var(--accent-soft); color: var(--accent); }
+  .pill.now  { background: var(--alert-soft); color: var(--alert); }
+  .pill.todo { background: var(--ground); color: var(--faint); box-shadow: inset 0 0 0 1px var(--line); }
+
+  /* ── カード・注意 ───────────────────────── */
+  .card {
+    background: var(--surface); border-radius: 14px; padding: 22px 24px;
+    box-shadow: var(--shadow); margin: 0 0 20px;
+  }
+  .card > :last-child { margin-bottom: 0; }
+  .ask {
+    background: var(--surface); border-radius: 14px; padding: 22px 24px;
+    box-shadow: var(--shadow); border-left: 4px solid var(--accent); margin: 0 0 18px;
+  }
+  .ask.urgent { border-left-color: var(--alert); }
+  .ask > :last-child { margin-bottom: 0; }
+  .ask h3 { margin: 0 0 4px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .note {
+    background: var(--alert-soft); border-radius: 12px; padding: 16px 20px;
+    font-size: 14.5px; color: var(--ink); margin: 0 0 20px;
+  }
+  .note > :last-child { margin-bottom: 0; }
+  .note b { color: var(--alert); }
+
+  .bullets { display: grid; gap: 9px; margin: 0 0 20px; padding: 0; list-style: none; }
+  .bullets li { display: flex; gap: 11px; margin: 0; }
+  .bullets li::before {
+    content: ""; flex: none; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent-line); margin-top: 12px;
+  }
+
+  footer.foot {
+    border-top: 1px solid var(--line); padding-top: 24px;
+    font-size: 13px; color: var(--faint);
+  }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <p class="eyebrow">SOUZOH × めたん様 定例</p>
+    <h1>ぐんぐん 定例ミーティング</h1>
+    <p class="lede">
+      アプリの完成報告とデモ、管理画面のご確認、今週の移行と App&nbsp;Store 着手の合意。
+    </p>
+    <div class="meta">
+      <span><b>日時</b>　2026年8月5日（火）</span>
+      <span><b>出席</b>　めたん様 ／ ソウゾウ（西澤・菊池・海野）</span>
+      <span><b>場所</b>　オンライン</span>
+    </div>
+  </header>
+
+  <div class="layout">
+    <nav class="toc" aria-label="目次">
+      <div class="label">目次</div>
+      <ol>
+        <li><a href="#s1"><span class="n">1</span><span>前回からの進捗</span></a></li>
+        <li><a href="#s2"><span class="n">2</span><span>デモ</span></a></li>
+        <li><a href="#s3"><span class="n">3</span><span>今週の予定</span></a></li>
+        <li><a href="#s4"><span class="n">4</span><span>ご依頼事項</span></a></li>
+        <li><a href="#s5"><span class="n">5</span><span>次回までのアクション</span></a></li>
+        <li><a href="#s6"><span class="n">6</span><span>残っている作業</span></a></li>
+      </ol>
+    </nav>
+
+    <main>
+      <!-- 1 -->
+      <section id="s1">
+        <h2><span class="num">01</span>前回からの進捗</h2>
+        <p class="sub">画面だけのモックから、操作した結果がそのままデータに残る状態になりました。</p>
+
+        <h3>アプリ本体 — 概ね完成</h3>
+        <p>
+          <strong>「タネを植える」「水やり」のロジックを作り込み、本番と同じ挙動まで仕上げました。</strong>
+        </p>
+        <div class="scroller">
+          <table>
+            <thead><tr><th>領域</th><th>状態</th><th>備考</th></tr></thead>
+            <tbody>
+              <tr><td>森のロジック（タネ・水やり・収穫の輪・苗木）</td><td><span class="pill done">完成</span></td><td>親子関係と深さはすべてサーバー側で確定させる作り</td></tr>
+              <tr><td>肥料（消費・付与・ログインボーナス・台帳）</td><td><span class="pill done">完成</span></td><td>増減はすべて台帳に記録</td></tr>
+              <tr><td>取引（発送・受け取り・メッセージ・評価）</td><td><span class="pill done">完成</span></td><td></td></tr>
+              <tr><td>掲示板（投稿・コメント・いいね）</td><td><span class="pill done">完成</span></td><td></td></tr>
+              <tr><td>通報・ブロック・退会</td><td><span class="pill done">完成</span></td><td>審査で見られる部分</td></tr>
+              <tr><td>認証（登録・ログイン・コード認証・再設定）</td><td><span class="pill done">完成</span></td><td></td></tr>
+              <tr><td>画面</td><td><span class="pill done">全32画面</span></td><td>レスポンシブとボタンの点検を自動化して通過</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>データベース連携が完了 — 前回からの一番大きな変化</h3>
+        <p>前回はモックデータでの画面デモでしたが、Supabase と繋がり、<strong>実際の動作がデータに反映される段階</strong>になりました。</p>
+        <ul class="bullets">
+          <li><strong>いいね</strong>を押すと保存され、画面を離れても・アプリを閉じても残る</li>
+          <li><strong>投稿・コメント</strong>が実際に保存され、相手側にも通知が届く</li>
+          <li><strong>水やり</strong>で肥料が減り、台帳に記録が残り、相手に通知が飛ぶ</li>
+          <li><strong>収穫</strong>すると交換の輪ができ、取引画面に並ぶ</li>
+          <li><strong>プロフィール</strong>（ニックネーム・アイコン・自己紹介）が保存される</li>
+          <li><strong>退会</strong>しても、取引相手の履歴は残る（相手の記録を壊さない設計）</li>
+        </ul>
+
+        <h4>あわせて入れた基本機能</h4>
+        <ul class="bullets">
+          <li>いいね一覧 ／ 閲覧履歴（最近見た商品）</li>
+          <li>評価一覧（平均・星の分布・コメント）</li>
+          <li>検索の絞り込み（カテゴリ・状態）と検索履歴</li>
+          <li>通知・取引の未読件数バッジ</li>
+        </ul>
+
+        <h3>テスト開始</h3>
+        <div class="card">
+          <p><strong>本日からテスト段階に入ります。</strong></p>
+          <p style="margin:0">2アカウントで「出品 → 水やり → 収穫 → 取引 → 評価 → 退会」を一周する通し確認を、実機（iPhone）と管理画面の両方から進めます。</p>
+        </div>
+      </section>
+
+      <!-- 2 -->
+      <section id="s2">
+        <h2><span class="num">02</span>デモ</h2>
+
+        <h3>アプリ — TestFlight でめたん様の iPhone に入れていただけます</h3>
+        <p>
+          Apple Developer Program の登録が完了しているため、<strong>TestFlight で配布します。</strong>
+          App Store から落とすのと同じ、本物のアプリとして触っていただけます。
+        </p>
+        <div class="ask urgent">
+          <h3>事前にお願いしたいこと <span class="pill now">本日中</span></h3>
+          <ol class="plain">
+            <li><strong>めたん様の Apple ID のメールアドレス</strong>をお知らせください<br>→ App Store Connect のユーザーとしてご招待します（招待メールが届きます）</li>
+            <li>iPhone に <strong>TestFlight</strong>（App Store で無料）をインストール</li>
+            <li>招待メールから「テスト開始」で、ぐんぐんがインストールされます</li>
+          </ol>
+        </div>
+        <p>
+          内部テストでの配布なので Apple のベータ審査は不要です。
+          <strong>プッシュ通知もこの方法なら確認できます。</strong>
+        </p>
+        <div class="note">
+          万一 Apple 側の処理が間に合わなかった場合の保険として、Expo Go（QRコード）と Web 版の URL も用意しておきます。
+        </div>
+
+        <h3>管理画面 — 前回お見せできなかったもの</h3>
+        <p><strong>本日、めたん様が実際に触れる形で URL とパスワードをお送りします。</strong>デザインと仕様のご確認をお願いします。</p>
+        <div class="scroller">
+          <table>
+            <thead><tr><th>画面</th><th>できること</th></tr></thead>
+            <tbody>
+              <tr><td>ダッシュボード</td><td>ユーザー数・タネの数・育成中の商品・収穫数・<strong>未対応の通報</strong>などの件数、直近の出品と登録</td></tr>
+              <tr><td>ユーザー</td><td>検索、肥料の手動付与・減算（台帳にも記録）、利用停止・解除</td></tr>
+              <tr><td>商品</td><td>検索・絞り込み、非表示・復活（ツリーが壊れないよう物理削除はしません）</td></tr>
+              <tr><td>通報</td><td>未対応 / 対応済み / 却下の切り替え、対応メモ</td></tr>
+              <tr><td><strong>アプリ設定</strong></td><td><strong>水やりの肥料・ログインボーナス・プレミアム月額・出品料・利用規約・プライバシーポリシーを、アプリを作り直さずに変更できます</strong></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <ul class="bullets">
+          <li>運営の操作はすべて記録に残ります（誰が・いつ・何を）</li>
+          <li>使い方をまとめた資料もお渡しします</li>
+        </ul>
+
+        <div class="ask">
+          <h3>ご確認いただきたい点</h3>
+          <ol class="plain">
+            <li>見たい数字が揃っているか／足りない指標はないか</li>
+            <li>運営フロー（通報が来たときの動き方）が実際の運用に合っているか</li>
+            <li>操作する方の権限を分ける必要があるか（現在は共有パスワード1つ）</li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- 3 -->
+      <section id="s3">
+        <h2><span class="num">03</span>今週の予定</h2>
+        <p class="sub">次回ミーティングまでに完了させたいこと。</p>
+
+        <h3>① めたん様のアカウントへ全面移行</h3>
+        <p>いまは弊社の開発用環境で動いています。これを<strong>めたん様のアカウントに移します。</strong></p>
+        <div class="scroller">
+          <table>
+            <thead><tr><th>対象</th><th>内容</th></tr></thead>
+            <tbody>
+              <tr><td>Supabase</td><td>めたん様のアカウントで本番プロジェクトを作成（推奨リージョン：東京）→ スキーマを流す → データ移送</td></tr>
+              <tr><td>Cloudflare</td><td>管理画面のホスティングをめたん様のアカウントへ</td></tr>
+              <tr><td>環境変数</td><td>アプリ・管理画面の接続先を差し替え</td></tr>
+              <tr><td>旧環境</td><td>開発用のキーを失効させる</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>接続先は環境変数だけで決まる作りにしてあるので、<strong>コードの変更は不要</strong>です。</p>
+
+        <h3>② App Store 公開への着手</h3>
+        <div class="scroller">
+          <table>
+            <thead><tr><th>手順</th><th>状態</th><th>備考</th></tr></thead>
+            <tbody>
+              <tr><td>Apple Developer Program 登録</td><td><span class="pill done">完了</span></td><td></td></tr>
+              <tr><td>App Store Connect にアプリを作成</td><td><span class="pill now">本日〜明日午前</span></td><td></td></tr>
+              <tr><td>ネイティブビルド → TestFlight</td><td><span class="pill now">明日お見せします</span></td><td>内部テスト配布（審査不要）</td></tr>
+              <tr><td>審査用素材の準備</td><td><span class="pill todo">未着手</span></td><td>スクリーンショット・説明文・キーワード・サポートURL</td></tr>
+              <tr><td>プライバシー情報の申告</td><td><span class="pill todo">未着手</span></td><td>収集するデータ：メールアドレス・住所・写真</td></tr>
+              <tr><td>C2C の審査対策</td><td><span class="pill done">実装済み</span></td><td>取引トラブルの窓口と通報機能の明記（通報・ブロック実装済み）</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="note">
+          Apple Developer Program の登録が済んでいるため、<b>TestFlight での配布は明日から可能</b>です。
+          ここから先の律速は「審査用素材の準備」と<b>課金方式の確定</b>です。課金が決まらないと本番申請に進めません。
+        </div>
+      </section>
+
+      <!-- 4 -->
+      <section id="s4">
+        <h2><span class="num">04</span>ご依頼事項</h2>
+        <p class="sub">めたん様にお願いしたいことを、優先度の高い順に4件。</p>
+
+        <div class="ask urgent">
+          <h3>① Supabase の招待が届いていないようです <span class="pill now">本日中</span></h3>
+          <p>
+            前回お願いした <strong>Supabase（および Cloudflare）への海野の招待</strong>が、うまく完了していないようです。
+            恐れ入りますが、再度ご確認をお願いできますでしょうか。
+          </p>
+          <ul class="bullets">
+            <li>招待メールが迷惑メールフォルダに入っていないか</li>
+            <li>招待の宛先が <code>shohei.unnno@souzoh-official.com</code> になっているか</li>
+            <li>Supabase → Organization → Team → Invite member から追加できます</li>
+          </ul>
+          <p style="margin:0">これが通らないと<strong>移行作業に着手できません</strong>。今週の予定に直結するため、最優先でお願いできますと助かります。</p>
+        </div>
+
+        <div class="ask urgent">
+          <h3>② Apple ID のメールアドレス <span class="pill now">本日中</span></h3>
+          <p>TestFlight でアプリをお届けするため、<strong>めたん様の Apple ID のメールアドレス</strong>をお知らせください。</p>
+          <ul class="bullets">
+            <li>App Store Connect のユーザーとしてご招待します（招待メールが届きます）</li>
+            <li>iPhone に TestFlight を入れておいていただけると当日スムーズです</li>
+          </ul>
+        </div>
+
+        <div class="ask">
+          <h3>③ 利用規約・プライバシーポリシーの本文</h3>
+          <p>
+            <strong>現在まだ空の状態です。</strong>App Store の審査で必須の項目でもあります。
+            課金対応で変更が必要とのお話でしたので、確定した本文をいただけますでしょうか。
+          </p>
+          <p style="margin:0">管理画面から差し替えられる形にしてあるので、<strong>アプリの更新なしで反映できます。</strong>確定前でも、仮の文面を入れて審査準備を進めることは可能です。</p>
+        </div>
+
+        <div class="ask">
+          <h3>④ 課金の方式と金額 <span class="pill now">要ご相談</span></h3>
+          <p>仕様書では Stripe（Apple Pay）を想定していますが、<strong>このままでは審査で弾かれる可能性が高いです。</strong></p>
+          <ul class="bullets">
+            <li>肥料 ＝ アプリ内で消費する仮想通貨</li>
+            <li>プレミアム ＝ 月額サブスク</li>
+          </ul>
+          <p>このどちらも、App Store の審査ガイドライン 3.1.1 で <strong>In-App Purchase が必須</strong>とされる可能性が高い項目です。外部決済（Stripe）を使うと審査で差し戻されるリスクがあります。</p>
+          <div class="scroller">
+            <table>
+              <thead><tr><th>方式</th><th>手数料</th><th>実装</th></tr></thead>
+              <tbody>
+                <tr><td>In-App Purchase</td><td>15〜30%</td><td>StoreKit ＋ レシート検証サーバー</td></tr>
+                <tr><td>Stripe</td><td>3%程度</td><td>ただし物理的な商品・サービスの決済に限られ、本アプリは該当しない見込み</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p style="margin:0"><strong>実装に入る前に方式を確定させたい</strong>ため、この場でご相談させてください。金額はコードに埋め込んでいないので、確定後に管理画面から変更できます。</p>
+        </div>
+      </section>
+
+      <!-- 5 -->
+      <section id="s5">
+        <h2><span class="num">05</span>次回までのアクション</h2>
+        <div class="scroller">
+          <table>
+            <thead><tr><th></th><th>内容</th><th>担当</th><th>期限</th></tr></thead>
+            <tbody>
+              <tr><td class="num">1</td><td>Supabase / Cloudflare への海野の招待（再送分の承認）</td><td class="who">めたん様</td><td class="when"><span class="pill now">本日中</span></td></tr>
+              <tr><td class="num">2</td><td>Apple ID のメールアドレスをお知らせ（TestFlight 招待用）</td><td class="who">めたん様</td><td class="when"><span class="pill now">本日中</span></td></tr>
+              <tr><td class="num">3</td><td>利用規約・プライバシーポリシー本文の確定</td><td class="who">めたん様</td><td class="when">次回まで</td></tr>
+              <tr><td class="num">4</td><td>課金方式の決定（IAP / Stripe）</td><td class="who">全員</td><td class="when">本日相談</td></tr>
+              <tr><td class="num">5</td><td>管理画面のデザイン・仕様のフィードバック</td><td class="who">めたん様</td><td class="when">8/7</td></tr>
+              <tr><td class="num">6</td><td>実データでの通し確認（出品〜退会）</td><td class="who">ソウゾウ</td><td class="when">8/6</td></tr>
+              <tr><td class="num">7</td><td>めたん様アカウントへの移行（招待が通り次第）</td><td class="who">ソウゾウ</td><td class="when">次回まで</td></tr>
+              <tr><td class="num">8</td><td>ネイティブビルド → TestFlight 配布</td><td class="who">ソウゾウ</td><td class="when"><span class="pill now">明日まで</span></td></tr>
+              <tr><td class="num">9</td><td>審査用素材（スクリーンショット・説明文）の準備</td><td class="who">ソウゾウ</td><td class="when">次回まで</td></tr>
+              <tr><td class="num">10</td><td>既存160名の移行データの書き出し</td><td class="who">めたん様 → ソウゾウ</td><td class="when">次回相談</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 6 -->
+      <section id="s6">
+        <h2><span class="num">06</span>残っている作業</h2>
+        <p class="sub">進捗の透明性のため、未完了のものも記載します。</p>
+        <div class="scroller">
+          <table>
+            <thead><tr><th>項目</th><th>状態</th></tr></thead>
+            <tbody>
+              <tr><td>課金の実装</td><td>受け皿（データ構造）は用意済み。<strong>方式の確定待ち</strong></td></tr>
+              <tr><td>プッシュ通知</td><td>アプリ側・サーバー側とも実装済み。<strong>明日の TestFlight ビルドで実機確認します</strong></td></tr>
+              <tr><td>メール送信</td><td>現在は Supabase 標準。差出人・文面を自社にする場合は別途設定</td></tr>
+              <tr><td>プレミアムの特典内容</td><td>「欲しいものリスト公開」が画面のみ。v1 に入れるか要相談</td></tr>
+              <tr><td>アイコン・スプラッシュ</td><td>仮素材。最終版が必要</td></tr>
+              <tr><td>既存160名の移行</td><td>旧データを入れれば自動で紐づく仕組みは完成。<strong>データの書き出し待ち</strong></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <footer class="foot">ソウゾウ合同会社 ／ ぐんぐん 開発チーム</footer>
+    </main>
+  </div>
+</div>

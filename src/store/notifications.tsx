@@ -1,33 +1,148 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState, useRef } from 'react';
+import { AppState } from 'react-native';
 import { notifications as seed, type Notif } from '@/data/mockSocial';
+import { isSupabaseEnabled, supabase } from '@/lib/supabase';
+import { useMe } from '@/store/me';
+import * as api from '@/lib/api/notifications';
 
 /**
- * 通知の既読状態を保持する（モック）。
- * 個別タップで既読、まとめて既読も可能。ホームのベルの赤ドットは未読数に連動。
- * ネイティブ化時は Supabase の notifications.read_at に置き換える。
+ * 通知。実DB接続時は `notifications` テーブルを読み、既読は read_at に書く。
+ *
+ * 画面は従来の Notif 型のまま使えるよう詰め替える。
+ * DB の body は完成した文（「〜に水やりがありました」）なので、
+ * モックのように「{actor}さん」を前置しない（actorId を空にして判別させる）。
  */
 type NotificationsState = {
   list: Notif[];
   unreadCount: number;
   markRead: (id: string) => void;
+  remove: (id: string) => void;
+  clearAll: () => void;
+  toggleSaved: (id: string) => void;
   markAllRead: () => void;
+  refresh: () => Promise<void>;
 };
 
 const NotificationsContext = createContext<NotificationsState | null>(null);
 
-export function NotificationsProvider({ children }: { children: React.ReactNode }) {
-  const [list, setList] = useState<Notif[]>(() => seed.map((n) => ({ ...n })));
+function toNotif(n: api.AppNotification): Notif {
+  return {
+    id: n.id,
+    type: n.type,
+    body: n.body,
+    createdAt: n.createdAt,
+    read: n.read,
+    saved: n.saved,
+    today: /分前|時間前|たった今/.test(n.createdAt),
+    // body は主語を含む完成文なので名前は前置しないが、
+    // アイコンを出すために「誰が起こしたか」は渡す（2026-08-12）
+    actorId: n.actorId ?? undefined,
+    actorName: n.actorName ?? undefined,
+    actorAvatar: n.actorAvatar ?? undefined,
+    imageUrl: n.imageUrl ?? undefined,
+    // 通知タップで該当ページへ飛べるように、対象IDを画面まで引き回す
+    relatedId: n.relatedId ?? undefined,
+  };
+}
 
-  const markRead = useCallback((id: string) => {
-    setList((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
-  }, []);
+export function NotificationsProvider({ children }: { children: React.ReactNode }) {
+  const live = isSupabaseEnabled;
+  const me = useMe();
+  const [list, setList] = useState<Notif[]>(() => (live ? [] : seed.map((n) => ({ ...n }))));
+
+  const refresh = useCallback(async () => {
+    if (!live || !me.live) return;
+    try {
+      setList((await api.fetchNotifications(me.id)).map(toNotif));
+    } catch {
+      // 取れなくても画面は動かす（0件表示になるだけ）
+    }
+  }, [live, me.live, me.id]);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  /**
+   * 通知は起動時に1回読むだけだったので、アプリを開いている間に届いた通知の
+   * 赤ポチが出なかった（2026-08-13 指摘：通知は来るのに赤ポチが来ない）。
+   *
+   * Realtime で自分あての新着を受けて即座に数え直し、
+   * 取りこぼし対策として前面復帰時にも取り直す。
+   */
+  const refreshRef = useRef(refresh);
+  refreshRef.current = refresh;
+
+  useEffect(() => {
+    if (!live || !me.live || !supabase) return;
+    const ch = supabase
+      .channel(`notifications:${me.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${me.id}` },
+        () => { refreshRef.current(); }
+      )
+      .subscribe();
+    const sub = AppState.addEventListener('change', (st) => { if (st === 'active') refreshRef.current(); });
+    return () => { supabase?.removeChannel(ch); sub.remove(); };
+  }, [live, me.live, me.id]);
+
+  const markRead = useCallback(
+    (id: string) => {
+      setList((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+      if (live && me.live) api.markRead([id]).catch(() => {});
+    },
+    [live, me.live]
+  );
+
+  /** 1件消す。画面を先に更新してから消しに行く */
+  const remove = useCallback(
+    (id: string) => {
+      setList((prev) => prev.filter((n) => n.id !== id));
+      if (live && me.live) api.removeNotification(id).catch(() => refreshRef.current());
+    },
+    [live, me.live]
+  );
+
+  /** 保存していないものをまとめて消す */
+  const clearAll = useCallback(() => {
+    setList((prev) => prev.filter((n) => n.saved));
+    if (live && me.live) api.clearNotifications(me.id).catch(() => refreshRef.current());
+  }, [live, me.live, me.id]);
+
+  /** 保存の付け外し */
+  const toggleSaved = useCallback(
+    (id: string) => {
+      let next = false;
+      setList((prev) =>
+        prev.map((n) => {
+          if (n.id !== id) return n;
+          next = !n.saved;
+          return { ...n, saved: next };
+        })
+      );
+      if (live && me.live) api.setSaved(id, next).catch(() => refreshRef.current());
+    },
+    [live, me.live]
+  );
+
   const markAllRead = useCallback(() => {
     setList((prev) => prev.map((n) => ({ ...n, read: true })));
-  }, []);
+    if (live && me.live) api.markRead().catch(() => {});
+  }, [live, me.live]);
 
   const value = useMemo<NotificationsState>(
-    () => ({ list, unreadCount: list.filter((n) => !n.read).length, markRead, markAllRead }),
-    [list, markRead, markAllRead]
+    () => ({
+      list,
+      unreadCount: list.filter((n) => !n.read).length,
+      markRead,
+      markAllRead,
+      remove,
+      clearAll,
+      toggleSaved,
+      refresh,
+    }),
+    [list, markRead, markAllRead, remove, clearAll, toggleSaved, refresh]
   );
   return <NotificationsContext.Provider value={value}>{children}</NotificationsContext.Provider>;
 }

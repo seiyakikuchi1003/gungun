@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TextInput, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -8,25 +8,56 @@ import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { ExpandableFab } from '@/components/ui/ExpandableFab';
 import { PostCard } from '@/components/board/PostCard';
+import { Toast } from '@/components/ui/Toast';
 import { PostActionSheet } from '@/components/feature/PostActionSheet';
 import { ReportSheet } from '@/components/feature/ReportSheet';
-import { boardPosts, boardTagFilters, trendingTags, type BoardPost } from '@/data/mockSocial';
-import { currentUser } from '@/data/mock';
+import { boardTagFilters, trendingTags } from '@/data/mockSocial';
+import { useBoard, type UIPost } from '@/hooks/useBoard';
 import { useBlocks } from '@/store/blocks';
+import { useMe } from '@/store/me';
+import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 
 export default function BoardScreen() {
+  const me = useMe();
   const insets = useSafeAreaInsets();
   const { isBlocked } = useBlocks();
   const [filter, setFilter] = useState<string>('all');
   const [hidden, setHidden] = useState<string[]>([]); // 自分で削除した投稿ID
-  const [sheetPost, setSheetPost] = useState<BoardPost | null>(null);
+  const [sheetPost, setSheetPost] = useState<UIPost | null>(null);
   const [report, setReport] = useState(false);
-  const list = boardPosts.filter(
+  // 通報の対象。メニューを閉じてからシートを出すので、対象IDは別に持つ
+  const [reportId, setReportId] = useState<string | null>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const [toast, setToast] = useState<string | null>(null);
+  const { posts, loading, reload, remove } = useBoard();
+  // 画面に戻ったとき・アプリを前面に戻したときに最新を取り直す
+  useAutoRefresh(reload);
+  // 引っ張って更新（他の画面と同じ操作で最新にできるように）
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await reload();
+    } catch {
+      // 取得に失敗しても画面は保つ
+    }
+    setRefreshing(false);
+  }, [reload]);
+  const q = query.trim().replace(/^#/, '').toLowerCase();
+  const list = posts.filter(
     (p) =>
       (filter === 'all' || p.tag === filter) &&
+      (q === '' || p.body.toLowerCase().includes(q)) &&
       !isBlocked(p.userId) &&
       !hidden.includes(p.id)
   );
+
+  /** 人気のタグをタップ＝そのキーワードで検索する */
+  const searchTag = (tag: string) => {
+    setQuery(tag);
+    setSearchOpen(true);
+  };
 
   // 投稿FABの開閉に使うスクロール位置
   const scrollY = useSharedValue(0);
@@ -42,14 +73,44 @@ export default function BoardScreen() {
           <Text style={styles.title}>掲示板</Text>
           <Text style={styles.subtitle}>交換の様子や質問をシェアしよう</Text>
         </View>
-        <PressableScale activeScale={0.9} style={styles.searchBtn}>
-          <Ionicons name="search" size={20} color={colors.textPrimary} />
+        <PressableScale
+          activeScale={0.9}
+          onPress={() => { setSearchOpen((v) => !v); if (searchOpen) setQuery(''); }}
+          style={[styles.searchBtn, searchOpen && styles.searchBtnOn]}
+        >
+          <Ionicons name={searchOpen ? 'close' : 'search'} size={20} color={searchOpen ? colors.white : colors.textPrimary} />
         </PressableScale>
       </View>
 
+      {searchOpen && (
+        <View style={styles.searchRow}>
+          <Ionicons name="search" size={17} color={colors.textSecondary} />
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            autoFocus
+            placeholder="投稿を検索"
+            placeholderTextColor={colors.textPlaceholder}
+            style={styles.searchInput}
+          />
+          {query.length > 0 && (
+            <PressableScale onPress={() => setQuery('')} activeScale={0.85} hitSlop={8}>
+              <Ionicons name="close-circle" size={18} color={colors.textPlaceholder} />
+            </PressableScale>
+          )}
+        </View>
+      )}
+
       {/* フィルター */}
       <View style={styles.filtersRow}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
+      {/* カテゴリの帯。横に流すだけで、ここで引っぱり更新はさせない。
+          refreshControl が付いていたため、この帯だけが縦に動いて
+          リロードできてしまっていた（2026-08-21 指摘・再発） */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={styles.filters}>
         {boardTagFilters.map((f) => {
           const on = filter === f.key;
           return (
@@ -62,6 +123,8 @@ export default function BoardScreen() {
       </View>
 
       <Animated.ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.feed}
         onScroll={onScroll}
@@ -74,21 +137,26 @@ export default function BoardScreen() {
             <Text style={styles.trendTitle}>人気のタグ</Text>
           </View>
           <View style={styles.trendTags}>
-            {trendingTags.map((t) => (
-              <PressableScale key={t} activeScale={0.95} style={styles.trendChip}>
-                <Text style={styles.trendChipText}>{t}</Text>
-              </PressableScale>
-            ))}
+            {trendingTags.map((t) => {
+              const on = q !== '' && t.toLowerCase().includes(q);
+              return (
+                <PressableScale key={t} activeScale={0.95} onPress={() => searchTag(t)} style={[styles.trendChip, on && styles.trendChipOn]}>
+                  <Text style={[styles.trendChipText, on && styles.trendChipTextOn]}>{t}</Text>
+                </PressableScale>
+              );
+            })}
           </View>
         </Animated.View>
 
         {list.map((p, i) => (
           <Animated.View key={p.id} entering={FadeInDown.delay(80 + i * 60).duration(400)}>
-            <PostCard post={p} onPress={() => router.push(`/board/${p.id}`)} onMore={() => setSheetPost(p)} />
+            <PostCard post={p} onPress={() => router.push(`/board/${p.id}`)} onMore={() => setSheetPost(p)} onCopied={() => setToast('投稿をコピーしました')} />
           </Animated.View>
         ))}
         {list.length === 0 && (
-          <Text style={styles.empty}>表示できる投稿がありません</Text>
+          <Text style={styles.empty}>
+            {loading ? '読み込み中…' : q !== '' ? `「${query}」に一致する投稿はありません` : '表示できる投稿がありません'}
+          </Text>
         )}
       </Animated.ScrollView>
 
@@ -108,12 +176,25 @@ export default function BoardScreen() {
           visible={!!sheetPost}
           onClose={() => setSheetPost(null)}
           authorId={sheetPost.userId}
-          isOwner={sheetPost.userId === currentUser.id}
-          onReport={() => setReport(true)}
-          onDelete={() => setHidden((h) => [...h, sheetPost.id])}
+          isOwner={sheetPost.userId === me.id}
+          onReport={() => {
+            // メニューを閉じきってから開く。同時に2枚出すと画面が操作できなくなる（2026-08-12 指摘）
+            const id = sheetPost.id;
+            setSheetPost(null);
+            setReportId(id);
+            setTimeout(() => setReport(true), 320);
+          }}
+          onDelete={() => { setHidden((h) => [...h, sheetPost.id]); remove(sheetPost.id); }}
         />
       )}
-      <ReportSheet visible={report} onClose={() => setReport(false)} targetLabel="この投稿" />
+      <ReportSheet
+        visible={report}
+        onClose={() => { setReport(false); setReportId(null); }}
+        targetLabel="この投稿"
+        targetType="board_post"
+        targetId={reportId ?? ''}
+      />
+      <Toast message={toast} onHide={() => setToast(null)} />
     </View>
   );
 }
@@ -124,6 +205,9 @@ const styles = StyleSheet.create({
   title: { fontFamily: fonts.black, fontSize: 26, color: colors.textPrimary },
   subtitle: { fontFamily: fonts.medium, fontSize: 12.5, color: colors.textSecondary, marginTop: 2 },
   searchBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: colors.card, justifyContent: 'center', alignItems: 'center', ...shadows.soft },
+  searchBtnOn: { backgroundColor: colors.green },
+  searchRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.card, borderRadius: radius.pill, paddingHorizontal: spacing.md, height: 42, marginHorizontal: 20, marginBottom: spacing.sm, ...shadows.soft },
+  searchInput: { flex: 1, fontFamily: fonts.medium, fontSize: 14.5, color: colors.textPrimary },
   filtersRow: { height: 60 },
   filters: { paddingHorizontal: 20, gap: spacing.sm, alignItems: 'center', paddingVertical: 10 },
   chip: { paddingHorizontal: 16, height: 38, borderRadius: radius.pill, backgroundColor: colors.card, justifyContent: 'center' },
@@ -137,5 +221,7 @@ const styles = StyleSheet.create({
   trendTitle: { fontFamily: fonts.bold, fontSize: 14, color: colors.textPrimary },
   trendTags: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   trendChip: { backgroundColor: colors.greenSoft, paddingHorizontal: 12, paddingVertical: 7, borderRadius: radius.pill },
+  trendChipOn: { backgroundColor: colors.green },
   trendChipText: { fontFamily: fonts.bold, fontSize: 12.5, color: colors.green },
+  trendChipTextOn: { color: colors.white },
 });

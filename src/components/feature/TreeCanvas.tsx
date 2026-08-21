@@ -6,7 +6,8 @@ import { Thumb } from '@/components/ui/Thumb';
 import { Avatar } from '@/components/ui/Avatar';
 import { Mikan } from '@/components/art/Mikan';
 import { PressableScale } from '@/components/ui/PressableScale';
-import { getUser, treeGrowth, MockItem } from '@/data/mock';
+import { treeVisual, MockItem } from '@/data/mock';
+import { useUsers } from '@/store/users';
 
 type Props = {
   width: number;
@@ -42,13 +43,14 @@ const BLOOMS = [
   { dx: -0.42, dy: -0.28 }, { dx: 0.4, dy: -0.16 }, { dx: 0.12, dy: -0.5 }, { dx: -0.66, dy: -0.02 },
 ];
 
-const MASCOT_BY_STAGE = ['たねを植えたよ🌰', 'めが出たよ！', 'すくすく育ってるよ！', 'りっぱな木になった！'];
+// 2026-07-28 MTG（めたん様）：木の大小を示す表現は使わない。
+// 数が増えたことを事実として伝えるだけにする。
 
 export function TreeCanvas({ width, children, treeSize, highlightId, onPressNode, onPressEmpty, showEmptySlot = true, mascotText }: Props) {
+  const users = useUsers();
   const cx = width / 2;
   const size = treeSize ?? children.length + 1;
-  const g = treeGrowth(size);
-  const stage = g.stage;
+  const stage = treeVisual(size).stage;
 
   // 成長段階でキャノピー半径・幹の高さを決める
   const canopyR = width * (stage === 0 ? 0.16 : stage === 1 ? 0.33 : stage === 2 ? 0.4 : 0.46);
@@ -67,7 +69,10 @@ export function TreeCanvas({ width, children, treeSize, highlightId, onPressNode
     x: cx + o.dx * canopyR,
     y: canopyCY + o.dy * canopyR,
   });
-  const speech = mascotText ?? MASCOT_BY_STAGE[stage];
+  // 「大きい／小さい」ではなく、集まった件数をそのまま伝える
+  const waterings = Math.max(0, size - 1);
+  const speech =
+    mascotText ?? (waterings === 0 ? 'さいしょの水やりを待ってるよ' : `水やりが${waterings}件あつまってるよ！`);
 
   return (
     <View style={[styles.wrap, { width, height: HEIGHT }]}>
@@ -110,7 +115,7 @@ export function TreeCanvas({ width, children, treeSize, highlightId, onPressNode
         ))}
 
         {stage === 0 ? (
-          /* めばえ：どんぐり＋双葉 */
+          /* まだ水やりがない状態：どんぐり＋双葉 */
           <G>
             <Path d={`M${cx},${grassY - 6} L${cx},${grassY - 34}`} stroke="#79B255" strokeWidth={5} strokeLinecap="round" />
             <Path d={`M${cx},${grassY - 26} C${cx - 26},${grassY - 30} ${cx - 30},${grassY - 46} ${cx - 14},${grassY - 50} C${cx - 8},${grassY - 40} ${cx - 4},${grassY - 32} ${cx},${grassY - 28} Z`} fill="url(#leaf)" />
@@ -161,7 +166,7 @@ export function TreeCanvas({ width, children, treeSize, highlightId, onPressNode
               const p = pos(b);
               return <Circle key={`b${i}`} cx={p.x} cy={p.y} r={4} fill="#FBD9E6" stroke="#F4A9C0" strokeWidth={1.4} />;
             })}
-            {/* みかんの実（stage 2 以上で増える。おおきな木ほど鈴なり） */}
+            {/* みかんの実（商品が増えるほど鈴なりになる装飾） */}
             {stage >= 2 && FRUITS.slice(0, stage === 2 ? 3 : 6).map((fr, i) => {
               const p = pos(fr);
               return (
@@ -181,7 +186,7 @@ export function TreeCanvas({ width, children, treeSize, highlightId, onPressNode
         const slot = slots[i];
         if (!slot) return null;
         const p = pos(slot);
-        const owner = getUser(item.ownerId);
+        const owner = users.user(item.ownerId);
         const isNew = item.id === highlightId;
         return (
           <View key={item.id} style={[styles.node, { left: p.x - NODE / 2, top: p.y - NODE / 2, width: NODE }]}>
@@ -224,12 +229,6 @@ export function TreeCanvas({ width, children, treeSize, highlightId, onPressNode
         </View>
       )}
 
-      {/* 成長バッジ */}
-      <View style={styles.growthBadge}>
-        <Text style={styles.growthEmoji}>{g.emoji}</Text>
-        <Text style={styles.growthText}>{g.label}</Text>
-      </View>
-
       {/* みかんマスコット＋吹き出し */}
       <View style={styles.mascot}>
         <View style={styles.speech}><Text style={styles.speechText}>{speech}</Text></View>
@@ -260,9 +259,6 @@ const styles = StyleSheet.create({
   emptyLabel: { fontFamily: fonts.medium, fontSize: 9.5, color: colors.textSecondary, marginTop: 5, textAlign: 'center', lineHeight: 13 },
   extraChip: { position: 'absolute', top: 12, right: 12, backgroundColor: 'rgba(255,255,255,0.9)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.pill, ...shadows.soft },
   extraText: { fontFamily: fonts.bold, fontSize: 11.5, color: colors.orangeDeep },
-  growthBadge: { position: 'absolute', top: 12, left: 12, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(255,255,255,0.9)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.pill, ...shadows.soft },
-  growthEmoji: { fontSize: 13 },
-  growthText: { fontFamily: fonts.bold, fontSize: 11.5, color: colors.greenDeep },
   mascot: { position: 'absolute', left: 10, bottom: 8, flexDirection: 'row', alignItems: 'flex-end', gap: 6 },
   speech: { backgroundColor: colors.white, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 7, marginBottom: 6, ...shadows.soft },
   speechText: { fontFamily: fonts.bold, fontSize: 11.5, color: colors.green },

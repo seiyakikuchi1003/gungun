@@ -8,17 +8,23 @@ import { PressableScale } from '@/components/ui/PressableScale';
 import { ItemCard } from '@/components/ui/ItemCard';
 import { Thumb } from '@/components/ui/Thumb';
 import { Sprout } from '@/components/art/Sprout';
-import { getItem, getUser, items } from '@/data/mock';
+import { useTree } from '@/store/tree';
+import { useUsers } from '@/store/users';
 
 export default function RootDetail() {
+  const users = useUsers();
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
+  const { getItem, treeItems, childrenOf } = useTree();
   const seed = getItem(id ?? '');
   const cardW = (width - 20 * 2 - 12) / 2;
   if (!seed) return <View style={styles.root} />;
-  const owner = getUser(seed.ownerId);
-  const connected = items.filter((i) => i.id !== seed.id).slice(0, seed.treeCount);
+  const owner = users.user(seed.ownerId);
+  // 同じ木にぶら下がっている商品だけを出す（以前は先頭N件を無関係に並べていた）
+  const connected = treeItems(seed.id).filter((i) => i.id !== seed.id);
+  const gathered = connected.length;
+  const directWaterings = childrenOf(seed.id).length;
 
   return (
     <View style={styles.root}>
@@ -30,7 +36,9 @@ export default function RootDetail() {
         <View style={styles.hBtn} />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
+      <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
         {/* 根の種 */}
         <View style={[styles.rootCard, shadows.card]}>
           <Thumb source={seed.local} uri={seed.image} style={styles.rootThumb} radius={radius.md} markSize={34} />
@@ -43,12 +51,12 @@ export default function RootDetail() {
 
         <View style={styles.treeStat}>
           <View style={styles.treeStatItem}>
-            <Text style={styles.treeNum}>{seed.treeCount}</Text>
-            <Text style={styles.treeLabel}>木全体の商品</Text>
+            <Text style={styles.treeNum}>{gathered}</Text>
+            <Text style={styles.treeLabel}>集まった商品</Text>
           </View>
           <View style={styles.treeDivider} />
           <View style={styles.treeStatItem}>
-            <Text style={styles.treeNum}>{seed.waterCount}</Text>
+            <Text style={styles.treeNum}>{directWaterings}</Text>
             <Text style={styles.treeLabel}>直接の水やり</Text>
           </View>
         </View>

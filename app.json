@@ -2,7 +2,8 @@
   "expo": {
     "name": "ぐんぐん",
     "slug": "gungun",
-    "version": "1.0.0",
+    "owner": "unnoshohei",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "gungun",
@@ -11,11 +12,24 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#FDF8F0"
+      "backgroundColor": "#FDF8F0",
+      "imageWidth": 240
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "app.gungun.ios"
+      "bundleIdentifier": "com.warashibe.gungun",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "remote-notification"
+        ],
+        "ITSAppUsesNonExemptEncryption": false,
+        "CFBundleLocalizations": [
+          "ja",
+          "en"
+        ],
+        "CFBundleDevelopmentRegion": "ja_JP"
+      },
+      "buildNumber": "3"
     },
     "web": {
       "bundler": "metro",
@@ -30,19 +44,50 @@
         {
           "image": "./assets/splash-icon.png",
           "resizeMode": "contain",
-          "backgroundColor": "#FDF8F0"
+          "backgroundColor": "#FDF8F0",
+          "imageWidth": 240
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "商品の写真を選ぶために写真ライブラリへのアクセスを許可してください。",
-          "cameraPermission": "商品の写真を撮影するためにカメラへのアクセスを許可してください。"
+          "photosPermission": "出品する商品の写真を選ぶために使用します。選んだ写真は、あなたの出品画像としてのみ利用されます。",
+          "cameraPermission": "出品する商品の写真をその場で撮影するために使用します。撮影した写真は、あなたの出品画像としてのみ利用されます。",
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/android-icon-monochrome.png",
+          "color": "#2C8547"
+        }
+      ],
+      "expo-asset",
+      [
+        "@stripe/stripe-react-native",
+        {
+          "merchantIdentifier": "merchant.com.warashibe.gungun"
         }
       ]
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "cb922a39-ddd5-4817-b3c8-473c709940ed"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/cb922a39-ddd5-4817-b3c8-473c709940ed",
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 8000
+    },
+    "locales": {}
   }
 }

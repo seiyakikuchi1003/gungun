@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TextInput, ActivityIndicator } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -8,43 +8,74 @@ import { PressableScale } from '@/components/ui/PressableScale';
 import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
 import { Thumb } from '@/components/ui/Thumb';
 import { PhotoSourceSheet } from '@/components/feature/PhotoSourceSheet';
-import { categories, conditions, currentUser } from '@/data/mock';
+
+import { categories, conditions } from '@/data/mock';
+import { useMe } from '@/store/me';
+import { FormError } from '@/components/ui/FormError';
 import { success } from '@/lib/haptics';
 import { useTree } from '@/store/tree';
+import { KeyboardDoneBar, KEYBOARD_DONE_ID } from '@/components/ui/KeyboardDoneBar';
+import { NotFound } from '@/components/ui/NotFound';
+import { OptionPicker } from '@/components/ui/OptionPicker';
 
 const NAME_MAX = 20;
 const DESC_MAX = 200;
 type PickerKey = 'category' | 'condition' | null;
 
 export default function EditItemScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, cropped } = useLocalSearchParams<{ id: string; cropped?: string }>();
+  // 切り抜き画面から戻ってきたときに差し替える写真
+  const cropTarget = useRef<number | null>(null);
   const insets = useSafeAreaInsets();
   const { getItem, updateItem } = useTree();
+  const me = useMe();
   const item = getItem(id ?? '');
 
   // 既存の写真（URI優先。ローカル画像しかない場合はサムネのみ表示できないので空で開始）
   const initialPhotos = item ? (item.images?.length ? item.images : item.image ? [item.image] : []) : [];
   const [photos, setPhotos] = useState<string[]>(initialPhotos);
+  useEffect(() => {
+    if (!cropped) return;
+    const i = cropTarget.current;
+    if (i !== null) setPhotos((p) => p.map((v, idx) => (idx === i ? cropped : v)));
+    cropTarget.current = null;
+    router.setParams({ cropped: undefined });
+  }, [cropped]);
   const [name, setName] = useState(item?.name ?? '');
   const [desc, setDesc] = useState(item?.description ?? '');
   const [category, setCategory] = useState(item?.category ?? categories[0]);
   const [condition, setCondition] = useState(item?.condition ?? '');
   const [picker, setPicker] = useState<PickerKey>(null);
   const [photoSheet, setPhotoSheet] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   if (!item) {
-    return <View style={styles.notFound}><Text style={styles.notFoundText}>商品が見つかりません</Text></View>;
+    return <NotFound message="商品が見つかりませんでした" />;
   }
   // 念のため他人の商品は編集不可
-  if (item.ownerId !== currentUser.id) {
-    return <View style={styles.notFound}><Text style={styles.notFoundText}>この出品は編集できません</Text></View>;
+  if (item.ownerId !== me.id) {
+    return <NotFound message="この出品は編集できません" hint="取引中または収穫済みの商品は編集できません。" />;
+  }
+  if (item.waterCount > 0) {
+    // 水やりが集まった後に中身を変えられると詐欺になるため（2026-08-12 確定）
+    return (
+      <NotFound
+        message="水やりされた後は編集できません"
+        hint="すでに水やりしてくれた人がいます。内容を変えると交換の前提が変わってしまうため、編集できません。"
+      />
+    );
   }
 
-  const canSave = name.trim().length > 0 && condition.length > 0 && photos.length > 0;
+  const canSave = name.trim().length > 0 && condition.length > 0 && photos.length > 0 && !busy;
 
-  const save = () => {
+  const save = async () => {
     if (!canSave) return;
-    updateItem(item.id, { name, category, condition, description: desc, photos });
+    setError(null);
+    setBusy(true);
+    const res = await updateItem(item.id, { name, category, condition, description: desc, photos });
+    setBusy(false);
+    if (res.error) { setError(res.error); return; }
     success();
     router.back();
   };
@@ -59,24 +90,43 @@ export default function EditItemScreen() {
         <View style={styles.hBtn} />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        keyboardDismissMode="on-drag"
+        automaticallyAdjustKeyboardInsets
+        keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
         {/* 写真 */}
         <Text style={styles.label}>商品の写真</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photoRow}>
+        {/* 追加ボタンは左に固定し、写真だけを横に流す（出品フォームと揃える／2026-08-13 指摘） */}
+        <View style={styles.photoRowWrap}>
+        <PressableScale onPress={() => setPhotoSheet(true)} activeScale={0.96} style={styles.addPhoto}>
+          <Ionicons name="camera" size={26} color={colors.green} />
+          <Text style={styles.addPhotoText}>写真を追加</Text>
+        </PressableScale>
+        <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photoRow}>
           {photos.map((uri, i) => (
             <View key={uri + i} style={styles.photo}>
-              <Thumb source={i === 0 ? item.local : undefined} uri={uri} style={styles.photoImg} radius={radius.md} markSize={30} />
+              {/* タップで切り抜き（出品フォームと同じ／2026-08-14 指摘） */}
+              <PressableScale
+                activeScale={0.97}
+                onPress={() => { cropTarget.current = i; router.push({ pathname: '/crop', params: { uri } }); }}
+              >
+                <Thumb source={i === 0 ? item.local : undefined} uri={uri} style={styles.photoImg} radius={radius.md} markSize={30} />
+                <View style={styles.cropHint}>
+                  <Ionicons name="crop" size={10} color={colors.white} />
+                  <Text style={styles.cropHintText}>切り抜く</Text>
+                </View>
+              </PressableScale>
               <PressableScale onPress={() => setPhotos((p) => p.filter((_, idx) => idx !== i))} style={styles.removeBadge} activeScale={0.85}>
                 <Ionicons name="close" size={13} color={colors.white} />
               </PressableScale>
             </View>
           ))}
-          <PressableScale onPress={() => setPhotoSheet(true)} activeScale={0.96} style={styles.addPhoto}>
-            <Ionicons name="camera" size={26} color={colors.green} />
-            <Text style={styles.addPhotoText}>写真を追加</Text>
-          </PressableScale>
         </ScrollView>
+        </View>
 
+        {/* 出品フォームと同じ順番に揃える（商品名 → 説明 → カテゴリー → 状態）*/}
         {/* 商品名 */}
         <View style={styles.field}>
           <View style={styles.fieldHead}>
@@ -92,30 +142,39 @@ export default function EditItemScreen() {
           />
         </View>
 
-        <SelectRow label="カテゴリ" value={category} placeholder="選択してください" onPress={() => setPicker('category')} />
-        <SelectRow label="商品の状態" value={condition} placeholder="選択してください" onPress={() => setPicker('condition')} />
-
         {/* 商品説明 */}
         <View style={styles.field}>
           <View style={styles.fieldHead}>
             <Text style={styles.fieldLabel}>商品説明</Text>
             <Text style={styles.counter}>{desc.length}/{DESC_MAX}</Text>
           </View>
+
+        <SelectRow label="カテゴリ" value={category} placeholder="選択してください" onPress={() => setPicker('category')} />
+        <SelectRow label="商品の状態" value={condition} placeholder="選択してください" onPress={() => setPicker('condition')} />
+
           <TextInput
             value={desc}
             onChangeText={(t) => t.length <= DESC_MAX && setDesc(t)}
             placeholder="商品の説明を入力してください（200文字以内）"
             placeholderTextColor={colors.textPlaceholder}
             multiline
+              inputAccessoryViewID={KEYBOARD_DONE_ID}
             style={[styles.input, styles.textarea, { outlineStyle: 'none' } as object]}
           />
         </View>
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+        {error ? <View style={{ marginBottom: 10 }}><FormError message={error} /></View> : null}
         <PressableScale onPress={save} disabled={!canSave} activeScale={0.97} style={[styles.saveBtn, shadows.button, !canSave && styles.saveBtnOff]}>
-          <Ionicons name="checkmark" size={20} color={colors.white} />
-          <Text style={styles.saveText}>変更を保存</Text>
+          {busy ? (
+            <ActivityIndicator color={colors.white} />
+          ) : (
+            <>
+              <Ionicons name="checkmark" size={20} color={colors.white} />
+              <Text style={styles.saveText}>変更を保存</Text>
+            </>
+          )}
         </PressableScale>
       </View>
 
@@ -125,18 +184,15 @@ export default function EditItemScreen() {
         onPicked={(uris) => setPhotos((p) => [...p, ...uris].slice(0, 10))}
       />
 
-      <BottomSheetModal visible={picker !== null} onClose={() => setPicker(null)}>
-        <Text style={styles.pickerTitle}>{picker === 'category' ? 'カテゴリ' : '商品の状態'}</Text>
-        {(picker === 'category' ? categories : conditions).map((opt) => {
-          const selected = picker === 'category' ? category === opt : condition === opt;
-          return (
-            <PressableScale key={opt} activeScale={0.98} onPress={() => { picker === 'category' ? setCategory(opt) : setCondition(opt); setPicker(null); }} style={styles.pickerRow}>
-              <Text style={[styles.pickerText, selected && styles.pickerTextOn]}>{opt}</Text>
-              {selected && <Ionicons name="checkmark" size={20} color={colors.green} />}
-            </PressableScale>
-          );
-        })}
-      </BottomSheetModal>
+      <OptionPicker
+        visible={picker !== null}
+        title={picker === 'category' ? 'カテゴリ' : '商品の状態'}
+        options={picker === 'category' ? categories : conditions}
+        selected={picker === 'category' ? category : condition}
+        searchable={picker === 'category'}
+        onSelect={(v) => (picker === 'category' ? setCategory(v) : setCondition(v))}
+        onClose={() => setPicker(null)}
+      />
     </View>
   );
 }
@@ -149,6 +205,7 @@ function SelectRow({ label, value, placeholder, onPress }: { label: string; valu
         <Text style={[styles.selectValue, !value && styles.selectPlaceholder]}>{value || placeholder}</Text>
         <Ionicons name="chevron-down" size={18} color={colors.textSecondary} />
       </PressableScale>
+      <KeyboardDoneBar />
     </View>
   );
 }
@@ -162,6 +219,12 @@ const styles = StyleSheet.create({
   hTitle: { fontFamily: fonts.bold, fontSize: 16, color: colors.textPrimary },
   label: { fontFamily: fonts.bold, fontSize: 13, color: colors.textSecondary, marginBottom: spacing.sm },
   photoRow: { gap: spacing.md, paddingVertical: spacing.xs },
+  photoRowWrap: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' },
+  cropHint: {
+    position: 'absolute', left: 4, bottom: 4, flexDirection: 'row', alignItems: 'center', gap: 3,
+    backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 999, paddingHorizontal: 5, paddingVertical: 2,
+  },
+  cropHintText: { fontFamily: fonts.bold, fontSize: 9, color: colors.white },
   photo: { width: 92, height: 92 },
   photoImg: { width: 92, height: 92 },
   removeBadge: { position: 'absolute', top: 5, right: 5, width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },

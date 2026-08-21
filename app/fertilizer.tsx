@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
+import { Sprout } from '@/components/art/Sprout';
+import { errorMessage } from '@/lib/errorMessage';
+import { View, Text, StyleSheet, ScrollView, AppState } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -7,12 +10,69 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { Button } from '@/components/ui/Button';
-import { settings, formatPrice } from '@/config/settings';
-import { currentUser } from '@/data/mock';
+import { settings as fallbackSettings, formatPrice } from '@/config/settings';
+import { useTree } from '@/store/tree';
+import { useAuth } from '@/store/auth';
+import { pay } from '@/lib/api/purchases';
+import { FormError } from '@/components/ui/FormError';
 
 export default function Fertilizer() {
   const insets = useSafeAreaInsets();
-  const [sel, setSel] = useState<string>(settings.chargePlans[1].id);
+  // 残高は tree ストアが持つ（モックでも増減する）。me.fertilizer は初期値なので使わない
+  const { fertilizer, addFertilizer, settings: appSettings, live } = useTree();
+  const { reloadProfile } = useAuth();
+  // 販売プランは DB（app_settings.charge_plans）から。未接続時はモックの既定値
+  const plans = live
+    ? appSettings.chargePlans
+    : fallbackSettings.chargePlans.map((p) => ({ ...p, price: p.price ?? 0, badge: p.badge ?? '' }));
+  const [sel, setSel] = useState<string>(plans[1]?.id ?? plans[0].id);
+  const [done, setDone] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  // 押した瞬間に決済が走らないよう、内容の確認と同意を挟む（2026-08-21 指摘）
+  const [confirm, setConfirm] = useState(false);
+  const [agreed, setAgreed] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const plan = plans.find((p) => p.id === sel) ?? plans[0];
+
+  // 決済はブラウザで行うので、アプリに戻ってきたら残高を取り直す。
+  // 付与は Stripe の通知を受けたサーバ側が行うため、ここでは読むだけ。
+  useEffect(() => {
+    if (!live) return;
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') reloadProfile().catch(() => {});
+    });
+    return () => sub.remove();
+  }, [live, reloadProfile]);
+
+  /**
+   * 購入。実DB接続時は Stripe Checkout をブラウザで開く。
+   * 未接続（モック）のときは、残高が増えるところまでを見せる。
+   */
+  const purchase = async () => {
+    if (done || busy) return;
+    if (!live) {
+      addFertilizer(plan.fertilizer);
+      setDone(`${plan.fertilizer.toLocaleString()}肥料をチャージしました`);
+      // 直リンクで開かれていて戻り先が無いこともあるのでホームへ逃がす
+      setTimeout(() => (router.canGoBack() ? router.back() : router.replace('/(tabs)')), 1200);
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await pay('fertilizer', plan.id);
+      if (res.status === 'paid') {
+        // 付与はサーバが Stripe の通知を受けてから。少し待って残高を取り直す
+        setDone(`${plan.fertilizer.toLocaleString()}肥料をチャージしました`);
+        setTimeout(() => { reloadProfile().catch(() => {}); }, 1500);
+        setTimeout(() => { reloadProfile().catch(() => {}); }, 4000);
+      }
+    } catch (e) {
+      setError(errorMessage(e, '支払いを開始できませんでした'));
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <View style={styles.root}>
@@ -24,18 +84,20 @@ export default function Fertilizer() {
         <View style={styles.hBtn} />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
+      <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
         <LinearGradient colors={[colors.green, colors.greenDeep]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.balance, shadows.card]}>
           <Text style={styles.balanceLabel}>現在の肥料</Text>
           <View style={styles.balanceRow}>
             <Ionicons name="leaf" size={22} color={colors.white} />
-            <Text style={styles.balanceNum}>{currentUser.fertilizer}</Text>
+            <Text style={styles.balanceNum}>{fertilizer.toLocaleString()}</Text>
             <Text style={styles.balanceUnit}>肥料</Text>
           </View>
         </LinearGradient>
 
         <Text style={styles.sectionTitle}>チャージするプランを選択</Text>
-        {settings.chargePlans.map((p) => {
+        {plans.map((p) => {
           const on = p.id === sel;
           return (
             <PressableScale key={p.id} activeScale={0.98} onPress={() => setSel(p.id)} style={[styles.plan, shadows.soft, on && styles.planOn]}>
@@ -52,22 +114,115 @@ export default function Fertilizer() {
 
         <View style={styles.note}>
           <Ionicons name="information-circle-outline" size={16} color={colors.textSecondary} />
-          <Text style={styles.noteText}>金額は調整中です。確定後、管理画面から反映されます。</Text>
+          <Text style={styles.noteText}>
+            {live
+              ? 'Apple Pay・クレジットカードでお支払いいただけます。反映まで数秒かかることがあります。'
+              : '金額は調整中です。確定後、管理画面から反映されます。'}
+          </Text>
         </View>
+        {error ? <FormError message={error} /> : null}
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
-        <Button
-          title="Apple Pay で購入する"
-          leftIcon={<Ionicons name="logo-apple" size={20} color={colors.white} />}
-          onPress={() => router.back()}
-        />
+        {done ? (
+          <View style={styles.doneRow}>
+            <Ionicons name="checkmark-circle" size={20} color={colors.green} />
+            <Text style={styles.doneText}>{done}</Text>
+          </View>
+        ) : (
+          <Button
+            title={live ? `${formatPrice(plan.price)} の購入手続きへ` : 'Apple Pay で購入する'}
+            leftIcon={<Ionicons name={live ? 'card' : 'logo-apple'} size={20} color={colors.white} />}
+            loading={busy}
+            onPress={() => { setConfirm(true); setAgreed(false); }}
+          />
+        )}
       </View>
+
+      {/* 購入前の確認。何をいくらで買うのか、返金できないことを読んでから進む */}
+      <BottomSheetModal visible={confirm} onClose={() => setConfirm(false)}>
+        <View style={styles.confirmHead}>
+          <Sprout size={48} base />
+          <Text style={styles.confirmTitle}>購入内容の確認</Text>
+        </View>
+
+        <View style={styles.confirmBox}>
+          <View style={styles.confirmRow}>
+            <Text style={styles.confirmKey}>受け取る肥料</Text>
+            <Text style={styles.confirmVal}>{plan.fertilizer.toLocaleString()} 肥料</Text>
+          </View>
+          <View style={styles.confirmRow}>
+            <Text style={styles.confirmKey}>お支払い金額</Text>
+            <Text style={styles.confirmVal}>{formatPrice(plan.price)}（税込）</Text>
+          </View>
+          <View style={styles.confirmRow}>
+            <Text style={styles.confirmKey}>支払い方法</Text>
+            <Text style={styles.confirmVal}>Apple Pay・クレジットカード</Text>
+          </View>
+          <View style={styles.confirmRow}>
+            <Text style={styles.confirmKey}>購入後の残高</Text>
+            <Text style={styles.confirmVal}>{(fertilizer + plan.fertilizer).toLocaleString()} 肥料</Text>
+          </View>
+        </View>
+
+        <View style={styles.terms}>
+          {[
+            '肥料はアプリ内でのみ使えるポイントです。現金への換金や払い戻しはできません。',
+            'デジタルコンテンツのため、購入後のキャンセル・返金はお受けできません。',
+            '決済はStripeが行います。カード番号を当方が保持することはありません。',
+            '反映まで数秒かかることがあります。増えないときはお問い合わせください。',
+          ].map((t) => (
+            <View key={t} style={styles.termRow}>
+              <Text style={styles.termDot}>・</Text>
+              <Text style={styles.termText}>{t}</Text>
+            </View>
+          ))}
+        </View>
+
+        <PressableScale activeScale={0.98} onPress={() => setAgreed((v) => !v)} style={styles.agreeRow}>
+          <View style={[styles.agreeBox, agreed && styles.agreeBoxOn]}>
+            {agreed && <Ionicons name="checkmark" size={14} color={colors.white} />}
+          </View>
+          <Text style={styles.agreeText}>
+            上記の内容と
+            <Text style={styles.link} onPress={() => router.navigate('/mypage/terms')}>利用規約</Text>
+            に同意します
+          </Text>
+        </PressableScale>
+
+        {error ? <FormError message={error} /> : null}
+        <Button
+          title={`${formatPrice(plan.price)} を支払う`}
+          loading={busy}
+          disabled={!agreed || busy}
+          onPress={async () => { setConfirm(false); await purchase(); }}
+        />
+        <PressableScale onPress={() => setConfirm(false)} style={styles.confirmCancel}>
+          <Text style={styles.confirmCancelText}>やめる</Text>
+        </PressableScale>
+      </BottomSheetModal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  confirmHead: { alignItems: 'center', gap: spacing.sm, marginBottom: spacing.lg },
+  confirmTitle: { fontFamily: fonts.black, fontSize: 19, color: colors.textPrimary },
+  confirmBox: { backgroundColor: colors.bgWarm, borderRadius: radius.card, padding: spacing.lg, gap: spacing.sm, marginBottom: spacing.lg },
+  confirmRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md },
+  confirmKey: { fontFamily: fonts.medium, fontSize: 13, color: colors.textSecondary },
+  confirmVal: { fontFamily: fonts.bold, fontSize: 14.5, color: colors.textPrimary },
+  terms: { gap: 6, marginBottom: spacing.md },
+  termRow: { flexDirection: 'row', alignItems: 'flex-start' },
+  termDot: { fontFamily: fonts.medium, fontSize: 12.5, color: colors.textSecondary },
+  termText: { flex: 1, fontFamily: fonts.medium, fontSize: 12.5, lineHeight: 19, color: colors.textSecondary },
+  agreeRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, marginBottom: spacing.md },
+  agreeBox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: colors.border, justifyContent: 'center', alignItems: 'center', marginTop: 1 },
+  agreeBoxOn: { backgroundColor: colors.green, borderColor: colors.green },
+  agreeText: { flex: 1, fontFamily: fonts.medium, fontSize: 12.5, lineHeight: 20, color: colors.textPrimary },
+  link: { fontFamily: fonts.bold, color: colors.green, textDecorationLine: 'underline' },
+  confirmCancel: { alignItems: 'center', paddingVertical: spacing.lg },
+  confirmCancelText: { fontFamily: fonts.bold, fontSize: 15, color: colors.textSecondary },
   root: { flex: 1, backgroundColor: colors.bg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingBottom: spacing.sm },
   hBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
@@ -90,4 +245,6 @@ const styles = StyleSheet.create({
   note: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: spacing.md },
   noteText: { fontFamily: fonts.regular, fontSize: 12, color: colors.textSecondary },
   footer: { paddingHorizontal: 20, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: colors.divider },
+  doneRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, height: 54, borderRadius: radius.pill, backgroundColor: colors.greenSoft },
+  doneText: { fontFamily: fonts.bold, fontSize: 14.5, color: colors.green },
 });

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Switch, TextInput } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -7,6 +7,17 @@ import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
 import { success } from '@/lib/haptics';
+import { useMe } from '@/store/me';
+import { useAuth } from '@/store/auth';
+import { isSupabaseEnabled } from '@/lib/supabase';
+import { fetchAddress, type Address } from '@/lib/api/profile';
+import {
+  fetchNotificationPrefs,
+  saveNotificationPrefs,
+  defaultNotificationPrefs,
+  type NotificationPrefs,
+} from '@/lib/api/profile';
+import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -28,40 +39,91 @@ function Row({ label, value, onPress, last }: { label: string; value?: string; o
   );
 }
 
-const NOTIF = [
+const NOTIF: { key: keyof NotificationPrefs; label: string }[] = [
   { key: 'watered', label: '水やり' },
   { key: 'harvested', label: '収穫' },
   { key: 'ship', label: '発送・受け取り' },
   { key: 'message', label: '取引メッセージ' },
-  { key: 'board', label: '掲示板コメント' },
+  { key: 'item_comment', label: '自分の出品へのコメント' },
+  { key: 'board', label: '掲示板のコメント' },
 ];
 
 export default function Account() {
   const insets = useSafeAreaInsets();
-  const [toggles, setToggles] = useState<Record<string, boolean>>({ watered: true, harvested: true, ship: true, message: true, board: false });
+  const me = useMe();
+  const { email: authEmail } = useAuth();
+  // 通知設定は DB（profiles.notification_prefs）が正。
+  // 以前は画面の中だけの状態で、切っても通知が届いていた（2026-08-12 修正）
+  const [toggles, setToggles] = useState<NotificationPrefs>(defaultNotificationPrefs);
+  const [notifError, setNotifError] = useState<string | null>(null);
   const [mailSheet, setMailSheet] = useState(false);
-  const [mail, setMail] = useState('demo@gungun.app');
+
+  // ★ 以前はニックネーム「めたん」／メール「demo@gungun.app」を決め打ちで出していた。
+  //   マイページと違う名前が出て「個人情報が一致しない」と見えていた原因。
+  const email = authEmail ?? '';
+  const [mail, setMail] = useState(email);
+  const [address, setAddress] = useState<Address | null>(null);
+
+  useEffect(() => { setMail(email); }, [email]);
+
+  // お届け先・電話番号も「未登録」固定だったので、実データを見に行く
+  // 保存して戻ってきたときに読み直す。以前は最初の1回しか読まず、
+  // お届け先を登録しても「未登録」のままだった（2026-08-05 指摘）
+  const reloadAddress = useCallback(async () => {
+    if (!isSupabaseEnabled || !me.live) return;
+    try {
+      setAddress(await fetchAddress(me.id));
+    } catch {
+      // 読めなくても画面は保つ
+    }
+    try {
+      setToggles(await fetchNotificationPrefs(me.id));
+    } catch {
+      // 読めなければ既定のまま
+    }
+  }, [me.id, me.live]);
+
+  useEffect(() => {
+    reloadAddress();
+  }, [reloadAddress]);
+  useAutoRefresh(reloadAddress);
+
+  const addressLabel = address
+    ? `${address.prefecture}${address.city}`
+    : '未登録';
+  const phoneLabel = address?.phone || '未登録';
 
   return (
     <View style={styles.root}>
       <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
-        <PressableScale onPress={() => router.back()} activeScale={0.9} style={styles.hBtn}>
+        <PressableScale onPress={() => router.dismissTo('/mypage')} activeScale={0.9} style={styles.hBtn}>
           <Ionicons name="chevron-back" size={26} color={colors.textPrimary} />
         </PressableScale>
         <Text style={styles.hTitle}>個人情報設定</Text>
         <View style={styles.hBtn} />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
+      <ScrollView
+        keyboardDismissMode="on-drag"
+        automaticallyAdjustKeyboardInsets
+        keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
         <Section title="アカウント">
-          <Row label="ニックネーム" value="めたん" onPress={() => router.push('/mypage/edit')} />
-          <Row label="メールアドレス" value="demo@gungun.app" onPress={() => setMailSheet(true)} />
+          {/* ニックネームは公開プロフィール側（マイページの「編集」）に任せる。
+              ここに置くと同じ項目が2か所に出て、どちらで直すのか分からなくなる */}
+          {/* アドレスそのものは出さない。長いと行が崩れるうえ、
+              ここで確認する必要もない（変更画面に現在の値が入っている／2026-08-13 指摘） */}
+          <Row label="メールアドレス" value="変更する" onPress={() => setMailSheet(true)} />
           <Row label="パスワード" value="変更する" onPress={() => router.push('/(auth)/reset')} last />
         </Section>
 
         <Section title="お届け先・連絡先">
-          <Row label="お届け先" value="未登録" onPress={() => router.push('/address')} />
-          <Row label="電話番号" value="未登録" onPress={() => router.push('/address')} last />
+          {/* お届け先と電話番号は同じ画面で登録するので、1行にまとめる（2026-08-05 指摘） */}
+          <Row
+            label="お届け先・電話番号"
+            value={address ? `${addressLabel}／${phoneLabel}` : '未登録'}
+            onPress={() => router.push('/address')}
+            last
+          />
         </Section>
 
         <Section title="通知設定">
@@ -70,12 +132,23 @@ export default function Account() {
               <Text style={styles.rowLabel}>{n.label}</Text>
               <Switch
                 value={toggles[n.key]}
-                onValueChange={(v) => setToggles((t) => ({ ...t, [n.key]: v }))}
+                onValueChange={(v) => {
+                  const next = { ...toggles, [n.key]: v };
+                  setToggles(next);   // 先に画面を動かして、保存は裏で
+                  setNotifError(null);
+                  if (isSupabaseEnabled && me.live) {
+                    saveNotificationPrefs(me.id, next).catch(() => {
+                      setToggles(toggles); // 保存できなければ元に戻す
+                      setNotifError('通知設定を保存できませんでした');
+                    });
+                  }
+                }}
                 trackColor={{ true: colors.green, false: colors.border }}
                 thumbColor={colors.white}
               />
             </View>
           ))}
+          {notifError ? <Text style={styles.notifError}>{notifError}</Text> : null}
         </Section>
       </ScrollView>
 
@@ -105,6 +178,7 @@ export default function Account() {
 }
 
 const styles = StyleSheet.create({
+  notifError: { fontFamily: fonts.medium, fontSize: 12.5, color: colors.orangeDeep, paddingHorizontal: 16, paddingBottom: 10 },
   root: { flex: 1, backgroundColor: colors.bg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingBottom: spacing.sm },
   hBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },

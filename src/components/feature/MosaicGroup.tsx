@@ -5,9 +5,9 @@ import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { Thumb } from '@/components/ui/Thumb';
 import { Ribbon } from '@/components/ui/Ribbon';
-import { Sprout } from '@/components/art/Sprout';
 import { MockItem } from '@/data/mock';
 import { like } from '@/lib/haptics';
+import { useLikes } from '@/store/likes';
 
 type Props = {
   title: string;
@@ -20,19 +20,40 @@ type Props = {
 const PAD = 20; // 他セクション（みんなの種の見出し等）と左端を揃える
 const GAP = 8;
 
+/** 出品から何時間を「NEW」とみなすか */
+const NEW_HOURS = 24;
+
+/**
+ * カードの隅に出すリボン。
+ *
+ * NEW は以前「水やりが1件以下」で付けていたが、それは"新しい"ではなく
+ * "人気がない"を意味してしまい、古い商品にいつまでも NEW が付いていた
+ * （2026-08-13 指摘：NEW の定義は何か）。出品からの経過時間で判定する。
+ */
 function ribbonOf(item: MockItem): 'NEW' | 'HOT' | null {
   if (item.waterCount >= 6) return 'HOT';
-  if (item.waterCount <= 1) return 'NEW';
+  if (item.createdAt) {
+    const hours = (Date.now() - new Date(item.createdAt).getTime()) / 3600000;
+    if (hours >= 0 && hours < NEW_HOURS) return 'NEW';
+  }
   return null;
 }
 
-/** カード右上のいいねボタン（タップで塗り＋振動）。 */
-function LikeDot() {
-  const [on, setOn] = React.useState(false);
+/**
+ * カード右上のいいねボタン。
+ *
+ * 以前はこのカードだけ自前の state を持っており、商品詳細で押したいいねが
+ * ホームに反映されず、押しても保存もされていなかった（2026-08-12 指摘）。
+ * 他の画面と同じ likes ストアに繋ぐ。
+ */
+function LikeDot({ itemId, initial = false }: { itemId: string; initial?: boolean }) {
+  const likes = useLikes();
+  const key = `item:${itemId}`;
+  const on = likes.isLiked(key, initial);
   return (
     <PressableScale
       activeScale={0.8}
-      onPress={() => { if (!on) like(); setOn(!on); }}
+      onPress={() => { if (!on) like(); likes.toggle(key, initial); }}
       style={styles.heart}
       hitSlop={6}
     >
@@ -51,9 +72,9 @@ function Card({ item, w, h, onPress }: { item: MockItem; w: number; h: number; o
     <PressableScale onPress={onPress} activeScale={0.97} style={[styles.card, { width: w, height: h }, shadows.card]}>
       <Thumb source={item.local} uri={item.image} style={styles.img} markSize={Math.min(w, h) * 0.4} />
       {rb && <Ribbon label={rb} />}
-      <LikeDot />
+      <LikeDot itemId={item.id} initial={!!item.liked} />
       <View style={styles.waterPill}>
-        <Sprout size={11} color="#fff" />
+        <Ionicons name="water" size={11} color="#fff" />
         <Text style={styles.waterText}>{item.waterCount}</Text>
       </View>
     </PressableScale>

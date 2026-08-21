@@ -12,9 +12,14 @@ import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
 import { Mikan } from '@/components/art/Mikan';
 import { Sprout } from '@/components/art/Sprout';
 import { Avatar } from '@/components/ui/Avatar';
-import { getUser, currentUser, MockItem } from '@/data/mock';
+import { MockItem } from '@/data/mock';
 import { useTree } from '@/store/tree';
 import { success } from '@/lib/haptics';
+import { playSfx } from '@/lib/sound';
+import { useMe } from '@/store/me';
+import { FormError } from '@/components/ui/FormError';
+import { NotFound } from '@/components/ui/NotFound';
+import { useUsers } from '@/store/users';
 
 /**
  * 収穫画面。
@@ -26,14 +31,18 @@ import { success } from '@/lib/haptics';
  * ここでは実際のツリー（parentId/rootId）から祖先ラインを引いて輪を組み立てる。
  */
 export default function HarvestDetail() {
+  const users = useUsers();
+  const me = useMe();
   const { rootId } = useLocalSearchParams<{ rootId: string }>();
   const insets = useSafeAreaInsets();
-  const { getItem, treeItems, ancestorsOf } = useTree();
+  const { getItem, treeItems, ancestorsOf, harvestSeed } = useTree();
+  const [busy, setBusy] = useState(false);
+  const [harvestError, setHarvestError] = useState<string | null>(null);
   const seed = getItem(rootId ?? '');
   const [target, setTarget] = useState<MockItem | null>(null);
   const [done, setDone] = useState(false);
 
-  if (!seed) return <View style={styles.root} />;
+  if (!seed) return <NotFound message="このタネは見つかりませんでした" hint="収穫が済んでいるか、通知が古い可能性があります。" fallback="/(tabs)/harvest" />;
 
   // 集まった商品＝この木にぶら下がっている商品（種そのものは除く）
   const gathered = treeItems(seed.id)
@@ -44,6 +53,9 @@ export default function HarvestDetail() {
   const pathTo = (item: MockItem): MockItem[] =>
     [...ancestorsOf(item.id)].sort((a, b) => a.depth - b.depth);
 
+  // 収穫できるのは「まだ育っている」タネだけ。
+  // 一覧では止めていたが、この画面に直接来ると押せてしまっていた（2026-08-13 修正）
+  const canHarvest = seed.status === 'growing';
   const path = target ? pathTo(target) : [];
   // 輪から外れる件数（別の枝＋選んだ商品より先）＝それぞれ新しいタネとして独立する
   const detachedCount = target ? gathered.length + 1 - path.length : 0;
@@ -58,12 +70,15 @@ export default function HarvestDetail() {
         <View style={styles.hBtn} />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
+      <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
         <View style={[styles.seedCard, shadows.soft]}>
           <Thumb source={seed.local} uri={seed.image} style={styles.seedThumb} radius={radius.md} markSize={30} />
           <View style={{ flex: 1 }}>
             <Text style={styles.seedName}>{seed.name}</Text>
-            <Text style={styles.seedSub}>あなたのタネ・木全体 {gathered.length + 1}件</Text>
+            {/* 件数は下の「集まった商品（N）」で出すので、ここでは重ねて言わない */}
+            <Text style={styles.seedSub}>あなたのタネ</Text>
           </View>
         </View>
 
@@ -77,7 +92,7 @@ export default function HarvestDetail() {
         </Text>
 
         {gathered.map((g) => {
-          const u = getUser(g.ownerId);
+          const u = users.user(g.ownerId);
           const ring = pathTo(g); // この商品を選んだときの輪
           return (
             <View key={g.id} style={[styles.gCard, shadows.soft]}>
@@ -95,15 +110,28 @@ export default function HarvestDetail() {
                   <Text style={styles.ringChipText}>{ring.length}人の輪</Text>
                 </View>
               </View>
-              <PressableScale onPress={() => setTarget(g)} activeScale={0.94} style={styles.harvestBtn}>
-                <Text style={styles.harvestText}>収穫する</Text>
-              </PressableScale>
+              {canHarvest ? (
+                <PressableScale onPress={() => setTarget(g)} activeScale={0.94} style={styles.harvestBtn}>
+                  <Text style={styles.harvestText}>収穫する</Text>
+                </PressableScale>
+              ) : (
+                <View style={[styles.harvestBtn, styles.harvestBtnOff]}>
+                  <Text style={styles.harvestTextOff}>収穫済み</Text>
+                </View>
+              )}
             </View>
           );
         })}
 
+        {!canHarvest && (
+          <View style={styles.doneNote}>
+            <Ionicons name="checkmark-circle" size={18} color={colors.green} />
+            <Text style={styles.doneNoteText}>このタネは収穫済みです。取引画面から発送を進めてください。</Text>
+          </View>
+        )}
+
         {gathered.length === 0 && (
-          <Text style={styles.empty}>まだ水やりがありません。{'\n'}誰かが水やりすると、ここに商品が集まります。</Text>
+          <Text style={styles.empty}>まだ水やりがありません。誰かが水やりすると、ここに商品が集まります。</Text>
         )}
       </ScrollView>
 
@@ -118,10 +146,12 @@ export default function HarvestDetail() {
         {/* 交換の輪：path[i]の品 → path[i+1]の人／最後は先頭（あなた）に戻る */}
         <View style={styles.ringBox}>
           <Text style={styles.ringTitle}>{path.length}人の輪ができます</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.ringRow}>
+          <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.ringRow}>
             {path.map((node) => {
-              const u = getUser(node.ownerId);
-              const isMe = node.ownerId === currentUser.id;
+              const u = users.user(node.ownerId);
+              const isMe = node.ownerId === me.id;
               return (
                 <React.Fragment key={node.id}>
                   <View style={styles.ringUser}>
@@ -135,7 +165,7 @@ export default function HarvestDetail() {
             })}
             {/* 輪が閉じる：末端の品はあなたへ */}
             <View style={styles.ringUser}>
-              <Avatar uri={currentUser.avatar} name={currentUser.nickname} size={40} />
+              <Avatar uri={me.avatar} name={me.nickname} size={40} />
               <Text style={styles.ringName}>あなた</Text>
               <Text style={styles.ringItem}>（輪が閉じる）</Text>
             </View>
@@ -156,7 +186,24 @@ export default function HarvestDetail() {
           <Ionicons name="alert-circle" size={18} color={colors.orangeDeep} />
           <Text style={styles.noteText}>収穫すると取り消せません。輪の全員に発送義務が発生します。</Text>
         </View>
-        <Button title="収穫する（交換開始）" variant="accent" onPress={() => { success(); setDone(true); }} style={{ marginTop: spacing.lg }} />
+        {harvestError ? <FormError message={harvestError} /> : null}
+        <Button
+          title="収穫する（交換開始）"
+          variant="accent"
+          loading={busy}
+          onPress={async () => {
+            if (!target || busy) return;
+            setHarvestError(null);
+            setBusy(true);
+            const res = await harvestSeed(seed.id, target.id);
+            setBusy(false);
+            if (res.error) { setHarvestError(res.error); return; }
+            success();
+            playSfx('chime'); // 収穫成立の「ピロン↑」
+            setDone(true);
+          }}
+          style={{ marginTop: spacing.lg }}
+        />
         <PressableScale onPress={() => setTarget(null)} style={styles.cancel}>
           <Text style={styles.cancelText}>キャンセル</Text>
         </PressableScale>
@@ -171,13 +218,22 @@ export default function HarvestDetail() {
           <Text style={styles.confirmTitle}>収穫しました！🎉</Text>
           <Text style={styles.confirmSub}>輪の全員に「発送してください」の通知を送りました。取引画面から発送を進めましょう。</Text>
         </Animated.View>
-        <Button title="取引画面へ" onPress={() => { setDone(false); setTarget(null); router.replace('/exchange'); }} style={{ marginTop: spacing.xl }} />
+        {/* 収穫画面をスタックに残さない（戻るとまた収穫画面に出てしまうため） */}
+        <Button title="取引画面へ" onPress={() => { setDone(false); setTarget(null); router.dismissTo('/exchange'); }} style={{ marginTop: spacing.xl }} />
       </BottomSheetModal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  harvestBtnOff: { backgroundColor: colors.cardMuted },
+  harvestTextOff: { fontFamily: fonts.bold, fontSize: 13, color: colors.textSecondary },
+  doneNote: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+    backgroundColor: colors.greenSoft, borderRadius: radius.card,
+    padding: spacing.md, marginBottom: spacing.md,
+  },
+  doneNoteText: { flex: 1, fontFamily: fonts.medium, fontSize: 12.5, lineHeight: 18, color: colors.green },
   root: { flex: 1, backgroundColor: colors.bg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingBottom: spacing.sm },
   hBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },

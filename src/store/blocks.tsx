@@ -1,37 +1,79 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { isSupabaseEnabled } from '@/lib/supabase';
+import { useMe } from '@/store/me';
+import * as api from '@/lib/api/social';
 
 /**
- * ブロック中ユーザーの管理（モック）。
- * ブロックすると、その人の商品・投稿を一覧から隠す。マイページの
- * ブロックリストと同じ状態を参照する。
+ * ブロック中ユーザーの管理。
+ * ブロックすると、その人の商品・投稿を一覧から隠す。
  *
- * ネイティブ化時は Supabase の `blocks` テーブル（blocker_id/blocked_id）に置き換える。
+ * 実DB接続時は `blocks` テーブル（blocker_id / blocked_id）と同期する。
  */
+export type BlockedUser = api.BlockedUser;
+
 type BlocksState = {
   blocked: string[];
+  /** ブロックした相手の表示情報（マイページのブロックリスト用） */
+  blockedUsers: BlockedUser[];
   isBlocked: (userId: string) => boolean;
   block: (userId: string) => void;
   unblock: (userId: string) => void;
+  refresh: () => Promise<void>;
 };
 
 const BlocksContext = createContext<BlocksState | null>(null);
 
-// デモの初期ブロック（従来 mypage/blocks が持っていた固定値を引き継ぐ）
-const INITIAL = ['kenta', 'yu'];
+// モックの初期ブロック（従来 mypage/blocks が持っていた固定値を引き継ぐ）
+const MOCK_INITIAL = ['kenta', 'yu'];
 
 export function BlocksProvider({ children }: { children: React.ReactNode }) {
-  const [blocked, setBlocked] = useState<string[]>(INITIAL);
+  const live = isSupabaseEnabled;
+  const me = useMe();
+  const [blocked, setBlocked] = useState<string[]>(live ? [] : MOCK_INITIAL);
+  const [blockedUsers, setBlockedUsers] = useState<BlockedUser[]>([]);
 
-  const block = useCallback((userId: string) => {
-    setBlocked((prev) => (prev.includes(userId) ? prev : [...prev, userId]));
-  }, []);
-  const unblock = useCallback((userId: string) => {
-    setBlocked((prev) => prev.filter((id) => id !== userId));
-  }, []);
+  const refresh = useCallback(async () => {
+    if (!live || !me.live) return;
+    try {
+      const list = await api.fetchBlocks(me.id);
+      setBlockedUsers(list);
+      setBlocked(list.map((u) => u.id));
+    } catch {
+      // 取れなくても画面は動かす（何も隠さないだけ）
+    }
+  }, [live, me.live, me.id]);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  const block = useCallback(
+    (userId: string) => {
+      setBlocked((prev) => (prev.includes(userId) ? prev : [...prev, userId]));
+      if (live && me.live) api.setBlocked(me.id, userId, true).then(refresh).catch(() => {});
+    },
+    [live, me.live, me.id, refresh]
+  );
+
+  const unblock = useCallback(
+    (userId: string) => {
+      setBlocked((prev) => prev.filter((id) => id !== userId));
+      setBlockedUsers((prev) => prev.filter((u) => u.id !== userId));
+      if (live && me.live) api.setBlocked(me.id, userId, false).then(refresh).catch(() => {});
+    },
+    [live, me.live, me.id, refresh]
+  );
 
   const value = useMemo<BlocksState>(
-    () => ({ blocked, isBlocked: (id) => blocked.includes(id), block, unblock }),
-    [blocked, block, unblock]
+    () => ({
+      blocked,
+      blockedUsers,
+      isBlocked: (id) => blocked.includes(id),
+      block,
+      unblock,
+      refresh,
+    }),
+    [blocked, blockedUsers, block, unblock, refresh]
   );
   return <BlocksContext.Provider value={value}>{children}</BlocksContext.Provider>;
 }

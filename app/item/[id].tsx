@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, useWindowDimensions, NativeSyntheticEvent, NativeScrollEvent, Share, Platform } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TextInput, useWindowDimensions, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -8,14 +8,25 @@ import { PressableScale } from '@/components/ui/PressableScale';
 import { Avatar } from '@/components/ui/Avatar';
 import { Thumb } from '@/components/ui/Thumb';
 import { HeartButton } from '@/components/ui/HeartButton';
-import { StarRating } from '@/components/ui/StarRating';
+import { RatingSummary } from '@/components/ui/RatingSummary';
 import { Sprout } from '@/components/art/Sprout';
 import { ItemActionSheet } from '@/components/feature/ItemActionSheet';
 import { ReportSheet } from '@/components/feature/ReportSheet';
-import { getUser, currentUser, itemImageSources } from '@/data/mock';
-import { getItemComments } from '@/data/mockSocial';
+import { itemImageSources } from '@/data/mock';
 import { settings } from '@/config/settings';
 import { useTree } from '@/store/tree';
+import { useMe } from '@/store/me';
+/*
+ * 共有ボタンは外した（2026-08-14 指摘）。
+ * 文面しか渡せず、受け取った人が商品や木にたどり着けないため。
+ * App Store 公開後にアプリのURLが決まったら、リンク付きで戻す。
+ */
+import { Toast } from '@/components/ui/Toast';
+import { NotFound } from '@/components/ui/NotFound';
+import { useItemComments } from '@/hooks/useItemComments';
+import { useUsers } from '@/store/users';
+import { recordItemView } from '@/lib/api/social';
+import { isSupabaseEnabled } from '@/lib/supabase';
 
 function RoundBtn({ icon, onPress }: { icon: keyof typeof Ionicons.glyphMap; onPress?: () => void }) {
   return (
@@ -26,6 +37,8 @@ function RoundBtn({ icon, onPress }: { icon: keyof typeof Ionicons.glyphMap; onP
 }
 
 export default function ItemDetailScreen() {
+  const users = useUsers();
+  const me = useMe();
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -35,67 +48,56 @@ export default function ItemDetailScreen() {
   const [menu, setMenu] = useState(false);
   const [report, setReport] = useState(false);
   const [ctext, setCtext] = useState('');
-  const [comments, setComments] = useState(() => getItemComments(id ?? ''));
+  const [toast, setToast] = useState<string | null>(null);
+  const { comments, add: addComment, remove: removeComment } = useItemComments(id ?? '');
+
+  // 閲覧履歴に残す（DB 側で同じ商品は1行・直近100件に抑えている）。
+  // 失敗しても画面には影響させない。
+  useEffect(() => {
+    if (!id || !isSupabaseEnabled || !me.live) return;
+    recordItemView(id).catch(() => {});
+  }, [id, me.live]);
 
   if (!item) {
     return (
-      <View style={styles.notFound}>
-        <Text style={styles.notFoundText}>商品が見つかりません</Text>
-      </View>
+      <NotFound message="商品が見つかりませんでした" hint="出品が取り下げられたか、収穫が済んだ可能性があります。" />
     );
   }
-  const owner = getUser(item.ownerId);
+  const owner = users.user(item.ownerId);
   const imgs = itemImageSources(item);
   const connected = childrenOf(item.id); // この商品に水やりした商品（＝子ノード）
-  const treeCount = treeItems(item.rootId).length;
   const treeThumbs = treeItems(item.rootId).filter((i) => i.id !== item.id);
   const gate = canWater(item.id);
   // すでにこの商品へ水やり済みか（自分の商品が子にいる）
-  const alreadyWatered = connected.some((c) => c.ownerId === currentUser.id);
-  const isOwner = item.ownerId === currentUser.id;
+  const alreadyWatered = connected.some((c) => c.ownerId === me.id);
+  const isOwner = item.ownerId === me.id;
   const imgH = width * 0.94;
 
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     setPage(Math.round(e.nativeEvent.contentOffset.x / width));
   };
 
-  const share = async () => {
-    const message = `「${item.name}」を見つけました！ #ぐんぐん`;
-    try {
-      if (Platform.OS === 'web') {
-        const nav = globalThis.navigator as Navigator | undefined;
-        if (nav?.share) await nav.share({ text: message });
-        else await nav?.clipboard?.writeText(message);
-      } else {
-        await Share.share({ message });
-      }
-    } catch {
-      /* キャンセル時など無視 */
-    }
-  };
-
   return (
     <View style={styles.root}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 130 }}>
+      <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 130 }}>
         {/* 画像カルーセル（全面）＋画像上のヘッダー（スクロールで一緒に流れる） */}
         <View>
-          <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} onScroll={onScroll} scrollEventThrottle={16}>
+          <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" horizontal pagingEnabled showsHorizontalScrollIndicator={false} onScroll={onScroll} scrollEventThrottle={16}>
             {imgs.map((src, i) => (
               <Thumb key={i} source={src} style={{ width, height: imgH }} markSize={100} />
             ))}
           </ScrollView>
+
+
           {imgs.length > 1 && (
             <View style={styles.counter}>
               <Text style={styles.counterText}>{page + 1} / {imgs.length}</Text>
             </View>
           )}
-          <View style={[styles.floatHeader, { top: insets.top + 6 }]} pointerEvents="box-none">
-            <RoundBtn icon="chevron-back" onPress={() => router.back()} />
-            <View style={styles.floatRight}>
-              <RoundBtn icon="share-social-outline" onPress={share} />
-              <RoundBtn icon="ellipsis-horizontal" onPress={() => setMenu(true)} />
-            </View>
-          </View>
         </View>
 
         {/* コンテンツシート（画像に少し被せる） */}
@@ -110,18 +112,21 @@ export default function ItemDetailScreen() {
               </View>
             </View>
             <View style={styles.favBox}>
-              <HeartButton count={item.likeCount} initial={false} size={26} id={`item:${item.id}`} />
+              <HeartButton count={item.likeCount} initial={!!item.liked} size={26} id={`item:${item.id}`} />
             </View>
           </View>
 
           {/* 出品者 */}
-          <PressableScale activeScale={0.98} style={[styles.sellerCard, shadows.soft]}>
+          <PressableScale activeScale={0.98} onPress={() => router.push(`/user/${owner.id}`)} style={[styles.sellerCard, shadows.soft]}>
             <Avatar uri={owner.avatar} name={owner.nickname} size={48} />
             <View style={{ flex: 1 }}>
               <Text style={styles.sellerName}>{owner.nickname}さん</Text>
               <View style={styles.sellerRating}>
-                <StarRating value={4.5} size={13} gap={2} />
-                <Text style={styles.sellerStat}>評価 {owner.ratingCount}・出品 {owner.itemCount}</Text>
+                <RatingSummary
+                  avg={owner.ratingAvg ?? null}
+                  count={owner.ratingCount}
+                  suffix={`出品 ${owner.itemCount}`}
+                />
               </View>
             </View>
             <Ionicons name="chevron-forward" size={20} color={colors.textPlaceholder} />
@@ -139,14 +144,15 @@ export default function ItemDetailScreen() {
                 {treeThumbs.slice(0, 3).map((c, i) => (
                   <Thumb key={c.id} source={c.local} uri={c.image} style={[styles.treeThumb, { marginLeft: i === 0 ? 0 : -14 }]} radius={10} markSize={18} />
                 ))}
-                {treeCount > 4 && (
+                {treeThumbs.length > 3 && (
                   <View style={[styles.treeMore, { marginLeft: -14 }]}>
-                    <Text style={styles.treeMoreText}>+{treeCount - 4}</Text>
+                    <Text style={styles.treeMoreText}>+{treeThumbs.length - 3}</Text>
                   </View>
                 )}
               </View>
+              {/* サムネと同じ「この商品以外でつながっている数」を出す */}
               <View style={styles.treeCountBox}>
-                <Text style={styles.treeCount}>{treeCount}</Text>
+                <Text style={styles.treeCount}>{treeThumbs.length}</Text>
                 <Text style={styles.treeCountUnit}>件</Text>
               </View>
             </View>
@@ -165,19 +171,18 @@ export default function ItemDetailScreen() {
               <Text style={styles.commentCount}>{comments.length}件</Text>
             </View>
             {comments.map((c) => {
-              const cu = getUser(c.userId);
               const fromOwner = c.userId === owner.id;
-              const isMine = c.userId === currentUser.id;
+              const isMine = c.userId === me.id;
               return (
                 <View key={c.id} style={styles.comment}>
-                  <Avatar uri={cu.avatar} name={cu.nickname} size={34} />
+                  <Avatar uri={c.authorAvatar} name={c.authorName} size={34} />
                   <View style={[styles.bubble, fromOwner && styles.bubbleOwner]}>
                     <View style={styles.cHead}>
-                      <Text style={styles.cName}>{cu.nickname}{fromOwner ? '（出品者）' : ''}</Text>
+                      <Text style={styles.cName}>{c.authorName}{fromOwner ? '（出品者）' : ''}</Text>
                       <Text style={styles.cTime}>{c.createdAt}</Text>
                       {isMine && (
                         <PressableScale
-                          onPress={() => setComments((list) => list.filter((x) => x.id !== c.id))}
+                          onPress={() => removeComment(c.id)}
                           activeScale={0.8}
                           hitSlop={8}
                           style={styles.cDelete}
@@ -203,7 +208,7 @@ export default function ItemDetailScreen() {
               <PressableScale
                 onPress={() => {
                   if (!ctext.trim()) return;
-                  setComments((list) => [...list, { id: `ci${list.length}-${Date.now()}`, userId: currentUser.id, body: ctext.trim(), createdAt: 'たった今' }]);
+                  addComment(ctext);
                   setCtext('');
                 }}
                 activeScale={0.9}
@@ -215,6 +220,17 @@ export default function ItemDetailScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {/* 戻る・メニューは画面の上に固定する。
+          ScrollView の中に置くと中身と一緒に流れてしまい、
+          スクロールした先で戻れなくなる（2026-08-13 に直したつもりが
+          外側ではなく画像スライダーの直後に入っており、効いていなかった／2026-08-21 再修正） */}
+      <View style={[styles.floatHeader, { top: insets.top + 6 }]} pointerEvents="box-none">
+        <RoundBtn icon="chevron-back" onPress={() => router.back()} />
+        <View style={styles.floatRight}>
+          <RoundBtn icon="ellipsis-horizontal" onPress={() => setMenu(true)} />
+        </View>
+      </View>
 
       {/* 下部：水やりCTA（＝自分の商品を出品して子ノードに） */}
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
@@ -254,10 +270,15 @@ export default function ItemDetailScreen() {
         onClose={() => setMenu(false)}
         item={item}
         isOwner={isOwner}
-        onReport={() => setReport(true)}
+        onReport={() => {
+          // メニューを閉じきってから開く（重ねると操作できなくなる）
+          setMenu(false);
+          setTimeout(() => setReport(true), 320);
+        }}
         onDeleted={() => router.back()}
       />
-      <ReportSheet visible={report} onClose={() => setReport(false)} targetLabel="この出品" />
+      <ReportSheet visible={report} onClose={() => setReport(false)} targetLabel="この出品" targetType="item" targetId={item.id} />
+      <Toast message={toast} onHide={() => setToast(null)} />
     </View>
   );
 }
@@ -326,6 +347,12 @@ const styles = StyleSheet.create({
   waterCostText: { fontFamily: fonts.bold, fontSize: 12, color: colors.white },
   wateredPill: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, height: 56, borderRadius: radius.pill, backgroundColor: colors.greenSoft },
   wateredText: { fontFamily: fonts.bold, fontSize: 15, color: colors.green },
-  disabledBox: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, height: 56, borderRadius: radius.pill, backgroundColor: colors.cardMuted, paddingHorizontal: spacing.lg },
-  disabledText: { fontFamily: fonts.medium, fontSize: 13.5, color: colors.textSecondary, textAlign: 'center' },
+  // 高さ56固定・角丸ピルだと文が入りきらず窮屈だった（2026-08-05 指摘）。
+  // 折り返せる箱にして、行数が増えても収まるようにする
+  disabledBox: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+    minHeight: 56, borderRadius: radius.card, backgroundColor: colors.cardMuted,
+    paddingHorizontal: spacing.lg, paddingVertical: spacing.md,
+  },
+  disabledText: { flex: 1, fontFamily: fonts.medium, fontSize: 13.5, lineHeight: 19, color: colors.textSecondary },
 });

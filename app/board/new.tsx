@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TextInput, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -9,11 +9,16 @@ import { PressableScale } from '@/components/ui/PressableScale';
 import { Avatar } from '@/components/ui/Avatar';
 import { Thumb } from '@/components/ui/Thumb';
 import { PhotoSourceSheet } from '@/components/feature/PhotoSourceSheet';
-import { currentUser } from '@/data/mock';
 import { TAG_META, BoardTag } from '@/data/mockSocial';
+import { useMe } from '@/store/me';
+import { useBoard } from '@/hooks/useBoard';
+import { FormError } from '@/components/ui/FormError';
+import { KeyboardDoneBar, KEYBOARD_DONE_ID } from '@/components/ui/KeyboardDoneBar';
 
 const MAX = 280;
 const TAGS: BoardTag[] = ['harvest', 'question', 'chat', 'notice'];
+/** ツールバーの顔文字ボタンから挿し込める絵文字 */
+const EMOJI = ['🌱', '🌳', '🍊', '💧', '🎉', '😊', '🙏', '✨', '📦', '❤️'];
 
 /** 文字数の円形カウンター。 */
 function CountRing({ used }: { used: number }) {
@@ -39,12 +44,39 @@ function CountRing({ used }: { used: number }) {
 }
 
 export default function NewPost() {
+  const me = useMe();
   const insets = useSafeAreaInsets();
   const [text, setText] = useState('');
   const [tag, setTag] = useState<BoardTag>('chat');
   const [photos, setPhotos] = useState<string[]>([]);
   const [photoSheet, setPhotoSheet] = useState(false);
-  const can = text.trim().length > 0;
+  const [emojiOpen, setEmojiOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { create } = useBoard();
+  const can = text.trim().length > 0 && !busy;
+
+  const submit = async () => {
+    if (!can) return;
+    setError(null);
+    setBusy(true);
+    // 写真は1枚目だけ投稿に添える（DBの board_posts.image_url は1枚）
+    let imageUrl: string | null = null;
+    if (photos.length > 0 && me.live) {
+      try {
+        const { uploadImage } = await import('@/lib/api/storage');
+        imageUrl = await uploadImage(me.id, photos[0]);
+      } catch {
+        setBusy(false);
+        setError('写真をアップロードできませんでした');
+        return;
+      }
+    }
+    const res = await create(text, tag, imageUrl);
+    setBusy(false);
+    if (res.error) { setError(res.error); return; }
+    router.back();
+  };
 
   return (
     <View style={styles.root}>
@@ -54,19 +86,23 @@ export default function NewPost() {
           <Ionicons name="close" size={26} color={colors.textPrimary} />
         </PressableScale>
         <Text style={styles.title}>投稿する</Text>
-        <PressableScale onPress={() => can && router.back()} activeScale={0.94} style={[styles.post, shadows.button, !can && styles.postOff]}>
-          <Ionicons name="paper-plane" size={14} color={colors.white} />
-          <Text style={styles.postText}>投稿</Text>
-        </PressableScale>
+        {/* 投稿ボタンは右上ではなく、キーボードのすぐ上（写真・絵文字の並び）に置く。
+            書き終えた指の近くにある方が押しやすい（2026-08-17 指摘） */}
+        <View style={styles.close} />
       </View>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
+        <ScrollView
+        keyboardDismissMode="on-drag"
+        automaticallyAdjustKeyboardInsets
+        keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
+          {error ? <View style={{ marginBottom: 12 }}><FormError message={error} /></View> : null}
+
           {/* ユーザー＋公開範囲 */}
           <View style={styles.userRow}>
-            <Avatar uri={currentUser.avatar} name={currentUser.nickname} size={44} />
+            <Avatar uri={me.avatar} name={me.nickname} size={44} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.userName}>{currentUser.nickname}さん</Text>
+              <Text style={styles.userName}>{me.nickname}さん</Text>
               <View style={styles.publicChip}>
                 <Ionicons name="earth" size={12} color={colors.green} />
                 <Text style={styles.publicText}>みんなに公開</Text>
@@ -94,6 +130,7 @@ export default function NewPost() {
             <TextInput
               autoFocus
               multiline
+              inputAccessoryViewID={KEYBOARD_DONE_ID}
               value={text}
               onChangeText={(t) => t.length <= MAX && setText(t)}
               placeholder="交換の様子や、探しているもの、質問などをシェアしよう🌱"
@@ -101,7 +138,9 @@ export default function NewPost() {
               style={[styles.input, { outlineStyle: 'none' } as object]}
             />
             {/* 添付写真 */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photoRow}>
+            <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photoRow}>
               {photos.map((uri, i) => (
                 <View key={i} style={styles.photo}>
                   <Thumb uri={uri} style={styles.photoImg} radius={radius.md} markSize={26} />
@@ -126,15 +165,48 @@ export default function NewPost() {
         </ScrollView>
 
         {/* ツールバー */}
-        <View style={[styles.toolbar, { paddingBottom: Math.max(insets.bottom, 10) }, shadows.sheet]}>
-          <PressableScale activeScale={0.9} style={styles.tool} onPress={() => photos.length < 4 && setPhotoSheet(true)}>
-            <Ionicons name="image-outline" size={24} color={colors.green} />
-          </PressableScale>
-          <PressableScale activeScale={0.9} style={styles.tool}>
-            <Ionicons name="happy-outline" size={24} color={colors.green} />
-          </PressableScale>
-          <View style={{ flex: 1 }} />
-          <CountRing used={text.length} />
+        <View style={[styles.toolbarWrap, shadows.sheet]}>
+          {emojiOpen && (
+            <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.emojiRow}>
+              {EMOJI.map((e) => (
+                <PressableScale
+                  key={e}
+                  activeScale={0.85}
+                  style={styles.emojiBtn}
+                  onPress={() => setText((t) => (t.length < MAX ? t + e : t))}
+                >
+                  <Text style={styles.emojiText}>{e}</Text>
+                </PressableScale>
+              ))}
+            </ScrollView>
+          )}
+          <View style={[styles.toolbar, { paddingBottom: Math.max(insets.bottom, 10) }]}>
+            <PressableScale activeScale={0.9} style={styles.tool} onPress={() => photos.length < 4 && setPhotoSheet(true)}>
+              <Ionicons name="image-outline" size={24} color={colors.green} />
+            </PressableScale>
+            <PressableScale activeScale={0.9} style={[styles.tool, emojiOpen && styles.toolOn]} onPress={() => setEmojiOpen((v) => !v)}>
+              <Ionicons name="happy-outline" size={24} color={emojiOpen ? colors.white : colors.green} />
+            </PressableScale>
+            <View style={{ flex: 1 }} />
+            <CountRing used={text.length} />
+            <PressableScale
+              onPress={submit}
+              activeScale={0.94}
+              disabled={!can || busy}
+              style={[styles.post, shadows.button, !can && styles.postOff]}
+            >
+              {busy ? (
+                <ActivityIndicator color={colors.white} size="small" />
+              ) : (
+                <>
+                  <Ionicons name="paper-plane" size={14} color={colors.white} />
+                  <Text style={styles.postText}>投稿</Text>
+                </>
+              )}
+            </PressableScale>
+          </View>
         </View>
       </KeyboardAvoidingView>
 
@@ -144,6 +216,7 @@ export default function NewPost() {
         onClose={() => setPhotoSheet(false)}
         onPicked={(uris) => setPhotos((p) => [...p, ...uris].slice(0, 4))}
       />
+      <KeyboardDoneBar />
     </View>
   );
 }
@@ -174,8 +247,13 @@ const styles = StyleSheet.create({
   addPhotoText: { fontFamily: fonts.bold, fontSize: 12, color: colors.green },
   tipRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: spacing.lg, paddingHorizontal: spacing.xs },
   tip: { flex: 1, fontFamily: fonts.medium, fontSize: 12.5, color: colors.textSecondary },
-  toolbar: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.card, paddingHorizontal: spacing.lg, paddingTop: spacing.md, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
+  toolbarWrap: { backgroundColor: colors.card, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
+  toolbar: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.lg, paddingTop: spacing.md },
   tool: { width: 42, height: 42, borderRadius: 21, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.greenSoft },
+  toolOn: { backgroundColor: colors.green },
+  emojiRow: { gap: spacing.sm, paddingHorizontal: spacing.lg, paddingTop: spacing.md },
+  emojiBtn: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bgWarm },
+  emojiText: { fontSize: 21, lineHeight: 26 },
   ring: { width: 30, height: 30, justifyContent: 'center', alignItems: 'center' },
   ringNum: { position: 'absolute', fontFamily: fonts.bold, fontSize: 9 },
 });

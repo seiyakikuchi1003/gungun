@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
+import { useMe } from '@/store/me';
 import { View, Text, StyleSheet, Modal, ScrollView, useWindowDimensions } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Animated, {
@@ -25,23 +26,51 @@ import { playSfx } from '@/lib/sound';
 type Props = {
   visible: boolean;
   claimedToday: boolean; // 受け取り済みか
+  /** 今日もらえる肥料（プレミアムなら増量後の値）。未指定なら既定値 */
+  amount?: number;
   onClose: () => void;
 };
 
 /**
  * ログインボーナスのポップアップ（スタンプカレンダー）。
  * 「受け取る」とカレンダーの今日のマスにじょうろのスタンプが
- * ポンッと押される（BounceIn）。連続ログインでボーナスが増える。
+ * ポンッと押される（BounceIn）。カレンダーは実際の日付・曜日に連動する。
  */
 
-// 21日サイクルのボーナステーブル（金額は設定基準の暫定。本実装では app_settings から）
-const BONUS: number[] = [
-  40, 40, 40, 40, 40, 40, 40,
-  40, 40, 50, 50, 60, 60, 70,
-  70, 80, 80, 90, 90, 100, 120,
-];
-const TODAY = 8; // デモ：連続8日目
-const WEEK = ['月', '火', '水', '木', '金', '土', '日'];
+// 日曜始まり。カレンダーアプリの並びに合わせる（2026-08-21 指摘）
+const WEEK = ['日', '月', '火', '水', '木', '金', '土'];
+
+/**
+ * カレンダーを実際の日付に合わせる（2026-07-28 MTG めたん様のご質問対応）。
+ *
+ * 以前は「連続◯日目」の通し番号を 1〜21 で並べていただけで、
+ * 見出しの曜日とマスの中身が一致していなかった。
+ * ここでは **今週の日曜から3週間ぶんの実日付** を作り、
+ * 曜日の列と実際の曜日が必ず揃うようにする。
+ */
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function buildCalendar(now: Date) {
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  // JS の getDay() は日曜=0。そのまま引けば日曜始まりになる
+  const sundayOffset = today.getDay();
+  const start = new Date(today.getTime() - sundayOffset * DAY_MS);
+
+  const days = Array.from({ length: 21 }, (_, i) => {
+    const d = new Date(start.getTime() + i * DAY_MS);
+    const diff = Math.round((d.getTime() - today.getTime()) / DAY_MS);
+    return {
+      date: d,
+      dayNum: d.getDate(),
+      isToday: diff === 0,
+      isPast: diff < 0,
+      isFuture: diff > 0,
+      // 月初は「7/1」のように月も出す
+      label: d.getDate() === 1 ? `${d.getMonth() + 1}/1` : String(d.getDate()),
+    };
+  });
+  return { today, days };
+}
 
 // スタンプ演出のタイミング（ポップアップ表示後）
 const STAMP_DELAY = 650; // 大きなスタンプが降り始めるまで
@@ -107,10 +136,16 @@ function TodayStamp({ size, bonus, active }: { size: number; bonus: number; acti
   );
 }
 
-export function LoginBonusSheet({ visible, claimedToday, onClose }: Props) {
+export function LoginBonusSheet({ visible, claimedToday, amount, onClose }: Props) {
   const { width, height } = useWindowDimensions();
   const cardW = Math.min(width - 24, 480);
   const cell = (cardW - 32 - 6 * 6) / 7;
+  // 実際の日付でカレンダーを組む（シートを開いた時点の日付で固定）
+  const { days } = useMemo(() => buildCalendar(new Date()), [visible]);
+  const me = useMe();
+  const daily = amount ?? settings.dailyLoginBonus;
+  // 受け取り前は「今日を足したら何日目か」を見せたいので、未受取なら +1 して出す
+  const streak = me.loginStreak + (claimedToday ? 0 : me.loginStreak > 0 ? 1 : 1);
 
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
@@ -121,12 +156,23 @@ export function LoginBonusSheet({ visible, claimedToday, onClose }: Props) {
             <Ionicons name="close" size={20} color={colors.textSecondary} />
           </PressableScale>
 
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: spacing.lg }}>
+          <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: spacing.lg }}>
             {/* ヘッダー */}
             <View style={styles.head}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.title}>ログインボーナス</Text>
                 <Text style={styles.subtitle}>毎日ログインして肥料をもらおう！</Text>
+                {/* 何日続いているかを出す。積み上がっている感じが分かるように（2026-08-21 指摘） */}
+                {streak > 0 && (
+                  <View style={styles.streakPill}>
+                    <Text style={styles.streakFire}>🔥</Text>
+                    <Text style={styles.streakText}>
+                      <Text style={styles.streakNum}>{streak}</Text>日連続
+                    </Text>
+                  </View>
+                )}
               </View>
               <View style={styles.headArt}>
                 <WateringCan size={54} />
@@ -143,7 +189,7 @@ export function LoginBonusSheet({ visible, claimedToday, onClose }: Props) {
                 <View>
                   <Text style={styles.todayLabel}>今日のログインボーナス</Text>
                   <View style={styles.todayAmountRow}>
-                    <Text style={styles.todayAmount}>+{settings.dailyLoginBonus}</Text>
+                    <Text style={styles.todayAmount}>+{daily}</Text>
                     <Text style={styles.todayUnit}>肥料</Text>
                   </View>
                 </View>
@@ -168,7 +214,7 @@ export function LoginBonusSheet({ visible, claimedToday, onClose }: Props) {
                 <Sprout size={15} base />
                 <Text style={styles.calTitle}>ログインカレンダー</Text>
               </View>
-              <Text style={styles.calNote}>連続ログインでボーナスUP！</Text>
+              <Text style={styles.calNote}>毎日 +{daily} 肥料</Text>
             </View>
 
             <View style={styles.week}>
@@ -178,18 +224,23 @@ export function LoginBonusSheet({ visible, claimedToday, onClose }: Props) {
             </View>
 
             <View style={styles.grid}>
-              {BONUS.map((amount, i) => {
-                const day = i + 1;
-                const stamped = day < TODAY || (day === TODAY && claimedToday);
-                const isToday = day === TODAY;
-                const isMax = day === BONUS.length;
+              {days.map((d) => {
+                // 今日より前＝受け取り済みの想定、今日＝受け取ったらスタンプ、先＝これから
+                const stamped = d.isPast || (d.isToday && claimedToday);
                 return (
-                  <View key={day} style={[styles.cellWrap, { width: cell }]}>
-                    <View style={[styles.cell, { width: cell, height: cell }, stamped ? styles.cellStamped : styles.cellFuture, isToday && styles.cellToday]}>
-                      <Text style={[styles.cellDay, stamped && styles.cellDayStamped]}>{day}</Text>
+                  <View key={d.date.toISOString()} style={[styles.cellWrap, { width: cell }]}>
+                    <View
+                      style={[
+                        styles.cell,
+                        { width: cell, height: cell },
+                        stamped ? styles.cellStamped : styles.cellFuture,
+                        d.isToday && styles.cellToday,
+                      ]}
+                    >
+                      <Text style={[styles.cellDay, stamped && styles.cellDayStamped]}>{d.label}</Text>
                       {stamped ? (
-                        isToday ? (
-                          <TodayStamp size={cell} bonus={amount} active={visible && claimedToday} />
+                        d.isToday ? (
+                          <TodayStamp size={cell} bonus={daily} active={visible && claimedToday} />
                         ) : (
                           <WateringCan size={cell * 0.62} />
                         )
@@ -199,7 +250,7 @@ export function LoginBonusSheet({ visible, claimedToday, onClose }: Props) {
                         </View>
                       )}
                     </View>
-                    <Text style={[styles.cellBonus, isMax && styles.cellBonusMax]}>+{amount}</Text>
+                    <Text style={[styles.cellBonus, d.isToday && styles.cellBonusMax]}>+{daily}</Text>
                   </View>
                 );
               })}
@@ -245,6 +296,14 @@ const styles = StyleSheet.create({
   checkCircle: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.green, justifyContent: 'center', alignItems: 'center' },
   calHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm },
   calTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  streakPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'center',
+    backgroundColor: colors.orangeSoft, borderRadius: 999,
+    paddingHorizontal: spacing.md, paddingVertical: 4, marginTop: 6,
+  },
+  streakFire: { fontSize: 13 },
+  streakText: { fontFamily: fonts.bold, fontSize: 12.5, color: colors.orangeDeep },
+  streakNum: { fontFamily: fonts.black, fontSize: 15 },
   calTitle: { fontFamily: fonts.bold, fontSize: 14.5, color: colors.textPrimary },
   calNote: { fontFamily: fonts.bold, fontSize: 10.5, color: colors.orangeDeep },
   week: { flexDirection: 'row', gap: 6, borderTopWidth: 1, borderTopColor: colors.border, borderBottomWidth: 1, borderBottomColor: colors.border, paddingVertical: 7, marginBottom: spacing.sm },

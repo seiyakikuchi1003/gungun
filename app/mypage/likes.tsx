@@ -1,0 +1,166 @@
+import React, { useCallback, useEffect, useState } from 'react';
+import { SwipePages } from '@/components/ui/SwipePages';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl, useWindowDimensions, TextInput } from 'react-native';
+import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { colors, spacing, fonts } from '@/theme';
+import { PressableScale } from '@/components/ui/PressableScale';
+import { TopTabs } from '@/components/ui/TopTabs';
+import { ItemCard } from '@/components/ui/ItemCard';
+import { PostRow } from '@/components/ui/PostRow';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { useMe } from '@/store/me';
+import { useLikes } from '@/store/likes';
+import { isSupabaseEnabled } from '@/lib/supabase';
+import { fetchLikedItems, fetchLikedPostIds } from '@/lib/api/social';
+import { fetchPostsByIds, type BoardPost } from '@/lib/api/board';
+import type { MockItem } from '@/data/mock';
+
+/**
+ * いいね一覧（マイページ →「いいね」）。
+ *
+ * 押したいいねをあとから見返せる導線が無かったため追加。
+ * 商品と掲示板の投稿でタブを分ける（押した順＝新しい順）。
+ */
+/** 左右にはらって行き来する順番 */
+const TABS = ['items', 'posts'] as const;
+
+export default function Likes() {
+  const insets = useSafeAreaInsets();
+  const me = useMe();
+  const likes = useLikes();
+  const [tab, setTab] = useState('items');
+  const [q, setQ] = useState('');
+
+  // 一覧の絞り込み（2026-08-12 指摘）
+  const [items, setItems] = useState<MockItem[]>([]);
+  const [posts, setPosts] = useState<BoardPost[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  // ItemCard は幅を受け取る作りなので、画面幅から2列ぶんを計算して渡す
+  const { width: winW } = useWindowDimensions();
+  // 2列に並べるためのカード幅。
+  // 外側の余白（14×2）に加えて、各セルの左右余白（6×2 が2枚ぶん）も引く。
+  // これを引き忘れていたため合計が画面幅を超え、2枚目が折り返して
+  // 1列に見えていた（2026-08-17 指摘）
+  const cardW = Math.floor((winW - 14 * 2 - 6 * 4) / 2);
+
+  const load = useCallback(async () => {
+    if (!isSupabaseEnabled || !me.live) { setLoading(false); return; }
+    try {
+      const [likedItems, likedPostIds] = await Promise.all([
+        fetchLikedItems(me.id),
+        fetchLikedPostIds(me.id),
+      ]);
+      setItems(likedItems);
+      setPosts(await fetchPostsByIds(likedPostIds, me.id));
+    } catch {
+      // 取れなかったときは空のまま。下に引いて再試行できる
+    } finally {
+      setLoading(false);
+    }
+  }, [me.id, me.live]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    // ♡の状態も取り直す（別画面で外したものを反映させる）
+    await Promise.all([load(), likes.refresh()]);
+    setRefreshing(false);
+  };
+
+  const key = q.trim();
+  const shownItems = key ? items.filter((it) => it.name.includes(key) || it.category.includes(key)) : items;
+  const shownPosts = key ? posts.filter((p) => (p.body ?? '').includes(key)) : posts;
+
+  return (
+    <View style={styles.root}>
+      <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
+        <PressableScale onPress={() => router.dismissTo('/mypage')} activeScale={0.9} style={styles.hBtn}>
+          <Ionicons name="chevron-back" size={26} color={colors.textPrimary} />
+        </PressableScale>
+        <Text style={styles.hTitle}>いいね一覧</Text>
+        <View style={styles.hBtn} />
+      </View>
+
+      <TopTabs
+        tabs={[
+          { key: 'items', label: `商品${items.length ? ` ${items.length}` : ''}` },
+          { key: 'posts', label: `投稿${posts.length ? ` ${posts.length}` : ''}` },
+        ]}
+        active={tab}
+        onChange={setTab}
+      />
+
+      <View style={styles.searchWrap}>
+        <Ionicons name="search" size={18} color={colors.textSecondary} />
+        <TextInput
+          value={q}
+          onChangeText={setQ}
+          placeholder={tab === 'items' ? '商品を絞り込む' : '投稿を絞り込む'}
+          placeholderTextColor={colors.textPlaceholder}
+          style={[styles.searchInput, { outlineStyle: 'none' } as object]}
+        />
+      </View>
+
+      {loading ? (
+        <View style={styles.center}><ActivityIndicator color={colors.green} /></View>
+      ) : (
+        <SwipePages index={Math.max(0, TABS.indexOf(tab as (typeof TABS)[number]))} count={TABS.length} onChange={(i) => setTab(TABS[i])}>
+        <ScrollView
+          keyboardDismissMode="on-drag"
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={tab === 'items' ? styles.grid : { paddingBottom: 40 }}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.green} />}
+        >
+          {tab === 'items' ? (
+            shownItems.length ? (
+              shownItems.map((it) => (
+                <View key={it.id} style={styles.cell}>
+                  <ItemCard item={it} width={cardW} onPress={() => router.push(`/item/${it.id}`)} />
+                </View>
+              ))
+            ) : (
+              <EmptyState
+                icon="heart-outline"
+                title="いいねした商品はまだありません"
+                note="気になる商品の♡を押すと、ここにたまっていきます。"
+              />
+            )
+          ) : shownPosts.length ? (
+            shownPosts.map((p) => (
+              <PostRow key={p.id} post={p as never} onPress={() => router.push(`/board/${p.id}`)} />
+            ))
+          ) : (
+            <EmptyState
+              icon="heart-outline"
+              title="いいねした投稿はまだありません"
+              note="掲示板で気になる投稿の♡を押すと、ここに残ります。"
+            />
+          )}
+        </ScrollView>
+        </SwipePages>
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.bg },
+  searchWrap: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginHorizontal: 16, marginTop: spacing.md,
+    backgroundColor: colors.card, borderRadius: 999, paddingHorizontal: spacing.lg, height: 42,
+    borderWidth: 1, borderColor: colors.border,
+  },
+  searchInput: { flex: 1, fontFamily: fonts.medium, fontSize: 15, color: colors.textPrimary },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingBottom: spacing.sm },
+  hBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
+  hTitle: { fontFamily: fonts.bold, fontSize: 17, color: colors.textPrimary },
+  center: { paddingTop: 60, alignItems: 'center' },
+  // 2列。cell 側で幅を持たせる（親に alignItems:'center' を置くと子が内容幅に縮む）
+  grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 14, paddingTop: spacing.md, paddingBottom: 40 },
+  cell: { paddingHorizontal: 6, marginBottom: spacing.md },
+});

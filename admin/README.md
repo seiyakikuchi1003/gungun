@@ -34,7 +34,10 @@ ADMIN_PASSWORD=（管理画面を開くためのパスワード）
 
 - `SUPABASE_SERVICE_ROLE_KEY` は **RLS を無視して全データを読み書きできる鍵**です。
   `NEXT_PUBLIC_` を付けない／リポジトリにコミットしない／チャットや issue に貼らないこと。
-- `ADMIN_PASSWORD` が未設定のときは誰でも開けてしまいます（ローカル開発用）。**公開前に必ず設定**してください。
+- `ADMIN_PASSWORD` が未設定のとき、**localhost 以外からのアクセスは 503 で閉じます**（fail closed）。
+  この画面の裏には RLS を越える `service_role` キーがあるため、設定漏れがそのまま
+  「全ユーザーの個人情報が誰でも読める」状態になってしまうためです。
+  （2026-08-03 に、実際にパスワード未設定のまま公開URLに出ていたのを検知して修正しました）
 - 接続情報が未設定でも画面は起動し、各ページに設定手順が表示されます。
 
 ## 前提となる DB マイグレーション
@@ -63,8 +66,40 @@ supabase db push        # または Supabase Studio の SQL Editor に貼り付�
 5. アプリ側（`.env`）の `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_ANON_KEY` も同様に差し替える
 6. 旧プロジェクトの service_role キーを失効させる
 
-## デプロイ
+## デプロイ（Cloudflare Pages）
 
-仕様どおり Cloudflare Pages を想定しています。ビルドコマンド `npm run build`、
-環境変数は Pages のダッシュボードに設定してください（`SUPABASE_SERVICE_ROLE_KEY` は必ず暗号化して保存）。
-サーバーアクションを使うため、静的書き出し（`output: 'export'`）はできません。
+Next.js App Router + サーバーアクションを Cloudflare Pages で動かすため、
+`@cloudflare/next-on-pages` を使ってビルドします。
+
+### ビルド／デプロイ手順
+
+```bash
+cd admin
+npx @cloudflare/next-on-pages          # .vercel/output/static に生成される
+npx wrangler pages deploy .vercel/output/static \
+  --project-name=gungun-admin \
+  --branch=main
+```
+
+### 事前設定（1回だけ）
+
+- Pages プロジェクト作成: `npx wrangler pages project create gungun-admin --production-branch=main`
+- `nodejs_compat` 互換フラグを有効化（Supabase SDK が Node.js 組込みを使うため）
+  ```bash
+  curl -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -X PATCH \
+    "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects/gungun-admin" \
+    -d '{"deployment_configs":{"production":{"compatibility_flags":["nodejs_compat"]},"preview":{"compatibility_flags":["nodejs_compat"]}}}'
+  ```
+- 各ルート `page.tsx` の先頭に `export const runtime = "edge";` が必要（設定済）
+- 環境変数を Pages ダッシュボードで設定
+  - `SUPABASE_URL`（Preview / Production 両方）
+  - `SUPABASE_SERVICE_ROLE_KEY`（暗号化して保存）
+  - `ADMIN_PASSWORD`（暗号化して保存）
+
+### アクセス制限（Cloudflare Access 併用推奨）
+
+管理画面は運営専用のため、Cloudflare Zero Trust の Access で
+「特定のメールアドレスのみログイン可」に絞ることを推奨します。
+Supabase 側のログインと二重ロックにすることで、URL が流出しても中身は開けません。
+
+公開URL: `https://gungun-admin.pages.dev`

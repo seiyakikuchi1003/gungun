@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
+import { browserPath } from './lib/browser.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const FILE = path.join(__dirname, '..', 'gungun-preview.html');
@@ -13,7 +14,7 @@ const wrapped = `<!doctype html><html><head><meta charset="utf8"><meta name="vie
 const server = http.createServer((_, res) => { res.writeHead(200, { 'Content-Type': 'text/html' }); res.end(wrapped); });
 await new Promise((r) => server.listen(8077, r));
 
-const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--no-sandbox'] });
+const browser = await chromium.launch({ executablePath: browserPath(), args: ['--no-sandbox'] });
 const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true });
 const page = await ctx.newPage();
 const errors = [];

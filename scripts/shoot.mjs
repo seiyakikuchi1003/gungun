@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
+import { browserPath } from './lib/browser.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DIST = path.join(__dirname, '..', 'dist');
@@ -35,7 +36,7 @@ await new Promise((r) => server.listen(8099, r));
 console.log('serving dist on :8099');
 
 const browser = await chromium.launch({
-  executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+  executablePath: browserPath(),
   args: ['--no-sandbox', '--disable-setuid-sandbox'],
 });
 // iPhone 13/14 サイズ相当

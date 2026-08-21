@@ -257,8 +257,10 @@ $$;
 
 ### 3-2. 水やり可否の判定
 
-**ルール**：`target` の祖先ライン（target自身〜root）に、自分のitemが1つでもあれば**不可**。
-これで「自分の種」「自分が既に乗っている系統」の両方を1発で弾ける。
+**ルール**（★2026-08-05 変更：祖先ライン → 木全体）：
+`target` が属する木（同じ `root_id`）に、自分のitemが1つでもあれば**不可**。
+つまり **1ユーザーは1つの木につき1回だけ水やりできる**。
+これで「自分の種」「自分が既に乗っている系統」「同じ木の別の枝」をまとめて弾ける。
 
 ```sql
 create or replace function can_water(p_user_id uuid, p_target_id uuid)
@@ -266,16 +268,25 @@ returns boolean language sql stable as $$
   select
     (select status from items where id = p_target_id) = 'growing'
     and not exists (
-      select 1 from get_ancestors(p_target_id) a
-      where a.user_id = p_user_id
+      select 1
+      from items i
+      where i.root_id = (select root_id from items where id = p_target_id)
+        and i.user_id = p_user_id
+        and i.status <> 'deleted'
     );
 $$;
 ```
 
-> 検証例：`A(種) → B → D`
-> - B が D に水やり → Dの祖先は D,B,A。Bがいる → **不可** ✅
-> - B が C（Aの別の子）に水やり → Cの祖先は C,A。Bはいない → **可** ✅
-> - A が自分の種に水やり → 祖先にAがいる → **不可** ✅
+> 検証例：`A(種) → B → D` ／ `A(種) → C`（Cは別の枝）
+> - B が D に水やり → 同じ木にBがいる → **不可** ✅
+> - B が C に水やり → 同じ木にBがいる → **不可** ✅（旧ルールでは可だった）
+> - A が自分の種に水やり → 同じ木にAがいる → **不可** ✅
+> - B が別の木の商品に水やり → **可** ✅
+
+- `deleted` を除くのは、`delete_item` が物理削除せず `status='deleted'` にするため。
+  消した本人はもうその木にいないので、除外しないと二度とその木に入れなくなる。
+- **収穫後のリセットは自動**：収穫で残った枝は新しい種になり `root_id` が変わる
+  （`detach_children`）。以前その木にいた人も、新しい木には改めて水やりできる。
 
 ### 3-3. ノード離脱＝子孫の新root化（★収穫・削除・植え直しで共通）
 

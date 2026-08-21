@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput } from 'react-native';
+import { useMe } from '@/store/me';
+import { PremiumNudge } from '@/components/feature/PremiumNudge';
+import { View, Text, StyleSheet, ScrollView, TextInput, ActivityIndicator } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -9,22 +11,26 @@ import { PressableScale } from '@/components/ui/PressableScale';
 import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
 import { Thumb } from '@/components/ui/Thumb';
 import { Avatar } from '@/components/ui/Avatar';
-import { StarRating } from '@/components/ui/StarRating';
+import { RatingSummary } from '@/components/ui/RatingSummary';
 import { PhotoSourceSheet } from '@/components/feature/PhotoSourceSheet';
-import { getUser, categories, conditions } from '@/data/mock';
+import { categories, conditions } from '@/data/mock';
 import { success } from '@/lib/haptics';
 import { playSfx } from '@/lib/sound';
 import { useTree } from '@/store/tree';
 import { settings } from '@/config/settings';
+import { useUsers } from '@/store/users';
+import { KeyboardDoneBar, KEYBOARD_DONE_ID } from '@/components/ui/KeyboardDoneBar';
+import { OptionPicker } from '@/components/ui/OptionPicker';
 
 const NAME_MAX = 20;
 const DESC_MAX = 200;
 type PickerKey = 'category' | 'condition' | null;
 
 export default function WaterScreen() {
+  const users = useUsers();
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
-  const { getItem, canWater, water, fertilizer } = useTree();
+  const { getItem, canWater, water, fertilizer, settings: appSettings, live } = useTree();
   const target = getItem(id ?? '');
 
   const [photos, setPhotos] = useState<string[]>([]);
@@ -33,7 +39,11 @@ export default function WaterScreen() {
   const [category, setCategory] = useState('バッグ・小物');
   const [condition, setCondition] = useState('');
   const [picker, setPicker] = useState<PickerKey>(null);
+  const me = useMe();
   const [photoSheet, setPhotoSheet] = useState(false);
+  // 出品・水やりのタイミングでだけプレミアムを案内する（2026-08-13 指摘）
+  const [nudge, setNudge] = useState(true);
+  const [busy, setBusy] = useState(false);
 
   if (!target) {
     return (
@@ -41,19 +51,23 @@ export default function WaterScreen() {
     );
   }
 
-  const owner = getUser(target.ownerId);
+  const owner = users.user(target.ownerId);
   const gate = canWater(target.id);
-  const cost = settings.waterCost;
+  // 水やり単価は DB（app_settings）から。未接続時はモックの既定値
+  const cost = live ? appSettings.waterCost : settings.waterCost;
   const formOk = name.trim().length > 0 && condition.length > 0 && photos.length > 0;
-  const canSubmit = gate.ok && formOk;
+  const canSubmit = gate.ok && formOk && !busy;
 
-  const submit = () => {
+  const submit = async () => {
     if (!canSubmit) return;
-    const created = water(target.id, { name, category, condition, description: desc, photos });
+    setBusy(true);
+    // 実DB接続時は写真のアップロードとRPCが走るため少し待つ
+    const created = await water(target.id, { name, category, condition, description: desc, photos });
+    setBusy(false);
     if (created) {
       success(); // 水やり成立の「タタン♪」
       playSfx('chime'); // ピロン↑
-      router.replace({ pathname: '/tree/[rootId]', params: { rootId: target.rootId, new: created.id } });
+      router.replace({ pathname: '/tree/[rootId]', params: { rootId: created.rootId, new: created.id } });
     }
   };
 
@@ -70,7 +84,10 @@ export default function WaterScreen() {
         </PressableScale>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        keyboardDismissMode="on-drag"
+        automaticallyAdjustKeyboardInsets
+        keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
         {/* 水やり先（親商品） */}
         <Text style={styles.label}>水やり先（親商品）</Text>
         <View style={[styles.parentCard, shadows.soft]}>
@@ -82,15 +99,17 @@ export default function WaterScreen() {
               <Text style={styles.parentOwner}>{owner.nickname}さん</Text>
             </View>
             <View style={styles.parentMeta}>
-              <StarRating value={4.5} size={12} gap={1} />
-              <Text style={styles.parentSub}>(12)　水やり数：{target.waterCount}</Text>
+              <RatingSummary avg={owner.ratingAvg ?? null} count={owner.ratingCount} size={12} gap={1} />
+              <Text style={styles.parentSub}>水やり数：{target.waterCount}</Text>
             </View>
           </View>
         </View>
 
         {/* あなたが出す商品（子） */}
         <Text style={[styles.label, { marginTop: spacing.xl, color: colors.waterBlue }]}>あなたが出す商品（子）</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photoRow}>
+        <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photoRow}>
           {photos.map((uri, i) => (
             <View key={uri + i} style={styles.photo}>
               <Thumb uri={uri} style={styles.photoImg} radius={radius.md} markSize={30} />
@@ -137,6 +156,7 @@ export default function WaterScreen() {
             placeholder="商品の説明を入力してください（200文字以内）"
             placeholderTextColor={colors.textPlaceholder}
             multiline
+              inputAccessoryViewID={KEYBOARD_DONE_ID}
             style={[styles.input, styles.textarea, { outlineStyle: 'none' } as object]}
           />
         </View>
@@ -171,13 +191,21 @@ export default function WaterScreen() {
       {/* 水やりするボタン */}
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
         <PressableScale onPress={submit} disabled={!canSubmit} activeScale={0.97} style={[styles.waterBtn, shadows.button, !canSubmit && styles.waterBtnOff]}>
-          <Ionicons name="water" size={20} color={colors.white} />
-          <Text style={styles.waterText}>水やりする</Text>
+          {busy ? (
+            <ActivityIndicator color={colors.white} />
+          ) : (
+            <>
+              <Ionicons name="water" size={20} color={colors.white} />
+              <Text style={styles.waterText}>水やりする</Text>
+            </>
+          )}
         </PressableScale>
         <Text style={styles.footerHint}>水やりすると、あなたの商品がこの木の子として出品されます</Text>
       </View>
 
       {/* 写真の追加方法（カメラ / ライブラリ） */}
+      <PremiumNudge trigger={nudge} isPremium={me.isPremium} onClose={() => setNudge(false)} />
+
       <PhotoSourceSheet
         visible={photoSheet}
         onClose={() => setPhotoSheet(false)}
@@ -185,18 +213,15 @@ export default function WaterScreen() {
       />
 
       {/* ピッカー */}
-      <BottomSheetModal visible={picker !== null} onClose={() => setPicker(null)}>
-        <Text style={styles.pickerTitle}>{picker === 'category' ? 'カテゴリ' : '商品の状態'}</Text>
-        {(picker === 'category' ? categories : conditions).map((opt) => {
-          const selected = picker === 'category' ? category === opt : condition === opt;
-          return (
-            <PressableScale key={opt} activeScale={0.98} onPress={() => { picker === 'category' ? setCategory(opt) : setCondition(opt); setPicker(null); }} style={styles.pickerRow}>
-              <Text style={[styles.pickerText, selected && styles.pickerTextOn]}>{opt}</Text>
-              {selected && <Ionicons name="checkmark" size={20} color={colors.green} />}
-            </PressableScale>
-          );
-        })}
-      </BottomSheetModal>
+      <OptionPicker
+        visible={picker !== null}
+        title={picker === 'category' ? 'カテゴリ' : '商品の状態'}
+        options={picker === 'category' ? categories : conditions}
+        selected={picker === 'category' ? category : condition}
+        searchable={picker === 'category'}
+        onSelect={(v) => (picker === 'category' ? setCategory(v) : setCondition(v))}
+        onClose={() => setPicker(null)}
+      />
     </View>
   );
 }
@@ -209,6 +234,7 @@ function SelectRow({ label, value, placeholder, onPress }: { label: string; valu
         <Text style={[styles.selectValue, !value && styles.selectPlaceholder]}>{value || placeholder}</Text>
         <Ionicons name="chevron-down" size={18} color={colors.textSecondary} />
       </PressableScale>
+      <KeyboardDoneBar />
     </View>
   );
 }

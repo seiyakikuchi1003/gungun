@@ -5,8 +5,8 @@ import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { useBlocks } from '@/store/blocks';
-import { getUser } from '@/data/mock';
 import { success, warning } from '@/lib/haptics';
+import { useUsers } from '@/store/users';
 
 type Props = {
   visible: boolean;
@@ -22,9 +22,10 @@ type Props = {
  * 自分の投稿：削除　／　他人の投稿：通報 / 投稿者をブロック
  */
 export function PostActionSheet({ visible, onClose, authorId, isOwner, onReport, onDelete }: Props) {
+  const users = useUsers();
   const { block } = useBlocks();
   const [mode, setMode] = useState<'menu' | 'confirmDelete' | 'confirmBlock'>('menu');
-  const author = getUser(authorId);
+  const author = users.user(authorId);
 
   const close = () => {
     onClose();

@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -10,22 +10,47 @@ import { PressableScale } from '@/components/ui/PressableScale';
 import { Thumb } from '@/components/ui/Thumb';
 import { Badge } from '@/components/ui/Badge';
 import { Sprout } from '@/components/art/Sprout';
+import { MiniTree } from '@/components/art/MiniTree';
 import { Mikan } from '@/components/art/Mikan';
 import { LeafDecor } from '@/components/art/LeafDecor';
-import { currentUser, MockItem, treeGrowth } from '@/data/mock';
+import { MockItem } from '@/data/mock';
 import { useTree } from '@/store/tree';
+import { useMe } from '@/store/me';
+import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 
 export default function HarvestScreen() {
+  const me = useMe();
   const insets = useSafeAreaInsets();
-  const { items, treeItems } = useTree();
+  const { items, treeItems, refresh } = useTree();
+  // 画面に戻ったとき・アプリを前面に戻したときに最新を取り直す
+  useAutoRefresh(refresh);
+  // 引っ張って更新（他の画面と同じ操作で最新にできるように）
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refresh();
+    } catch {
+      // 取得に失敗しても画面は保つ
+    }
+    setRefreshing(false);
+  }, [refresh]);
 
   // 自分が植えたタネ（parentId=null）＝収穫の起点になれるもの
   // デモの木を見せるため、自分の種が無い場合は水やりが集まっている木も表示する
-  const ownSeeds = items.filter((i) => i.parentId === null && i.ownerId === currentUser.id);
+  const ownSeeds = items.filter((i) => i.parentId === null && i.ownerId === me.id);
+  // 実データでは他人のタネを混ぜない。収穫できるのは自分のタネだけなので、
+  // 並べておくと「押せるのに収穫できない」ことになる（2026-08-05 指摘）
   const demoSeeds = items
     .filter((i) => i.parentId === null && treeItems(i.id).length > 1)
     .slice(0, 3);
-  const mySeeds: MockItem[] = ownSeeds.length > 0 ? ownSeeds : demoSeeds;
+  // 実データでは自分のタネだけ。デモの木で埋めるのは未接続（モック）のときだけにする。
+  // 他人のタネを並べると「収穫するを押せるのに、自分のタネではないので進まない」となる
+  const mySeeds: MockItem[] = me.live
+    ? ownSeeds
+    : ownSeeds.length > 0
+      ? ownSeeds
+      : demoSeeds;
 
   /** その木にぶら下がっている件数（種を含む） */
   const treeSizeOf = (s: MockItem) => treeItems(s.id).length;
@@ -42,6 +67,9 @@ export default function HarvestScreen() {
       </View>
 
       <ScrollView
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.green]} tintColor={colors.green} />}
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: insets.top + 12, paddingBottom: 170 }}
       >
@@ -49,7 +77,7 @@ export default function HarvestScreen() {
         <Animated.View entering={FadeInDown.duration(400)}>
           <View style={styles.headRow}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.title}>あなたの畑</Text>
+              <Text style={styles.title}>あなたの森</Text>
               <Text style={styles.subtitle}>植えたタネが、交換の輪に育ちます</Text>
             </View>
             <Mikan size={46} />
@@ -84,7 +112,6 @@ export default function HarvestScreen() {
         {mySeeds.map((s, i) => {
           const size = treeSizeOf(s);
           const gathered = gatheredOf(s);
-          const g = treeGrowth(size);
           const canHarvest = s.status === 'growing' && gathered > 0;
           return (
             <Animated.View key={s.id} entering={FadeInDown.delay(80 + i * 70).duration(400)}>
@@ -96,12 +123,10 @@ export default function HarvestScreen() {
                       <Text style={styles.name} numberOfLines={1}>{s.name}</Text>
                       <Badge label={s.status === 'trading' ? '取引中' : '出品中'} tone={s.status === 'trading' ? 'orange' : 'green'} />
                     </View>
-                    <Text style={styles.growth}>{g.emoji} {g.label}</Text>
+                    {/* 「木全体」は 集まった商品+1 で同じことを言っているだけなので出さない */}
                     <View style={styles.metaRow}>
-                      <Ionicons name="water" size={13} color={colors.green} />
-                      <Text style={styles.meta}>集まった商品 <Text style={styles.metaNum}>{gathered}</Text></Text>
-                      <Sprout size={14} />
-                      <Text style={styles.meta}>木全体 <Text style={styles.metaNum}>{size}</Text>件</Text>
+                      <MiniTree size={18} count={gathered} />
+                      <Text style={styles.meta}>集まった商品 <Text style={styles.metaNum}>{gathered}</Text>件</Text>
                     </View>
                   </View>
                   <Ionicons name="chevron-forward" size={20} color={colors.textPlaceholder} />
@@ -137,7 +162,7 @@ export default function HarvestScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.bg },
+  root: { flex: 1, backgroundColor: colors.bg, overflow: 'hidden' }, // 装飾の葉が右にはみ出す設計なので、ここで切る（全画面で横スクロールが出ていた）
   leafBg: { position: 'absolute', right: -40, top: -20 },
   headRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.lg },
   title: { fontFamily: fonts.black, fontSize: 24, color: colors.textPrimary },

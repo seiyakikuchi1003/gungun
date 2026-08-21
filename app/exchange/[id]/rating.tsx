@@ -10,22 +10,36 @@ import { Button } from '@/components/ui/Button';
 import { StarRating } from '@/components/ui/StarRating';
 import { Avatar } from '@/components/ui/Avatar';
 import { Mikan } from '@/components/art/Mikan';
-import { trades, tradeUser } from '@/data/mockSocial';
+import { useExchange } from '@/hooks/useExchanges';
+import { FormError } from '@/components/ui/FormError';
+import { KeyboardDoneBar, KEYBOARD_DONE_ID } from '@/components/ui/KeyboardDoneBar';
+import { NotFound } from '@/components/ui/NotFound';
 
 const GOOD = ['対応が丁寧', 'スムーズ', '説明通り', '発送が早い', '梱包が丁寧'];
 
 export default function RatingScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
-  const trade = trades.find((t) => t.id === id);
+  const { trade, busy, rate } = useExchange(id ?? '');
   const [score, setScore] = useState(0);
   const [tags, setTags] = useState<string[]>([]);
   const [comment, setComment] = useState('');
   const [done, setDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!trade) return <View style={styles.root} />;
-  const u = tradeUser(trade);
+  if (!trade) return <NotFound message="この取引は見つかりませんでした" fallback="/exchange" />;
+  const u = { nickname: trade.partnerName, avatar: trade.partnerAvatar };
   const isSend = trade.dir === 'send';
+
+  const submit = async () => {
+    if (score === 0 || busy) return;
+    setError(null);
+    // 選んだタグも本文に添えて残す（DB は comment 1本なので連結する）
+    const body = [tags.join('・'), comment.trim()].filter(Boolean).join('\n');
+    const res = await rate(score, body);
+    if (res.error) { setError(res.error); return; }
+    setDone(true);
+  };
   // 送った側→やり取りの円滑さ / 受け取った側→商品の質
   const question = isSend ? 'やり取りはスムーズでしたか？' : '商品の状態はいかがでしたか？';
 
@@ -35,7 +49,20 @@ export default function RatingScreen() {
         <Animated.View entering={ZoomIn.springify().damping(11)}><Mikan size={120} /></Animated.View>
         <Animated.Text entering={FadeIn.delay(150)} style={styles.doneTitle}>評価を送信しました！</Animated.Text>
         <Animated.Text entering={FadeIn.delay(250)} style={styles.doneSub}>取引完了です。ありがとうございました🌱</Animated.Text>
-        <Button title="取引一覧へ戻る" onPress={() => router.replace('/exchange')} style={{ marginTop: spacing['2xl'], width: '80%' }} />
+        <View style={styles.doneCta}>
+          {/* 輪の全体を見せるお祝い画面へ。まだ全員そろっていなければ進み具合として読める */}
+          {trade.harvestId && (
+            <Button
+              title="みんなの輪を見る"
+              onPress={() => router.replace(`/celebration/${trade.harvestId}`)}
+            />
+          )}
+          {/* replace だと下に取引詳細が残り、戻るを押すと完了済みの取引に戻ってしまう。
+              dismissTo なら取引一覧まで一気に畳める（2026-08-12 指摘の「戻るのループ」） */}
+          <PressableScale onPress={() => router.dismissTo('/exchange')} activeScale={0.97} style={styles.doneGhost}>
+            <Text style={styles.doneGhostText}>取引一覧へ戻る</Text>
+          </PressableScale>
+        </View>
       </View>
     );
   }
@@ -50,7 +77,10 @@ export default function RatingScreen() {
         <View style={styles.hBtn} />
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
+      <ScrollView
+        keyboardDismissMode="on-drag"
+        automaticallyAdjustKeyboardInsets
+        keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
         <View style={styles.userCard}>
           <Avatar uri={u.avatar} name={u.nickname} size={64} />
           <Text style={styles.userName}>{u.nickname}さん</Text>
@@ -80,18 +110,27 @@ export default function RatingScreen() {
           placeholder="コメントを書く（任意）"
           placeholderTextColor={colors.textPlaceholder}
           multiline
+              inputAccessoryViewID={KEYBOARD_DONE_ID}
           style={[styles.comment, shadows.soft]}
         />
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
-        <Button title="評価を送信する" disabled={score === 0} onPress={() => setDone(true)} />
+        {error ? <View style={{ marginBottom: 12 }}><FormError message={error} /></View> : null}
+        <Button title="評価を送信する" disabled={score === 0} loading={busy} onPress={submit} />
       </View>
+      <KeyboardDoneBar />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  doneGhost: {
+    alignItems: 'center', justifyContent: 'center', height: 50,
+    borderRadius: radius.pill, backgroundColor: colors.card,
+    borderWidth: 1, borderColor: colors.border,
+  },
+  doneGhostText: { fontFamily: fonts.bold, fontSize: 15, color: colors.textSecondary },
   root: { flex: 1, backgroundColor: colors.bg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingBottom: spacing.sm },
   hBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
@@ -110,6 +149,10 @@ const styles = StyleSheet.create({
   comment: { backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.lg, minHeight: 100, textAlignVertical: 'top', fontFamily: fonts.regular, fontSize: 14.5, color: colors.textPrimary },
   footer: { paddingHorizontal: 20, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: colors.divider },
   doneWrap: { justifyContent: 'center', alignItems: 'center', padding: 30 },
-  doneTitle: { fontFamily: fonts.bold, fontSize: 21, color: colors.textPrimary, marginTop: spacing.lg },
-  doneSub: { fontFamily: fonts.regular, fontSize: 14, color: colors.textSecondary, textAlign: 'center', marginTop: spacing.sm },
+  doneTitle: { fontFamily: fonts.bold, fontSize: 21, color: colors.textPrimary, marginTop: spacing.lg, textAlign: 'center' },
+  doneSub: { fontFamily: fonts.regular, fontSize: 14, color: colors.textSecondary, textAlign: 'center', marginTop: spacing.sm, lineHeight: 22 },
+  // 2026-07-28 MTG：ボタンずれ対策。80%幅を、Button の fullWidth（alignSelf:stretch）
+  // に干渉させないよう、ラッパー View で幅を決めてから Button を置く。
+  // ボタン同士がくっついて見えないよう間隔をあける（2026-08-13 項目7）
+  doneCta: { width: '80%', marginTop: spacing['2xl'], gap: spacing.md },
 });

@@ -5,39 +5,67 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors } from '@/theme';
 import { AuthProvider } from '@/store/auth';
+import { AuthGate } from '@/components/AuthGate';
+import { UsersProvider } from '@/store/users';
 import { TreeProvider } from '@/store/tree';
 import { BlocksProvider } from '@/store/blocks';
 import { LikesProvider } from '@/store/likes';
 import { NotificationsProvider } from '@/store/notifications';
+import { configureNotificationHandler } from '@/lib/push';
+import { usePushNavigation } from '@/hooks/usePushNavigation';
+import { StripeGate } from '@/components/StripeGate';
+
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function RootLayout() {
   // 角丸ゴシック M PLUS Rounded 1c（使用文字だけにサブセット化）。
-  const [loaded] = useFonts({
+  // Ionicons.font はネイティブでは自動リンクされるが、Web では明示ロードが要る。
+  const [loaded, fontError] = useFonts({
     MPLUSRounded1c_400Regular: require('../assets/fonts/MPLUSRounded1c-Regular.ttf'),
     MPLUSRounded1c_500Medium: require('../assets/fonts/MPLUSRounded1c-Medium.ttf'),
     MPLUSRounded1c_700Bold: require('../assets/fonts/MPLUSRounded1c-Bold.ttf'),
     MPLUSRounded1c_800ExtraBold: require('../assets/fonts/MPLUSRounded1c-ExtraBold.ttf'),
+    ...Ionicons.font,
   });
 
-  useEffect(() => {
-    if (loaded) SplashScreen.hideAsync().catch(() => {});
-  }, [loaded]);
+  // フォントの取得に失敗しても画面は出す。
+  // 1つでも読めないと `loaded` が永久に false になり、真っ白なページになるため
+  // （Web ビルドでアイコンフォントが 404 になったときに実際に起きた）。
+  const ready = loaded || Boolean(fontError);
 
-  if (!loaded) return null;
+  useEffect(() => {
+    if (!ready) return;
+    // 読み込みが速いと一瞬で消えてブランドが目に入らないので、少しだけ見せる
+    const t = setTimeout(() => { SplashScreen.hideAsync().catch(() => {}); }, 900);
+    return () => clearTimeout(t);
+  }, [ready]);
+
+  // 通知が届いたときの見せ方（起動中でもバナーを出す）。Web では何もしない
+  useEffect(() => {
+    configureNotificationHandler();
+  }, []);
+
+  // プッシュ通知をタップしたら該当ページへ飛ばす
+  usePushNavigation();
+
+  if (!ready) return null;
 
   return (
+    <StripeGate>
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <AuthProvider>
+          <UsersProvider>
           <TreeProvider>
             <BlocksProvider>
             <LikesProvider>
             <NotificationsProvider>
             <StatusBar style="dark" />
+            <AuthGate>
             <Stack
               screenOptions={{
                 headerShown: false,
@@ -54,12 +82,15 @@ export default function RootLayout() {
               <Stack.Screen name="water/about" options={{ animation: 'slide_from_bottom', presentation: 'modal' }} />
               <Stack.Screen name="item/edit/[id]" options={{ animation: 'slide_from_bottom', presentation: 'modal' }} />
             </Stack>
+            </AuthGate>
             </NotificationsProvider>
             </LikesProvider>
             </BlocksProvider>
           </TreeProvider>
+          </UsersProvider>
         </AuthProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
+    </StripeGate>
   );
 }

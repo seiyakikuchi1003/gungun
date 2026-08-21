@@ -1,54 +1,126 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { errorMessage } from '@/lib/errorMessage';
+import { openBillingPortal } from '@/lib/api/purchases';
 import { View, Text, StyleSheet, ScrollView, Linking } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { displayName as toDisplayName } from '@/lib/api/map';
 import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
 import { Avatar } from '@/components/ui/Avatar';
-import { StarRating } from '@/components/ui/StarRating';
+import { RatingSummary } from '@/components/ui/RatingSummary';
+import { FormError } from '@/components/ui/FormError';
 import { currentUser } from '@/data/mock';
+import { fetchStats, type ProfileStats } from '@/lib/api/profile';
+import { isSupabaseEnabled } from '@/lib/supabase';
 import { useAuth } from '@/store/auth';
+import { useTree } from '@/store/tree';
+import { useMe } from '@/store/me';
 import { warning } from '@/lib/haptics';
-
-type Action = 'about' | 'contact' | 'logout' | 'withdraw';
+import { useAutoRefresh } from '@/hooks/useAutoRefresh';
+type Action = 'about' | 'contact' | 'logout' | 'withdraw' | 'plan';
 const MENU: { icon: keyof typeof Ionicons.glyphMap; label: string; route?: string; action?: Action; danger?: boolean }[] = [
-  { icon: 'person-circle-outline', label: '個人情報設定', route: '/mypage/account' },
   { icon: 'pricetags-outline', label: '出品履歴', route: '/mypage/items' },
-  { icon: 'chatbox-ellipses-outline', label: '掲示板投稿履歴', route: '/mypage/posts' },
+  { icon: 'heart-outline', label: 'いいね一覧', route: '/mypage/likes' },
+  { icon: 'time-outline', label: '閲覧履歴', route: '/mypage/history' },
+  { icon: 'chatbox-ellipses-outline', label: '掲示板の履歴', route: '/mypage/posts' },
   { icon: 'ban-outline', label: 'ブロックリスト', route: '/mypage/blocks' },
+  // プレミアムの案内には「マイページから解約できます」と書いてあるのに、
+  // マイページに入口が無かった（2026-08-21 指摘）
+  { icon: 'diamond-outline', label: 'プランを管理・解約する', action: 'plan' },
   { icon: 'information-circle-outline', label: 'ぐんぐんについて', action: 'about' },
+  { icon: 'document-text-outline', label: '利用規約', route: '/mypage/terms' },
+  { icon: 'shield-checkmark-outline', label: 'プライバシーポリシー', route: '/mypage/privacy' },
   { icon: 'mail-outline', label: 'お問い合わせ', action: 'contact' },
   { icon: 'exit-outline', label: 'ログアウト', action: 'logout' },
   { icon: 'trash-outline', label: '退会', action: 'withdraw', danger: true },
 ];
 
-function Stat({ n, label }: { n: number; label: string }) {
+function Stat({ n, label, onPress }: { n: number; label: string; onPress?: () => void }) {
   return (
-    <View style={styles.stat}>
+    <PressableScale activeScale={onPress ? 0.94 : 1} onPress={onPress} disabled={!onPress} style={styles.stat}>
       <Text style={styles.statNum}>{n}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
-    </View>
+      <View style={styles.statLabelRow}>
+        <Text style={styles.statLabel}>{label}</Text>
+        {onPress && <Ionicons name="chevron-forward" size={10} color={colors.textSecondary} />}
+      </View>
+    </PressableScale>
   );
 }
 
 export default function MyPage() {
   const insets = useSafeAreaInsets();
-  const { signOut } = useAuth();
+  const { signOut, deleteAccount, profile, reloadProfile } = useAuth();
+  // 肥料残高は tree ストアが持つ（水やり・チャージで増減する実際の値）
+  const { fertilizer, items, settings } = useTree();
+  const me = useMe();
+  const mine = items.filter((i) => i.ownerId === me.id);
+  const planted = mine.filter((i) => i.parentId === null).length;
+  const watered = mine.filter((i) => i.parentId !== null).length;
+  const exchanging = mine.filter((i) => i.status === 'trading').length;
+  // ログイン中の本人の表示名。実DB接続時は profiles の値、モックでは従来どおり。
+  // 名乗りを入れていない人は空になる（0030 でローマ字の仮置きをやめた）ので、
+  // ここで「名前未設定」と出して編集をうながす。
+  const displayName = toDisplayName(profile?.nickname ?? me.nickname);
+  // 評価は profile_stats（実データ）から。以前はモックの 4.5 固定だった
+  const [stats, setStats] = useState<ProfileStats | null>(null);
+  // モック（画面デモ）では従来どおりデモの評価を出す。実データでは profile_stats を使い、
+  // 評価がまだ無い人には「評価なし」と出す（4.5 固定を出すと嘘になる）
+  const rating =
+    stats?.ratingAvg != null
+      ? `${stats.ratingAvg}（${stats.ratingCount}）`
+      : me.live
+        ? '評価なし'
+        : `4.5（${currentUser.ratingCount}）`;
   const [sheet, setSheet] = useState<Action | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  // 退会は2段階（理由 → 最終確認）
+  const [planError, setPlanError] = useState<string | null>(null);
+  const [withdrawStep, setWithdrawStep] = useState<1 | 2>(1);
+  const [withdrawReason, setWithdrawReason] = useState<string | null>(null);
+
+  // 評価・肥料・プロフィールをまとめて取り直す。
+  // 画面に戻ったとき／アプリを前面に戻したときにも呼ばれる（useAutoRefresh）
+  const reloadMine = useCallback(async () => {
+    if (!isSupabaseEnabled || !me.live) return;
+    await Promise.all([
+      fetchStats(me.id).then(setStats).catch(() => {}),
+      reloadProfile().catch(() => {}),
+    ]);
+  }, [me.id, me.live, reloadProfile]);
+
+  useEffect(() => {
+    reloadMine();
+  }, [reloadMine]);
+  useAutoRefresh(reloadMine);
 
   const onMenu = (m: (typeof MENU)[number]) => {
-    if (m.route) { router.push(m.route as never); return; }
+    // 同じ画面を何度も積まない（2026-08-14 指摘：連続で戻らないと抜けられない）
+    if (m.route) { router.navigate(m.route as never); return; }
     if (m.action) setSheet(m.action);
   };
 
   return (
     <View style={styles.root}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: 170 }}>
+      <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: 170 }}>
         <View style={styles.header}>
+          {/* マイページはホームから開くので、戻る導線が無いと
+              ボトムナビを経由するしかなかった（2026-08-13 再掲） */}
+          <PressableScale
+            activeScale={0.9}
+            onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
+            style={styles.backBtn}
+          >
+            <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
+          </PressableScale>
           <Text style={styles.title}>マイページ</Text>
-          <PressableScale activeScale={0.9} onPress={() => router.push('/mypage/edit')} style={styles.settingsBtn}>
+          {/* 歯車＝設定（本人確認の情報）、名前の横の「編集」＝公開プロフィール。
+              どちらもプロフィール編集に飛んでいて役割が重複していた（2026-08-05 指摘） */}
+          <PressableScale activeScale={0.9} onPress={() => router.push('/mypage/account')} style={styles.settingsBtn}>
             <Ionicons name="settings-outline" size={22} color={colors.textPrimary} />
           </PressableScale>
         </View>
@@ -56,25 +128,36 @@ export default function MyPage() {
         {/* プロフィール */}
         <View style={[styles.profile, shadows.card]}>
           <View style={styles.profileTop}>
-            <Avatar uri={currentUser.avatar} name={currentUser.nickname} size={64} />
+            <Avatar uri={profile?.avatarUrl ?? me.avatar} name={displayName} size={64} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.name}>{currentUser.nickname}さん</Text>
-              <View style={styles.ratingRow}>
-                <StarRating value={4.5} size={15} />
-                <Text style={styles.ratingText}>4.5（{currentUser.ratingCount}）</Text>
-              </View>
+              <Text style={styles.name}>{displayName}さん</Text>
+              <PressableScale
+                onPress={() => router.push(`/ratings/${me.id}` as never)}
+                activeScale={0.97}
+                style={styles.ratingRow}
+              >
+                <RatingSummary avg={stats?.ratingAvg ?? null} count={stats?.ratingCount ?? 0} size={15} />
+                <Ionicons name="chevron-forward" size={14} color={colors.textPlaceholder} />
+              </PressableScale>
             </View>
             <PressableScale onPress={() => router.push('/mypage/edit')} activeScale={0.95} style={styles.editBtn}>
               <Text style={styles.editText}>編集</Text>
             </PressableScale>
           </View>
-          <Text style={styles.bio}>不要になったものを、必要な人へ🌱 気軽に水やりしてください！</Text>
+          {/* 自己紹介は本人が書いたものを出す。以前は誰でも同じ文言が固定で出ていた（2026-08-05 指摘） */}
+          {profile?.bio ? (
+            <Text style={styles.bio}>{profile.bio}</Text>
+          ) : (
+            <Text style={[styles.bio, styles.bioEmpty]}>自己紹介はまだありません（編集から書けます）</Text>
+          )}
+          {/* 固定値ではなく実データから数える（収穫タブの件数と食い違わないように） */}
           <View style={styles.stats}>
-            <Stat n={2} label="植えたタネ" />
+            {/* 数字を押すと中身を見に行ける（2026-08-14 指摘） */}
+            <Stat n={planted} label="植えたタネ" onPress={() => router.push('/mypage/items')} />
             <View style={styles.statDivider} />
-            <Stat n={7} label="水やり" />
+            <Stat n={watered} label="水やり" onPress={() => router.push('/mypage/items')} />
             <View style={styles.statDivider} />
-            <Stat n={3} label="収穫" />
+            <Stat n={exchanging} label="取引中" onPress={() => router.push('/exchange')} />
           </View>
         </View>
 
@@ -85,7 +168,7 @@ export default function MyPage() {
             <Text style={styles.fertLabel}>肥料残高</Text>
           </View>
           <View style={styles.fertRight}>
-            <Text style={styles.fertNum}>{currentUser.fertilizer}</Text>
+            <Text style={styles.fertNum}>{fertilizer.toLocaleString()}</Text>
             <Text style={styles.fertUnit}>肥料</Text>
             <Text style={styles.charge}>チャージ ›</Text>
           </View>
@@ -122,20 +205,62 @@ export default function MyPage() {
           ご不明な点・不具合のご報告は、以下までお気軽にご連絡ください。
         </Text>
         <PressableScale
-          onPress={() => { Linking.openURL('mailto:support@gungun.app').catch(() => {}); setSheet(null); }}
+          onPress={() => { Linking.openURL(`mailto:${settings.contactEmail}`).catch(() => {}); setSheet(null); }}
           activeScale={0.97}
           style={[styles.sheetBtn, shadows.button]}
         >
           <Ionicons name="mail" size={18} color={colors.white} />
-          <Text style={styles.sheetBtnText}>support@gungun.app にメール</Text>
+          <Text style={styles.sheetBtnText} numberOfLines={1}>{settings.contactEmail} にメール</Text>
         </PressableScale>
       </BottomSheetModal>
 
       {/* ログアウト */}
+      {/* プランの管理・解約 */}
+      <BottomSheetModal visible={sheet === 'plan'} onClose={() => setSheet(null)}>
+        <Text style={styles.sheetTitle}>プレミアムの管理</Text>
+        <Text style={styles.sheetBody}>
+          {me.isPremium
+            ? '支払い方法の変更と解約は、決済ページ（Stripe）で行えます。解約しても、その期間の終了まではプレミアムのままご利用いただけます。'
+            : '現在プレミアムには加入していません。内容はプレミアム画面でご確認いただけます。'}
+        </Text>
+        {planError ? <FormError message={planError} /> : null}
+        {me.isPremium ? (
+          <PressableScale
+            onPress={async () => {
+              setPlanError(null);
+              try {
+                await openBillingPortal();
+                setSheet(null);
+              } catch (e) {
+                setPlanError(errorMessage(e, '決済ページを開けませんでした'));
+              }
+            }}
+            activeScale={0.97}
+            style={[styles.sheetBtn, shadows.button]}
+          >
+            <Text style={styles.sheetBtnText}>支払い方法の変更・解約へ</Text>
+          </PressableScale>
+        ) : (
+          <PressableScale
+            onPress={() => { setSheet(null); router.push('/premium'); }}
+            activeScale={0.97}
+            style={[styles.sheetBtn, shadows.button]}
+          >
+            <Text style={styles.sheetBtnText}>プレミアムの内容を見る</Text>
+          </PressableScale>
+        )}
+        <Text style={styles.planNote}>
+          うまく開けないときは、マイページの「お問い合わせ」からご連絡ください。
+        </Text>
+        <PressableScale onPress={() => setSheet(null)} activeScale={0.98} style={styles.sheetCancel}>
+          <Text style={styles.sheetCancelText}>閉じる</Text>
+        </PressableScale>
+      </BottomSheetModal>
+
       <BottomSheetModal visible={sheet === 'logout'} onClose={() => setSheet(null)}>
         <Text style={styles.sheetTitle}>ログアウトしますか？</Text>
         <PressableScale
-          onPress={() => { setSheet(null); signOut(); router.replace('/(auth)/login'); }}
+          onPress={async () => { setSheet(null); await signOut(); router.replace('/(auth)/login'); }}
           activeScale={0.97}
           style={[styles.sheetBtn, shadows.button]}
         >
@@ -146,31 +271,115 @@ export default function MyPage() {
         </PressableScale>
       </BottomSheetModal>
 
-      {/* 退会 */}
-      <BottomSheetModal visible={sheet === 'withdraw'} onClose={() => setSheet(null)}>
-        <Text style={styles.sheetTitle}>本当に退会しますか？</Text>
-        <Text style={styles.sheetBody}>
-          退会すると、出品・水やり・肥料などのデータがすべて削除され、元に戻せません。
-        </Text>
-        <PressableScale
-          onPress={() => { warning(); setSheet(null); signOut(); router.replace('/(auth)/login'); }}
-          activeScale={0.97}
-          style={[styles.sheetDanger, shadows.button]}
-        >
-          <Text style={styles.sheetBtnText}>退会する</Text>
-        </PressableScale>
-        <PressableScale onPress={() => setSheet(null)} activeScale={0.98} style={styles.sheetCancel}>
-          <Text style={styles.sheetCancelText}>キャンセル</Text>
-        </PressableScale>
+      {/* 退会。ボタン1回で消えてしまうと誤操作が怖いので、
+          「理由を選ぶ」→「もう一度確かめる」の2段階にする（2026-08-17 指摘） */}
+      <BottomSheetModal
+        visible={sheet === 'withdraw'}
+        onClose={() => { setSheet(null); setWithdrawStep(1); setWithdrawReason(null); }}
+      >
+        {withdrawStep === 1 ? (
+          <>
+            <Text style={styles.sheetTitle}>退会の前に教えてください</Text>
+            <Text style={styles.sheetBody}>
+              今後の改善に使わせていただきます。選ばずに進むこともできます。
+            </Text>
+            <View style={{ gap: spacing.sm, marginTop: spacing.md }}>
+              {WITHDRAW_REASONS.map((r) => (
+                <PressableScale
+                  key={r}
+                  activeScale={0.98}
+                  onPress={() => setWithdrawReason(r)}
+                  style={[styles.reasonRow, withdrawReason === r && styles.reasonRowOn]}
+                >
+                  <View style={[styles.reasonDot, withdrawReason === r && styles.reasonDotOn]}>
+                    {withdrawReason === r && <Ionicons name="checkmark" size={12} color={colors.white} />}
+                  </View>
+                  <Text style={[styles.reasonText, withdrawReason === r && styles.reasonTextOn]}>{r}</Text>
+                </PressableScale>
+              ))}
+            </View>
+            <PressableScale
+              onPress={() => setWithdrawStep(2)}
+              activeScale={0.97}
+              style={[styles.sheetBtn, shadows.button, { marginTop: spacing.lg }]}
+            >
+              <Text style={styles.sheetBtnText}>次へ</Text>
+            </PressableScale>
+            <PressableScale onPress={() => setSheet(null)} activeScale={0.98} style={styles.sheetCancel}>
+              <Text style={styles.sheetCancelText}>やめる</Text>
+            </PressableScale>
+          </>
+        ) : (
+          <>
+            <Text style={styles.sheetTitle}>本当に退会しますか？</Text>
+            <Text style={styles.sheetBody}>
+              退会すると、出品・水やり・肥料・取引の記録がすべて削除され、元に戻せません。同じメールアドレスで登録し直しても、以前のデータは戻りません。
+            </Text>
+            <View style={styles.warnBox}>
+              <Ionicons name="alert-circle" size={18} color={colors.orangeDeep} />
+              <Text style={styles.warnText}>
+                進行中の取引がある場合は、相手のためにも完了してから退会してください。
+              </Text>
+            </View>
+            <FormError message={deleteError} />
+            <PressableScale
+              onPress={async () => {
+                warning();
+                setSheet(null);
+                setWithdrawStep(1);
+                const res = await deleteAccount();
+                if (res.error) { setDeleteError(res.error); return; }
+                router.replace('/(auth)/login');
+              }}
+              activeScale={0.97}
+              style={[styles.sheetDanger, shadows.button, { marginTop: spacing.md }]}
+            >
+              <Text style={styles.sheetBtnText}>退会する</Text>
+            </PressableScale>
+            <PressableScale onPress={() => setWithdrawStep(1)} activeScale={0.98} style={styles.sheetCancel}>
+              <Text style={styles.sheetCancelText}>戻る</Text>
+            </PressableScale>
+          </>
+        )}
       </BottomSheetModal>
     </View>
   );
 }
 
+const WITHDRAW_REASONS = [
+  '欲しいものが見つからなかった',
+  '交換が成立しなかった',
+  '使い方が分かりにくかった',
+  'トラブルがあった',
+  'その他・理由は言わない',
+];
+
 const styles = StyleSheet.create({
+  planNote: { fontFamily: fonts.medium, fontSize: 11.5, lineHeight: 19, color: colors.textSecondary, marginTop: spacing.md },
+  reasonRow: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.md,
+    backgroundColor: colors.cardMuted, borderRadius: radius.md,
+    paddingHorizontal: spacing.lg, paddingVertical: spacing.md,
+    borderWidth: 1, borderColor: 'transparent',
+  },
+  reasonRowOn: { backgroundColor: colors.greenSoft, borderColor: colors.green },
+  reasonDot: {
+    width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: colors.border,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  reasonDotOn: { backgroundColor: colors.green, borderColor: colors.green },
+  reasonText: { flex: 1, fontFamily: fonts.medium, fontSize: 14, color: colors.textPrimary },
+  reasonTextOn: { fontFamily: fonts.bold, color: colors.greenDeep },
+  warnBox: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm,
+    backgroundColor: colors.orangeSoft, borderRadius: radius.md, padding: spacing.md,
+    marginTop: spacing.md,
+  },
+  warnText: { flex: 1, fontFamily: fonts.medium, fontSize: 12.5, lineHeight: 19, color: colors.orangeDeep },
   root: { flex: 1, backgroundColor: colors.bg },
   sheetTitle: { fontFamily: fonts.bold, fontSize: 17, color: colors.textPrimary, textAlign: 'center' },
-  sheetBody: { fontFamily: fonts.medium, fontSize: 13, lineHeight: 21, color: colors.textSecondary, textAlign: 'center', marginTop: 8, marginBottom: spacing.lg },
+  // 長い説明を中央揃えにすると行頭がそろわず読みにくい。左揃えにする（2026-08-21 指摘）
+  sheetBody: { fontFamily: fonts.medium, fontSize: 13, lineHeight: 22, color: colors.textSecondary, marginTop: 10, marginBottom: spacing.lg },
   sheetBtn: { flexDirection: 'row', gap: spacing.sm, height: 54, borderRadius: radius.pill, backgroundColor: colors.green, justifyContent: 'center', alignItems: 'center', marginTop: spacing.md },
   sheetDanger: { height: 54, borderRadius: radius.pill, backgroundColor: '#D5675C', justifyContent: 'center', alignItems: 'center', marginTop: spacing.md },
   sheetBtnText: { fontFamily: fonts.bold, fontSize: 15.5, color: colors.white },
@@ -179,6 +388,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20, paddingBottom: spacing.lg },
   title: { fontFamily: fonts.bold, fontSize: 20, color: colors.textPrimary },
   settingsBtn: { position: 'absolute', right: 20, padding: 4 },
+  backBtn: { position: 'absolute', left: 16, padding: 4 },
   profile: { marginHorizontal: 20, backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.xl, gap: spacing.md },
   profileTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   name: { fontFamily: fonts.bold, fontSize: 18, color: colors.textPrimary },
@@ -187,10 +397,12 @@ const styles = StyleSheet.create({
   editBtn: { borderWidth: 1.5, borderColor: colors.green, borderRadius: radius.pill, paddingHorizontal: 16, paddingVertical: 6 },
   editText: { fontFamily: fonts.bold, fontSize: 13, color: colors.green },
   bio: { fontFamily: fonts.regular, fontSize: 13.5, lineHeight: 21, color: colors.textSecondary },
+  bioEmpty: { color: colors.textPlaceholder },
   stats: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.bgWarm, borderRadius: radius.md, paddingVertical: spacing.md },
   stat: { flex: 1, alignItems: 'center', gap: 2 },
   statNum: { fontFamily: fonts.black, fontSize: 22, color: colors.green },
   statLabel: { fontFamily: fonts.medium, fontSize: 11.5, color: colors.textSecondary },
+  statLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 1 },
   statDivider: { width: 1, height: 28, backgroundColor: colors.border },
   fertRow: { marginHorizontal: 20, marginTop: spacing.lg, backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.lg, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   fertLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },

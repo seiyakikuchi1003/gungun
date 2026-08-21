@@ -8,20 +8,22 @@ import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { Avatar } from '@/components/ui/Avatar';
 import { HeartButton } from '@/components/ui/HeartButton';
+import { NotFound } from '@/components/ui/NotFound';
 import { ReportSheet } from '@/components/feature/ReportSheet';
-import { boardPosts, boardComments, TAG_META } from '@/data/mockSocial';
-import { getUser } from '@/data/mock';
+import { TAG_META } from '@/data/mockSocial';
+import { useBoardPost } from '@/hooks/useBoard';
+import { useMe } from '@/store/me';
 
 export default function BoardDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
-  const post = boardPosts.find((p) => p.id === id);
+  const me = useMe();
+  const { post, comments, addComment, removeComment } = useBoardPost(id ?? '');
   const [text, setText] = useState('');
-  const [comments, setComments] = useState(boardComments[id ?? ''] ?? []);
   const [report, setReport] = useState(false);
 
-  if (!post) return <View style={styles.root} />;
-  const u = getUser(post.userId);
+  if (!post) return <NotFound message="投稿が見つかりませんでした" hint="削除されたか、URLが古い可能性があります。" fallback="/(tabs)/board" />;
+  const u = { nickname: post.authorName, avatar: post.authorAvatar };
   const tag = TAG_META[post.tag];
 
   return (
@@ -36,13 +38,18 @@ export default function BoardDetail() {
         </PressableScale>
       </View>
 
-      <ReportSheet visible={report} onClose={() => setReport(false)} targetLabel="この投稿" />
+      <ReportSheet visible={report} onClose={() => setReport(false)} targetLabel="この投稿" targetType="board_post" targetId={post.id} />
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+      <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
         {/* 投稿カード */}
         <View style={[styles.postCard, shadows.card]}>
           <View style={styles.postHead}>
-            <Avatar uri={u.avatar} name={u.nickname} size={48} />
+            {/* 投稿者のプロフィールを見られるように（2026-08-05 指摘） */}
+            <PressableScale activeScale={0.94} onPress={() => router.push(`/user/${post.userId}`)}>
+              <Avatar uri={u.avatar} name={u.nickname} size={48} />
+            </PressableScale>
             <View style={{ flex: 1 }}>
               <View style={styles.nameRow}>
                 <Text style={styles.name}>{u.nickname}</Text>
@@ -66,16 +73,22 @@ export default function BoardDetail() {
 
         <Text style={styles.commentsTitle}>コメント {comments.length}</Text>
         {comments.map((c) => {
-          const cu = getUser(c.userId);
+          const cu = { nickname: c.authorName, avatar: c.authorAvatar };
+          // 自分のコメントは右に寄せる。取引のチャットと同じ見え方に揃える（2026-08-05 指摘）
+          const mine = c.userId === me.id;
           return (
-            <View key={c.id} style={styles.comment}>
-              <Avatar uri={cu.avatar} name={cu.nickname} size={36} />
-              <View style={styles.bubble}>
+            <View key={c.id} style={[styles.comment, mine && styles.commentMine]}>
+              {!mine && (
+                <PressableScale activeScale={0.94} onPress={() => router.push(`/user/${c.userId}`)}>
+                  <Avatar uri={cu.avatar} name={cu.nickname} size={36} />
+                </PressableScale>
+              )}
+              <View style={[styles.bubble, mine && styles.bubbleMine]}>
                 <View style={styles.cHead}>
-                  <Text style={styles.cName}>{cu.nickname}</Text>
-                  <Text style={styles.time}>{c.createdAt}</Text>
+                  <Text style={[styles.cName, mine && styles.cNameMine]}>{mine ? 'あなた' : cu.nickname}</Text>
+                  <Text style={[styles.time, mine && styles.timeMine]}>{c.createdAt}</Text>
                 </View>
-                <Text style={styles.cBody}>{c.body}</Text>
+                <Text style={[styles.cBody, mine && styles.cBodyMine]}>{c.body}</Text>
               </View>
             </View>
           );
@@ -92,14 +105,15 @@ export default function BoardDetail() {
             placeholderTextColor={colors.textPlaceholder}
             style={styles.input}
           />
+          {/* 空のときは押せないことが見て分かるように薄くする */}
           <PressableScale
             activeScale={0.9}
+            disabled={!text.trim()}
             onPress={() => {
-              if (!text.trim()) return;
-              setComments((c) => [...c, { id: `t${c.length}`, userId: 'metan', body: text.trim(), createdAt: 'たった今' }]);
+              addComment(text);
               setText('');
             }}
-            style={styles.send}
+            style={[styles.send, !text.trim() && { opacity: 0.4 }]}
           >
             <Ionicons name="arrow-up" size={20} color={colors.white} />
           </PressableScale>
@@ -128,6 +142,11 @@ const styles = StyleSheet.create({
   statText: { fontFamily: fonts.medium, fontSize: 13, color: colors.textSecondary },
   commentsTitle: { fontFamily: fonts.bold, fontSize: 15, color: colors.textPrimary, paddingHorizontal: 20, paddingBottom: spacing.sm },
   comment: { flexDirection: 'row', gap: spacing.md, paddingHorizontal: 20, paddingVertical: spacing.sm },
+  commentMine: { justifyContent: 'flex-end' },
+  bubbleMine: { backgroundColor: colors.green },
+  cNameMine: { color: colors.white },
+  timeMine: { color: colors.white, opacity: 0.8 },
+  cBodyMine: { color: colors.white },
   bubble: { flex: 1, backgroundColor: colors.card, borderRadius: 16, padding: spacing.md, ...shadows.soft },
   cHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   cName: { fontFamily: fonts.bold, fontSize: 13, color: colors.textPrimary },

@@ -34,9 +34,10 @@ export function Screen({
     return (
       <View style={[styles.root, { backgroundColor: background }, pad, style]}>
         <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
           contentContainerStyle={inner}
-          keyboardShouldPersistTaps="handled"
         >
           {children}
         </ScrollView>
@@ -51,7 +52,8 @@ export function Screen({
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1 },
+  // 背景装飾を画面外に置く画面があるので、ここで切って横スクロールを防ぐ
+  root: { flex: 1, overflow: 'hidden' },
   flex: { flex: 1 },
   padded: { paddingHorizontal: 20 },
 });

@@ -1,0 +1,95 @@
+import { requireSupabase } from '@/lib/supabase';
+import { settings as fallback } from '@/config/settings';
+
+/**
+ * アプリ設定（金額・肥料量）を DB から読む。
+ *
+ * 仕様の「ハードコード禁止」に対応する部分。管理画面で値を変えると
+ * ここ経由でアプリに反映される（アプリの更新は不要）。
+ * 取得に失敗したときは src/config/settings.ts の既定値で動かす。
+ */
+
+export type ChargePlan = { id: string; fertilizer: number; price: number; badge: string };
+
+export type AppSettings = {
+  waterCost: number;
+  dailyLoginBonus: number;
+  dailyLoginBonusPremium: number;
+  firstSeedFree: boolean;
+  premiumMonthly: number | null;
+  seedPriceYen: number | null;
+  maxImagesPerItem: number;
+  termsOfService: string;
+  privacyPolicy: string;
+  /** 肥料の販売プラン（管理画面から変更できる） */
+  chargePlans: ChargePlan[];
+  /** お問い合わせ先。運営が変わっても差し替えられるよう設定に置く */
+  contactEmail: string;
+};
+
+export const defaultSettings: AppSettings = {
+  waterCost: fallback.waterCost,
+  dailyLoginBonus: fallback.dailyLoginBonus,
+  dailyLoginBonusPremium: fallback.dailyLoginBonusPremium,
+  firstSeedFree: fallback.firstSeedFree,
+  premiumMonthly: fallback.premiumMonthly,
+  seedPriceYen: null,
+  maxImagesPerItem: 4,
+  termsOfService: '',
+  privacyPolicy: '',
+  chargePlans: fallback.chargePlans.map((p) => ({
+    id: p.id,
+    fertilizer: p.fertilizer,
+    price: p.price ?? 0,
+    badge: p.badge ?? '',
+  })),
+  contactEmail: 'warashibe.gungun@gmail.com',
+};
+
+/** charge_plans（jsonb の配列）を読む。壊れていれば既定値で動かす */
+function plans(v: unknown): ChargePlan[] {
+  if (!Array.isArray(v)) return defaultSettings.chargePlans;
+  const out = v
+    .filter((p): p is Record<string, unknown> => typeof p === 'object' && p !== null)
+    .map((p) => ({
+      id: String(p.id ?? ''),
+      fertilizer: Number(p.fertilizer ?? 0),
+      price: Number(p.price ?? 0),
+      badge: typeof p.badge === 'string' ? p.badge : '',
+    }))
+    .filter((p) => p.id !== '' && p.fertilizer > 0 && p.price > 0);
+  return out.length > 0 ? out : defaultSettings.chargePlans;
+}
+
+function num(v: unknown, d: number): number {
+  const n = typeof v === 'string' ? Number(v) : (v as number);
+  return Number.isFinite(n) ? n : d;
+}
+
+export async function fetchSettings(): Promise<AppSettings> {
+  const { data, error } = await requireSupabase().from('app_settings').select('key, value');
+  if (error) throw error;
+
+  const map = new Map<string, unknown>((data ?? []).map((r: any) => [r.key, r.value]));
+  const text = (v: unknown, d: string) => (typeof v === 'string' ? v : d);
+  return {
+    waterCost: num(map.get('water_cost'), defaultSettings.waterCost),
+    dailyLoginBonus: num(map.get('daily_login_bonus'), defaultSettings.dailyLoginBonus),
+    dailyLoginBonusPremium: num(
+      map.get('daily_login_bonus_premium'),
+      defaultSettings.dailyLoginBonusPremium
+    ),
+    firstSeedFree: map.has('first_seed_free')
+      ? Boolean(map.get('first_seed_free'))
+      : defaultSettings.firstSeedFree,
+    premiumMonthly: map.has('premium_price_yen')
+      ? num(map.get('premium_price_yen'), 0)
+      : defaultSettings.premiumMonthly,
+    seedPriceYen: map.has('seed_price_yen') ? num(map.get('seed_price_yen'), 0) : null,
+    maxImagesPerItem: num(map.get('max_images_per_item'), defaultSettings.maxImagesPerItem),
+    termsOfService: text(map.get('terms_of_service'), defaultSettings.termsOfService),
+    privacyPolicy: text(map.get('privacy_policy'), defaultSettings.privacyPolicy),
+    chargePlans: plans(map.get('charge_plans')),
+    contactEmail: text(map.get('contact_email'), defaultSettings.contactEmail),
+  };
+}

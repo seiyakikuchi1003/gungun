@@ -25,7 +25,9 @@ export default function WaterAbout() {
         </PressableScale>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
+      <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
         <View style={styles.hero}>
           <WateringCan size={120} />
         </View>
@@ -64,7 +66,7 @@ export default function WaterAbout() {
           ))}
         </View>
 
-        <PressableScale onPress={() => router.back()} activeScale={0.97} style={[styles.okBtn, shadows.button]}>
+        <PressableScale onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} activeScale={0.97} style={[styles.okBtn, shadows.button]}>
           <Text style={styles.okText}>わかりました</Text>
         </PressableScale>
       </ScrollView>

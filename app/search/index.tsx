@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,11 +16,12 @@ import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { RefreshSpinner } from '@/components/ui/RefreshSpinner';
 import { ItemCard } from '@/components/ui/ItemCard';
-import { categories } from '@/data/mock';
+import { categories, conditions } from '@/data/mock';
 import { useTree } from '@/store/tree';
 import { useBlocks } from '@/store/blocks';
 import { medium } from '@/lib/haptics';
 import { playSfx } from '@/lib/sound';
+import { loadSearchHistory, pushSearchHistory, removeSearchHistory } from '@/lib/searchHistory';
 
 const RECENT = ['Nintendo Switch', 'iPhone', 'バッグ', 'カメラ'];
 const TRENDING = ['ゲーム機', 'ワイヤレスイヤホン', 'ブランド財布', 'ギフト券', 'スニーカー', '本まとめ売り'];
@@ -34,17 +35,29 @@ export default function SearchScreen() {
   const [q, setQ] = useState('');
   const [cat, setCat] = useState<string | null>(null);
   const [sort, setSort] = useState<Sort>('new');
+  // 商品の状態（コンディション）で絞る。このアプリに価格は無いので、
+  // メルカリの「価格帯」に相当する軸として状態を使う
+  const [cond, setCond] = useState<string | null>(null);
+  const [history, setHistory] = useState<string[]>([]);
   const cardW = (width - 20 * 2 - 12) / 2;
 
   const results = useMemo(() => {
     let r = items.filter((i) => i.status === 'growing' && !isBlocked(i.ownerId));
     if (q) r = r.filter((i) => (i.name + i.description).toLowerCase().includes(q.toLowerCase()));
     if (cat) r = r.filter((i) => i.category === cat);
+    if (cond) r = r.filter((i) => i.condition === cond);
     r = [...r].sort((a, b) => (sort === 'water' ? b.waterCount - a.waterCount : 0));
     return r;
-  }, [q, cat, sort, items, isBlocked]);
+  }, [q, cat, cond, sort, items, isBlocked]);
 
-  const searching = q.length > 0 || cat !== null;
+  const searching = q.length > 0 || cat !== null || cond !== null;
+
+  // 検索履歴（端末保存）。確定したときだけ積む
+  useEffect(() => { loadSearchHistory().then(setHistory); }, []);
+  const commitSearch = useCallback((word: string) => {
+    setQ(word);
+    pushSearchHistory(word).then(setHistory);
+  }, []);
 
   // 注目の種：引っ張って更新で並びが入れ替わる（X/インスタ風）
   const hot = useMemo(
@@ -86,6 +99,7 @@ export default function SearchScreen() {
             placeholderTextColor={colors.textPlaceholder}
             style={[styles.input, { outlineStyle: 'none' } as object]}
             returnKeyType="search"
+            onSubmitEditing={(e) => commitSearch(e.nativeEvent.text)}
           />
           {q ? (
             <PressableScale onPress={() => setQ('')} activeScale={0.85}>
@@ -96,16 +110,35 @@ export default function SearchScreen() {
       </View>
 
       {/* カテゴリーチップ */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips} style={styles.chipsRow}>
+      <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips} style={styles.chipsRow}>
         <Chip label="すべて" on={cat === null} onPress={() => setCat(null)} />
         {categories.map((c) => (
           <Chip key={c} label={c} on={cat === c} onPress={() => setCat(cat === c ? null : c)} />
         ))}
       </ScrollView>
 
+      {/* 状態（コンディション）で絞る */}
+      <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled"
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.chips}
+        style={styles.chipsRow}
+      >
+        <Chip label="状態を問わない" on={cond === null} onPress={() => setCond(null)} />
+        {conditions.map((c) => (
+          <Chip key={c} label={c} on={cond === c} onPress={() => setCond(cond === c ? null : c)} />
+        ))}
+      </ScrollView>
+
       {!searching ? (
         <View style={{ flex: 1 }}>
           <Animated.ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled"
             contentContainerStyle={styles.body}
             showsVerticalScrollIndicator={false}
             onScroll={onScroll}
@@ -124,10 +157,39 @@ export default function SearchScreen() {
               ))}
             </View>
 
+            {/* 検索履歴（端末保存。個人の行動記録なのでサーバーには送らない）*/}
+            {history.length ? (
+              <>
+                <View style={styles.resultHead}>
+                  <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>最近の検索</Text>
+                </View>
+                <View style={styles.recentWrap}>
+                  {history.map((h) => (
+                    <PressableScale
+                      key={h}
+                      onPress={() => commitSearch(h)}
+                      activeScale={0.96}
+                      style={styles.histChip}
+                    >
+                      <Ionicons name="time-outline" size={13} color={colors.textSecondary} />
+                      <Text style={styles.histText}>{h}</Text>
+                      <PressableScale
+                        onPress={() => removeSearchHistory(h).then(setHistory)}
+                        activeScale={0.85}
+                        hitSlop={6}
+                      >
+                        <Ionicons name="close" size={13} color={colors.textPlaceholder} />
+                      </PressableScale>
+                    </PressableScale>
+                  ))}
+                </View>
+              </>
+            ) : null}
+
             <Text style={[styles.sectionTitle, { marginTop: 28 }]}>人気のキーワード</Text>
             <View style={styles.recentWrap}>
               {TRENDING.map((r, i) => (
-                <PressableScale key={r} onPress={() => setQ(r)} activeScale={0.96} style={styles.trendChip}>
+                <PressableScale key={r} onPress={() => commitSearch(r)} activeScale={0.96} style={styles.trendChip}>
                   <Text style={styles.trendRank}>{i + 1}</Text>
                   <Text style={styles.trendText}>{r}</Text>
                 </PressableScale>
@@ -150,7 +212,9 @@ export default function SearchScreen() {
           <RefreshSpinner pullY={scrollY} refreshing={refreshing} topOffset={4} />
         </View>
       ) : (
-        <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+        <ScrollView
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
           <View style={styles.resultHead}>
             <Text style={styles.resultCount}>{results.length}件</Text>
             <View style={styles.sortRow}>
@@ -209,6 +273,12 @@ const styles = StyleSheet.create({
   resultHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md },
   resultCount: { fontFamily: fonts.bold, fontSize: 14, color: colors.textPrimary },
   sortRow: { flexDirection: 'row', gap: spacing.lg },
+  histChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16,
+    backgroundColor: colors.cardMuted,
+  },
+  histText: { fontFamily: fonts.medium, fontSize: 13, color: colors.textPrimary },
   sortText: { fontFamily: fonts.medium, fontSize: 13, color: colors.textSecondary },
   sortOn: { color: colors.green, fontFamily: fonts.bold },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },

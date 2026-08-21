@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { SwipePages } from '@/components/ui/SwipePages';
+import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -8,7 +9,8 @@ import { PressableScale } from '@/components/ui/PressableScale';
 import { TopTabs } from '@/components/ui/TopTabs';
 import { Thumb } from '@/components/ui/Thumb';
 import { Avatar } from '@/components/ui/Avatar';
-import { trades, tradeItem, tradeUser, Trade } from '@/data/mockSocial';
+import { useExchanges, type UITrade } from '@/hooks/useExchanges';
+import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 
 /** 2ステップの進捗（発送→受取）。done は完了段階。 */
 function Steps({ labels, done, accent }: { labels: [string, string]; done: number; accent: string }) {
@@ -33,17 +35,46 @@ function Steps({ labels, done, accent }: { labels: [string, string]; done: numbe
   );
 }
 
-function actionHint(t: Trade): string {
+function actionHint(t: UITrade): string {
   if (t.dir === 'receive') return t.status === 'received' ? '取引完了・評価済み' : t.status === 'shipped' ? '届いたら受け取り報告を' : '相手の発送を待っています';
   return t.status === 'received' ? '取引完了' : t.status === 'shipped' ? '相手の受け取りを待っています' : '発送して報告しましょう';
 }
 
+/** 左右にはらって行き来する順番 */
+const TABS = ['receive', 'send'] as const;
+
 export default function ExchangeScreen() {
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<'receive' | 'send'>('receive');
-  const list = trades.filter((t) => t.dir === tab);
+  const { list: all, loading, reload } = useExchanges();
+  // 画面に戻ったとき・アプリを前面に戻したときに最新を取り直す
+  useAutoRefresh(reload);
+  // 引っ張って更新（他の画面と同じ操作で最新にできるように）
+  const [refreshing, setRefreshing] = useState(false);
+  // 完了した取引を見返したいときのための切り替え
+  const [showDone, setShowDone] = useState(false);
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await reload();
+    } catch {
+      // 取得に失敗しても画面は保つ
+    }
+    setRefreshing(false);
+  }, [reload]);
+  // 発送・受け取り・評価まで終わった取引は、もう何もすることがない。
+  // 並べたままだと「対応が必要なもの」が埋もれるので、既定では隠す（2026-08-21 指摘）
+  const inTab = all.filter((t) => t.dir === tab);
+  const doneList = inTab.filter((t) => t.finished);
+  const list = showDone ? inTab : inTab.filter((t) => !t.finished);
   const accent = tab === 'receive' ? colors.green : colors.orange;
   const actionCount = list.filter((t) => (tab === 'receive' ? t.status === 'shipped' : t.status === 'pending')).length;
+  // 「送る商品3件」と「1件が対応待ち」が並ぶと、数が食い違って見えた（2026-08-13 指摘）。
+  // 見出しは進行中の件数にして、対応待ちはその内訳として書く
+  const ongoing = inTab.filter((t) => t.status !== 'received').length;
+  // タブごとの「あなたの対応待ち」件数（表示中でない側も数える）
+  const needReceive = all.filter((t) => t.dir === 'receive' && t.status === 'shipped').length;
+  const needSend = all.filter((t) => t.dir === 'send' && t.status === 'pending').length;
 
   return (
     <View style={styles.root}>
@@ -57,31 +88,44 @@ export default function ExchangeScreen() {
 
       <TopTabs
         tabs={[
-          { key: 'receive', label: '受け取る', color: colors.green },
-          { key: 'send', label: '送る', color: colors.orange },
+          // 見ていない側のタブにも用事があると気づけるよう、対応待ちの件数を出す
+          { key: 'receive', label: '受け取る', color: colors.green, alert: needReceive },
+          { key: 'send', label: '送る', color: colors.orange, alert: needSend },
         ]}
         active={tab}
         onChange={(k) => setTab(k as 'receive' | 'send')}
       />
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20 }}>
+      {/* 横にはらうとタブが切り替わる。指で行き来できた方が自然（2026-08-05 指摘） */}
+      <SwipePages index={TABS.indexOf(tab)} count={TABS.length} onChange={(i) => setTab(TABS[i])}>
+      <ScrollView
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.green]} tintColor={colors.green} />}
+        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20 }}>
         <View style={[styles.summary, { backgroundColor: tab === 'receive' ? colors.greenSoft : colors.orangeSoft }]}>
           <View style={[styles.summaryIcon, { backgroundColor: accent }]}>
             <Ionicons name={tab === 'receive' ? 'download' : 'send'} size={18} color={colors.white} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={[styles.summaryTitle, { color: accent }]}>
-              {tab === 'receive' ? '受け取る商品' : '送る商品'} {list.length}件
+              {tab === 'receive' ? '受け取る商品' : '送る商品'} 進行中 {ongoing}件
             </Text>
             <Text style={styles.summarySub}>
-              {actionCount > 0 ? `${actionCount}件、あなたの対応待ちです` : '対応待ちはありません'}
+              {actionCount > 0
+                ? `うち${actionCount}件があなたの対応待ちです`
+                : ongoing > 0
+                  ? '相手の対応を待っています'
+                  : doneList.length > 0
+                    ? `対応待ちはありません（完了 ${doneList.length}件）`
+                    : '進行中の取引はありません'}
             </Text>
           </View>
         </View>
 
         {list.map((t) => {
-          const it = tradeItem(t);
-          const u = tradeUser(t);
+          // 商品名・相手名は取引の行が持っている（実DBでは UUID から引けない）
+          const it = { name: t.itemName, image: t.itemImage ?? '', local: t.itemLocal };
+          const u = { nickname: t.partnerName, avatar: t.partnerAvatar };
           if (!it) return null;
           const done = t.status === 'received' ? 2 : t.status === 'shipped' ? 1 : 0;
           const labels: [string, string] = t.dir === 'receive' ? ['相手が発送', '受け取り'] : ['発送', '相手が受け取り'];
@@ -108,8 +152,31 @@ export default function ExchangeScreen() {
             </PressableScale>
           );
         })}
-        {list.length === 0 && <Text style={styles.empty}>進行中の取引はありません</Text>}
+        {list.length === 0 && (
+          <Text style={styles.empty}>
+            {showDone ? '取引はありません' : '進行中の取引はありません'}
+          </Text>
+        )}
+
+        {/* 終わった取引は隠しているが、見返せなくなると困るので出し入れできるようにする */}
+        {doneList.length > 0 && (
+          <PressableScale
+            activeScale={0.98}
+            onPress={() => setShowDone((v) => !v)}
+            style={styles.doneToggle}
+          >
+            <Ionicons
+              name={showDone ? 'chevron-up' : 'chevron-down'}
+              size={15}
+              color={colors.textSecondary}
+            />
+            <Text style={styles.doneToggleText}>
+              {showDone ? '完了した取引を隠す' : `完了した取引を見る（${doneList.length}件）`}
+            </Text>
+          </PressableScale>
+        )}
       </ScrollView>
+      </SwipePages>
     </View>
   );
 }
@@ -139,5 +206,10 @@ const styles = StyleSheet.create({
   cardFoot: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderTopWidth: 1, borderTopColor: colors.divider, paddingTop: spacing.md },
   hint: { flex: 1, fontFamily: fonts.medium, fontSize: 12.5, color: colors.textSecondary },
   date: { fontFamily: fonts.regular, fontSize: 11, color: colors.textSecondary },
+  doneToggle: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    paddingVertical: spacing.lg,
+  },
+  doneToggleText: { fontFamily: fonts.bold, fontSize: 13, color: colors.textSecondary },
   empty: { fontFamily: fonts.medium, fontSize: 14, color: colors.textSecondary, textAlign: 'center', marginTop: 40 },
 });

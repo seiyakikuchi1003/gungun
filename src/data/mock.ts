@@ -8,6 +8,8 @@ export type MockUser = {
   id: string;
   nickname: string;
   avatar: string | number; // number = ローカル画像（require）
+  /** 平均評価。評価が1件も無ければ null（星を光らせない） */
+  ratingAvg?: number | null;
   ratingCount: number;
   itemCount: number;
 };
@@ -28,11 +30,15 @@ export type MockItem = {
   waterCount: number; // 水やり数（＝直接の子ノード数）
   likeCount: number;
   treeCount: number; // 木全体の商品数（同じ root_id）
+  /** 自分がいいねしているか（item_cards.liked。モックでは常に false） */
+  liked?: boolean;
   status: 'growing' | 'trading' | 'completed';
   /** ツリー構造（SPEC 第2章）。種は parentId=null / rootId=自分 / depth=0。 */
   parentId: string | null; // 水やり先（親商品）。NULL なら種（root）
   rootId: string; // 所属する木の根。種なら自分自身
   depth: number; // 根からの深さ（種=0）
+  /** 出品された日時（ISO）。NEW の判定に使う。モックでは undefined */
+  createdAt?: string;
   /** ローカル商品画像（assets/products/）。あれば remote より優先。 */
   local?: number;
   localImages?: number[];
@@ -124,6 +130,21 @@ const rawItems: RawItem[] = [
   { id: 'w-watch2', name: '腕時計', category: 'メンズ', condition: '未使用に近い', description: 'カメラが欲しくて水やり。電池交換済みです。', image: img('watch2'), images: [img('watch2')], local: P.watch, localImages: [P.watch], ownerId: 'takusan', waterCount: 0, likeCount: 5, treeCount: 0, status: 'growing', parentId: 'w-cam', rootId: 'speaker', depth: 3 },
   { id: 'w-gift', name: 'ギフト券 5,000円分', category: 'チケット', condition: '新品・未使用', description: '有効期限まだあります。', image: img('gift2'), images: [img('gift2')], local: P.giftcard, localImages: [P.giftcard], ownerId: 'kenta', waterCount: 1, likeCount: 2, treeCount: 0, status: 'growing', parentId: 'speaker', rootId: 'speaker', depth: 1 },
   { id: 'w-books2', name: '文庫本セット', category: '本・音楽', condition: '目立った傷や汚れなし', description: '人気作家の文庫本8冊セット。', image: img('books2'), images: [img('books2')], local: P.books, localImages: [P.books], ownerId: 'sakura', waterCount: 0, likeCount: 3, treeCount: 0, status: 'growing', parentId: 'w-gift', rootId: 'speaker', depth: 2 },
+
+  // ── 自分（めたん）が植えたタネに集まった水やり ──────────────────
+  // 収穫タブ「あなたの森」が空っぽに見えないように、通知の内容と辻褄が合う形で
+  // 実データとして子をぶら下げておく（通知 n1=香水/たくさん、n2=コーヒーメーカー/ゆう）。
+  //   香水(めたん)        └ スニーカー(たくさん)
+  //   コーヒーメーカー(めたん) ├ ミラーレスカメラ(ゆう) └ 腕時計(けんた) └ 文庫本(さくら)
+  //   ギフト券(めたん)     ├ AirPods(はる)  └ ブランド財布(さくら)
+  { id: 'w-sneaker', name: 'スニーカー', category: 'メンズ', condition: '目立った傷や汚れなし', description: '27cm。香水と交換したくて水やりしました。数回着用のみです。', image: img('sneaker2'), images: [img('sneaker2')], local: P.sneaker, localImages: [P.sneaker], ownerId: 'takusan', waterCount: 0, likeCount: 6, treeCount: 0, status: 'growing', parentId: 'perfume', rootId: 'perfume', depth: 1 },
+
+  { id: 'w-cam3', name: 'ミラーレスカメラ', category: 'スマホ・家電', condition: '目立った傷や汚れなし', description: 'コーヒーメーカーが欲しくて水やり。レンズキット付きです。', image: img('cam3'), images: [img('cam3')], local: P.camera, localImages: [P.camera], ownerId: 'yu', waterCount: 0, likeCount: 9, treeCount: 0, status: 'growing', parentId: 'coffee', rootId: 'coffee', depth: 1 },
+  { id: 'w-watch3', name: '腕時計', category: 'メンズ', condition: '未使用に近い', description: 'シンプルなアナログ時計。電池交換済みです。', image: img('watch3'), images: [img('watch3')], local: P.watch, localImages: [P.watch], ownerId: 'kenta', waterCount: 0, likeCount: 4, treeCount: 0, status: 'growing', parentId: 'coffee', rootId: 'coffee', depth: 1 },
+  { id: 'w-books3', name: '文庫本 まとめ売り', category: '本・音楽', condition: '目立った傷や汚れなし', description: '腕時計と交換希望です。小説6冊セット、書き込みなし。', image: img('books3'), images: [img('books3')], local: P.books, localImages: [P.books], ownerId: 'sakura', waterCount: 0, likeCount: 3, treeCount: 0, status: 'growing', parentId: 'w-watch3', rootId: 'coffee', depth: 2 },
+
+  { id: 'w-airpods2', name: 'AirPods Pro', category: 'スマホ・家電', condition: '目立った傷や汚れなし', description: '第2世代。ケース・イヤーチップ揃っています。', image: img('airpods2'), images: [img('airpods2')], local: P.airpods, localImages: [P.airpods], ownerId: 'haru', waterCount: 0, likeCount: 12, treeCount: 0, status: 'growing', parentId: 'giftcard', rootId: 'giftcard', depth: 1 },
+  { id: 'w-wallet2', name: 'ブランド財布', category: 'レディース', condition: '未使用に近い', description: 'いただきものですが使わないためお譲りします。', image: img('wallet2'), images: [img('wallet2')], local: P.wallet, localImages: [P.wallet], ownerId: 'sakura', waterCount: 0, likeCount: 7, treeCount: 0, status: 'growing', parentId: 'giftcard', rootId: 'giftcard', depth: 1 },
 ];
 
 /**
@@ -165,15 +186,21 @@ export function treeItems(pool: MockItem[], rootId: string): MockItem[] {
 }
 
 /**
- * 木の成長段階。木に属する商品数（root＋子孫）が増えるほど育つ。
- * TreeCanvas の見た目と、マイツリーの成長メーターで共用。
+ * 木のイラストの見た目の段階だけを返す（TreeCanvas 専用）。
+ *
+ * 2026-07-28 MTG（めたん様）：
+ *   「大きな木」「MAX まで育ちました」という表現は、1つのタネにいくつでも
+ *   商品が結びつく以上、何を基準に大小を言っているのかが不明瞭なので無くす。
+ *   ただし木の図そのものは残す。
+ * → ラベル・絵文字・「次の段階まであとN」といった大小の表現はすべて廃止し、
+ *   ここではイラストの描き分けに使う段階だけを返す。UI に文言は出さない。
  */
-export type TreeGrowth = { stage: 0 | 1 | 2 | 3; label: string; emoji: string; min: number; next: number | null };
-export function treeGrowth(size: number): TreeGrowth {
-  if (size >= 6) return { stage: 3, label: 'おおきな木', emoji: '🌳', min: 6, next: null };
-  if (size >= 4) return { stage: 2, label: '成長中の木', emoji: '🌿', min: 4, next: 6 };
-  if (size >= 2) return { stage: 1, label: 'わか木', emoji: '🌱', min: 2, next: 4 };
-  return { stage: 0, label: 'めばえ', emoji: '🌰', min: 1, next: 2 };
+export type TreeVisual = { stage: 0 | 1 | 2 | 3 };
+export function treeVisual(size: number): TreeVisual {
+  if (size >= 6) return { stage: 3 };
+  if (size >= 4) return { stage: 2 };
+  if (size >= 2) return { stage: 1 };
+  return { stage: 0 };
 }
 
 /** target 自身から root までの祖先ライン（target を含む）。 */

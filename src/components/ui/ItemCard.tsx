@@ -5,8 +5,8 @@ import { colors, radius, spacing, fonts, shadows } from '@/theme';
 import { PressableScale } from './PressableScale';
 import { Thumb } from './Thumb';
 import { Avatar } from './Avatar';
-import { Sprout } from '@/components/art/Sprout';
-import { MockItem, getUser } from '@/data/mock';
+import { MockItem } from '@/data/mock';
+import { useUsers } from '@/store/users';
 
 type Props = {
   item: MockItem;
@@ -21,13 +21,14 @@ type Props = {
  * compact=true で3列用に余白・文字を詰め、カテゴリ行を省略する。
  */
 export function ItemCard({ item, onPress, width = 168, compact = false }: Props) {
-  const owner = getUser(item.ownerId);
+  const users = useUsers();
+  const owner = users.user(item.ownerId);
   return (
     <PressableScale onPress={onPress} activeScale={0.97} style={[styles.card, { width }, shadows.card]}>
       <View style={styles.thumbWrap}>
         <Thumb source={item.local} uri={item.image} style={styles.thumb} markSize={compact ? 28 : 40} />
         <View style={[styles.waterPill, compact && styles.waterPillCompact]}>
-          <Sprout size={compact ? 11 : 13} color={colors.white} />
+          <Ionicons name="water" size={compact ? 11 : 13} color={colors.white} />
           <Text style={[styles.waterText, compact && styles.waterTextCompact]}>{item.waterCount}</Text>
         </View>
       </View>
