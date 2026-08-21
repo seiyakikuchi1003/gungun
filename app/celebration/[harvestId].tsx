@@ -142,8 +142,7 @@ export default function Celebration() {
         {complete && (
           <View style={styles.thanks}>
             <Text style={styles.thanksText}>
-              あなたのタネが、知らない誰かの「欲しい」につながりました。{'\n'}
-              またタネを植えて、次の輪をはじめてみませんか？
+              あなたのタネが、知らない誰かの「欲しい」につながりました。またタネを植えて、次の輪をはじめてみませんか？
             </Text>
           </View>
         )}
@@ -212,7 +211,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.greenSoft, borderRadius: radius.card, padding: spacing.lg,
     borderWidth: 1, borderColor: colors.greenSoftBorder, marginTop: spacing.md,
   },
-  thanksText: { fontFamily: fonts.medium, fontSize: 13, lineHeight: 21, color: colors.greenDeep, textAlign: 'center' },
+  // 短い一言は中央のまま。長い説明は左揃えにして行頭をそろえる（2026-08-21 指摘）
+  thanksText: { fontFamily: fonts.medium, fontSize: 13, lineHeight: 22, color: colors.greenDeep },
 
   ghostBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',

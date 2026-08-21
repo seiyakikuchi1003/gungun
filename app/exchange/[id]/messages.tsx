@@ -91,7 +91,7 @@ export default function ExchangeMessages() {
       >
         {msgs.length === 0 && (
           <Text style={styles.empty}>
-            まだメッセージはありません。{'\n'}ひとこと挨拶を送ると、やり取りがスムーズになります。
+            まだメッセージはありません。ひとこと挨拶を送ると、やり取りがスムーズになります。
           </Text>
         )}
         {msgs.map((m) =>

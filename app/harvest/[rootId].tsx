@@ -131,7 +131,7 @@ export default function HarvestDetail() {
         )}
 
         {gathered.length === 0 && (
-          <Text style={styles.empty}>まだ水やりがありません。{'\n'}誰かが水やりすると、ここに商品が集まります。</Text>
+          <Text style={styles.empty}>まだ水やりがありません。誰かが水やりすると、ここに商品が集まります。</Text>
         )}
       </ScrollView>
 

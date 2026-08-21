@@ -49,6 +49,9 @@ const styles = StyleSheet.create({
   root: { flex: 1, justifyContent: 'flex-end' },
   backdrop: { flex: 1, backgroundColor: colors.overlay },
   sheet: {
+    // 中身が多いと画面の上へ伸びきってしまい、上部が切れて押せなくなる。
+    // 画面の高さを超えないよう頭打ちにする（2026-08-21 指摘）
+    maxHeight: '92%',
     backgroundColor: colors.card,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,

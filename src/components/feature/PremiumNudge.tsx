@@ -77,8 +77,7 @@ export function PremiumNudge({ trigger, isPremium, onClose }: {
         <Mikan size={56} />
         <Text style={styles.title}>プレミアムにしませんか？</Text>
         <Text style={styles.sub}>
-          もっとたくさん水やりしたい人向けのプランです。{'\n'}
-          マイページからいつでも内容を確認できます。
+          もっとたくさん水やりしたい人向けのプランです。マイページからいつでも内容を確認できます。
         </Text>
       </View>
 
@@ -121,7 +120,8 @@ export function PremiumNudge({ trigger, isPremium, onClose }: {
 const styles = StyleSheet.create({
   head: { alignItems: 'center', gap: spacing.sm, marginBottom: spacing.lg },
   title: { fontFamily: fonts.black, fontSize: 19, color: colors.textPrimary },
-  sub: { fontFamily: fonts.medium, fontSize: 13, lineHeight: 20, color: colors.textSecondary, textAlign: 'center' },
+  // 短い一言は中央のまま。長い説明は左揃えにして行頭をそろえる（2026-08-21 指摘）
+  sub: { fontFamily: fonts.medium, fontSize: 13, lineHeight: 21, color: colors.textSecondary },
   perks: { gap: spacing.sm, backgroundColor: colors.bgWarm, borderRadius: radius.card, padding: spacing.lg, marginBottom: spacing.lg },
   perk: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   perkText: { fontFamily: fonts.medium, fontSize: 13.5, color: colors.textPrimary },

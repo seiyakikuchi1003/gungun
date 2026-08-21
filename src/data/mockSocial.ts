@@ -63,6 +63,8 @@ export type Notif = {
   body: string;
   createdAt: string;
   read?: boolean;
+  /** 保存した通知（一覧の上に固定される） */
+  saved?: boolean;
   today?: boolean;
   actorId?: string; // 相手のアバター表示用
   /**

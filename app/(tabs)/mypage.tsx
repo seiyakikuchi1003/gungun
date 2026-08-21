@@ -313,8 +313,7 @@ export default function MyPage() {
           <>
             <Text style={styles.sheetTitle}>本当に退会しますか？</Text>
             <Text style={styles.sheetBody}>
-              退会すると、出品・水やり・肥料・取引の記録がすべて削除され、元に戻せません。{'\n'}
-              同じメールアドレスで登録し直しても、以前のデータは戻りません。
+              退会すると、出品・水やり・肥料・取引の記録がすべて削除され、元に戻せません。同じメールアドレスで登録し直しても、以前のデータは戻りません。
             </Text>
             <View style={styles.warnBox}>
               <Ionicons name="alert-circle" size={18} color={colors.orangeDeep} />
@@ -356,7 +355,7 @@ const WITHDRAW_REASONS = [
 ];
 
 const styles = StyleSheet.create({
-  planNote: { fontFamily: fonts.medium, fontSize: 11.5, lineHeight: 18, color: colors.textSecondary, textAlign: 'center', marginTop: spacing.md },
+  planNote: { fontFamily: fonts.medium, fontSize: 11.5, lineHeight: 19, color: colors.textSecondary, marginTop: spacing.md },
   reasonRow: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.md,
     backgroundColor: colors.cardMuted, borderRadius: radius.md,
@@ -379,7 +378,8 @@ const styles = StyleSheet.create({
   warnText: { flex: 1, fontFamily: fonts.medium, fontSize: 12.5, lineHeight: 19, color: colors.orangeDeep },
   root: { flex: 1, backgroundColor: colors.bg },
   sheetTitle: { fontFamily: fonts.bold, fontSize: 17, color: colors.textPrimary, textAlign: 'center' },
-  sheetBody: { fontFamily: fonts.medium, fontSize: 13, lineHeight: 21, color: colors.textSecondary, textAlign: 'center', marginTop: 8, marginBottom: spacing.lg },
+  // 長い説明を中央揃えにすると行頭がそろわず読みにくい。左揃えにする（2026-08-21 指摘）
+  sheetBody: { fontFamily: fonts.medium, fontSize: 13, lineHeight: 22, color: colors.textSecondary, marginTop: 10, marginBottom: spacing.lg },
   sheetBtn: { flexDirection: 'row', gap: spacing.sm, height: 54, borderRadius: radius.pill, backgroundColor: colors.green, justifyContent: 'center', alignItems: 'center', marginTop: spacing.md },
   sheetDanger: { height: 54, borderRadius: radius.pill, backgroundColor: '#D5675C', justifyContent: 'center', alignItems: 'center', marginTop: spacing.md },
   sheetBtnText: { fontFamily: fonts.bold, fontSize: 15.5, color: colors.white },

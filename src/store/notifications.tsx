@@ -16,6 +16,9 @@ type NotificationsState = {
   list: Notif[];
   unreadCount: number;
   markRead: (id: string) => void;
+  remove: (id: string) => void;
+  clearAll: () => void;
+  toggleSaved: (id: string) => void;
   markAllRead: () => void;
   refresh: () => Promise<void>;
 };
@@ -29,6 +32,7 @@ function toNotif(n: api.AppNotification): Notif {
     body: n.body,
     createdAt: n.createdAt,
     read: n.read,
+    saved: n.saved,
     today: /分前|時間前|たった今/.test(n.createdAt),
     // body は主語を含む完成文なので名前は前置しないが、
     // アイコンを出すために「誰が起こしたか」は渡す（2026-08-12）
@@ -91,6 +95,37 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     [live, me.live]
   );
 
+  /** 1件消す。画面を先に更新してから消しに行く */
+  const remove = useCallback(
+    (id: string) => {
+      setList((prev) => prev.filter((n) => n.id !== id));
+      if (live && me.live) api.removeNotification(id).catch(() => refreshRef.current());
+    },
+    [live, me.live]
+  );
+
+  /** 保存していないものをまとめて消す */
+  const clearAll = useCallback(() => {
+    setList((prev) => prev.filter((n) => n.saved));
+    if (live && me.live) api.clearNotifications(me.id).catch(() => refreshRef.current());
+  }, [live, me.live, me.id]);
+
+  /** 保存の付け外し */
+  const toggleSaved = useCallback(
+    (id: string) => {
+      let next = false;
+      setList((prev) =>
+        prev.map((n) => {
+          if (n.id !== id) return n;
+          next = !n.saved;
+          return { ...n, saved: next };
+        })
+      );
+      if (live && me.live) api.setSaved(id, next).catch(() => refreshRef.current());
+    },
+    [live, me.live]
+  );
+
   const markAllRead = useCallback(() => {
     setList((prev) => prev.map((n) => ({ ...n, read: true })));
     if (live && me.live) api.markRead().catch(() => {});
@@ -102,9 +137,12 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       unreadCount: list.filter((n) => !n.read).length,
       markRead,
       markAllRead,
+      remove,
+      clearAll,
+      toggleSaved,
       refresh,
     }),
-    [list, markRead, markAllRead, refresh]
+    [list, markRead, markAllRead, remove, clearAll, toggleSaved, refresh]
   );
   return <NotificationsContext.Provider value={value}>{children}</NotificationsContext.Provider>;
 }

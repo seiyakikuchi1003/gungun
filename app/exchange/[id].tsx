@@ -18,7 +18,6 @@ import { CARRIERS, carrier as carrierOf, carrierLabel, checkNumber, prettyNumber
 import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 import { currentStep, nextAction } from '@/lib/exchangeStatus';
 import { success } from '@/lib/haptics';
-import { shareText } from '@/lib/share';
 import { Linking, TextInput } from 'react-native';
 
 /**
@@ -55,7 +54,6 @@ export default function ExchangeDetail() {
   const [donePopup, setDonePopup] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [checked, setChecked] = useState<boolean[]>(() => SHIP_CHECKS.map(() => false));
-  const [copied, setCopied] = useState(false);
   // 配送情報（2026-08-14 指摘：配送後のフローを細かく）
   const [carrier, setCarrier] = useState<string>('yamato');
   const [tracking, setTracking] = useState('');
@@ -65,6 +63,8 @@ export default function ExchangeDetail() {
   // 発送後の追跡番号の訂正（2026-08-17）
   const [trackSheet, setTrackSheet] = useState(false);
   const allChecked = checked.every(Boolean);
+  // 「その他・追跡なし」以外は追跡番号を必ず入れてもらう（2026-08-21 指摘）
+  const trackingReady = carrier === 'other' || checkNumber(carrier, tracking).ok;
 
   if (loading) {
     return <View style={[styles.root, styles.center]}><ActivityIndicator color={colors.green} /></View>;
@@ -100,24 +100,16 @@ export default function ExchangeDetail() {
     }
   };
 
-  // 宛名書きのときに使えるよう、住所をまとめて書き出す。
-  // 「共有」と書くと何が起きるか伝わらなかったので「住所をコピー」に改めた（2026-08-13 指摘）。
-  // expo-clipboard を足すとネイティブビルドが必要になるため、
-  // 実機では OS の共有シート（コピーを含む）、Web ではクリップボードに入る
-  const copyAddress = async () => {
-    const a = detail.shipTo;
-    if (!a) return;
-    const res = await shareText(`〒${a.postal}\n${a.address}\n${a.name} 様\n${a.phone}`);
-    if (res === 'cancelled') return;
-    setCopied(true);
-    success();
-    setTimeout(() => setCopied(false), 1800);
-  };
-
   return (
     <View style={styles.root}>
       <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
-        <PressableScale onPress={() => router.dismissTo('/exchange')} activeScale={0.9} style={styles.hBtn}>
+        {/* 通知から開いたときに取引一覧へ飛ばされると、通知の続きが読めなくなる。
+            来た道があればそこへ戻す（2026-08-21 指摘） */}
+        <PressableScale
+          onPress={() => (router.canGoBack() ? router.back() : router.dismissTo('/exchange'))}
+          activeScale={0.9}
+          style={styles.hBtn}
+        >
           <Ionicons name="chevron-back" size={26} color={colors.textPrimary} />
         </PressableScale>
         <Text style={styles.hTitle}>取引の詳細</Text>
@@ -187,12 +179,6 @@ export default function ExchangeDetail() {
           <View style={[styles.panel, shadows.soft]}>
             <View style={styles.panelHead}>
               <Text style={styles.panelLabel}>お届け先（{detail.partnerName}さん）</Text>
-              {detail.shipTo && (
-                <PressableScale onPress={copyAddress} activeScale={0.95} style={styles.copyBtn}>
-                  <Ionicons name={copied ? 'checkmark' : 'copy-outline'} size={14} color={colors.green} />
-                  <Text style={styles.copyText}>{copied ? 'コピーしました' : '住所をコピー'}</Text>
-                </PressableScale>
-              )}
             </View>
             {detail.shipTo ? (
               <View style={styles.addr}>
@@ -329,6 +315,9 @@ export default function ExchangeDetail() {
 
       {/* 発送報告 */}
       <BottomSheetModal visible={shipSheet} onClose={() => setShipSheet(false)}>
+        {/* 見出しからチェック・追跡番号までをまとめて流す。
+            ボタンはこの外に置き、どれだけ項目が増えても押せる位置に残す（2026-08-21 指摘） */}
+        <ScrollView style={styles.sheetBody} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <View style={styles.sheetCenter}>
           <View style={[styles.sheetIcon, { backgroundColor: colors.orangeSoft }]}>
             <Ionicons name="cube" size={34} color={colors.orange} />
@@ -337,7 +326,7 @@ export default function ExchangeDetail() {
           <Text style={styles.sheetSub}>スムーズな取引のために、発送前に以下のチェックをお願いします！</Text>
         </View>
 
-        <ScrollView style={styles.checkList} showsVerticalScrollIndicator={false}>
+        <View>
           {SHIP_CHECKS.map((c, i) => (
             <PressableScale
               key={c.title}
@@ -355,7 +344,7 @@ export default function ExchangeDetail() {
             </PressableScale>
           ))}
           <Text style={styles.checkOutro}>丁寧な発送で、気持ちの良い取引をお願いします！✨</Text>
-        </ScrollView>
+        </View>
 
         {/* 配送業者と追跡番号。受け取る側が「今どこか」を追えるようにする */}
         <View style={styles.trackBox}>
@@ -387,7 +376,11 @@ export default function ExchangeDetail() {
               {(() => {
                 const v = checkNumber(carrier, tracking);
                 if (tracking.trim() === '') {
-                  return <Text style={styles.trackHint}>あとから直せます。番号がなければ「その他・追跡なし」を選んでください。</Text>;
+                  return (
+                    <Text style={styles.trackNg}>
+                      追跡番号を入力してください。番号が出ない発送方法なら「その他・追跡なし」を選んでください。
+                    </Text>
+                  );
                 }
                 return v.ok ? (
                   <Text style={styles.trackOk}>この番号で追跡できます</Text>
@@ -398,13 +391,14 @@ export default function ExchangeDetail() {
             </>
           )}
         </View>
+        </ScrollView>
 
         {actionError ? <FormError message={actionError} /> : null}
         <Button
           title="発送完了を報告"
           variant="accent"
           loading={busy}
-          disabled={!allChecked || (tracking.trim() !== '' && !checkNumber(carrier, tracking).ok)}
+          disabled={!allChecked || !trackingReady}
           onPress={async () => {
             setActionError(null);
             const res = await markShipped(carrier, tracking);
@@ -413,7 +407,11 @@ export default function ExchangeDetail() {
           }}
           style={{ marginTop: spacing.lg }}
         />
-        {!allChecked && <Text style={styles.checkHint}>すべて確認するとボタンを押せます</Text>}
+        {(!allChecked || !trackingReady) && (
+          <Text style={styles.checkHint}>
+            {!allChecked ? 'すべて確認するとボタンを押せます' : '追跡番号を入力すると押せます'}
+          </Text>
+        )}
         <PressableScale onPress={() => setShipSheet(false)} style={styles.cancel}>
           <Text style={styles.cancelText}>キャンセル</Text>
         </PressableScale>
@@ -519,8 +517,7 @@ export default function ExchangeDetail() {
           </View>
           <Text style={styles.sheetTitle}>この取引を取り消しますか？</Text>
           <Text style={styles.sheetSub}>
-            この輪に入っている全員の取引が取り消され、商品は出品中に戻ります。{'\n'}
-            参加者にはその旨が通知されます。取り消しは元に戻せません。
+            この輪に入っている全員の取引が取り消され、商品は出品中に戻ります。参加者にはその旨が通知されます。取り消しは元に戻せません。
           </Text>
         </View>
         <TextInput
@@ -615,10 +612,11 @@ const styles = StyleSheet.create({
   sheetCenter: { alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md },
   sheetIcon: { width: 68, height: 68, borderRadius: 34, justifyContent: 'center', alignItems: 'center', marginBottom: spacing.sm },
   sheetTitle: { fontFamily: fonts.bold, fontSize: 19, color: colors.textPrimary, textAlign: 'center' },
-  sheetSub: { fontFamily: fonts.regular, fontSize: 13.5, color: colors.textSecondary, textAlign: 'center', lineHeight: 21, paddingHorizontal: spacing.md },
+  // 短い一言は中央のまま。長い説明は左揃えにして行頭をそろえる（2026-08-21 指摘）
+  sheetSub: { fontFamily: fonts.regular, fontSize: 13.5, color: colors.textSecondary, lineHeight: 22, alignSelf: 'stretch' },
   // 320 だと最後の項目とボタンが同時に見えず、下まであることに気づけなかった
   // （2026-08-13 指摘）。画面の高さに応じて伸ばす
-  checkList: { maxHeight: 440, marginTop: spacing.md },
+  sheetBody: { flexShrink: 1, marginBottom: spacing.md },
   checkRow: { flexDirection: 'row', gap: spacing.md, paddingVertical: spacing.sm, alignItems: 'flex-start' },
   checkBox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: colors.border, justifyContent: 'center', alignItems: 'center', marginTop: 2 },
   checkBoxOn: { backgroundColor: colors.green, borderColor: colors.green },

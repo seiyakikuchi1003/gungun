@@ -195,7 +195,7 @@ export default function PlantSeedScreen() {
           <Sprout size={56} />
           <Text style={styles.doneTitle}>出品しました！</Text>
           <Text style={styles.doneSub}>
-            誰かが水やりしてくれると通知が届きます。{'\n'}集まったら収穫して、交換の輪をはじめましょう。
+            誰かが水やりしてくれると通知が届きます。集まったら収穫して、交換の輪をはじめましょう。
           </Text>
         </View>
         <Button title="ホームに戻る" onPress={() => { setDone(false); router.dismissTo('/(tabs)'); }} />

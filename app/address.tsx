@@ -32,6 +32,8 @@ export default function Address() {
           last: a.lastName, first: a.firstName, phone: a.phone, postal: a.postalCode,
           pref: a.prefecture, city: a.city, street: a.street, building: a.building,
         });
+        // 読み込んだ値でいきなり上書きしないよう、この郵便番号は引き済みにする
+        setLookedUp(a.postalCode.replace(/[^0-9]/g, ''));
       })
       .catch(() => {});
     return () => { alive = false; };
@@ -39,6 +41,11 @@ export default function Address() {
 
   // 郵便番号を7桁入れたら、都道府県・市区町村を自動で埋める。
   // 引けなかったときは黙って何もしない（手入力を邪魔しない）。
+  //
+  // ★ 以前は「空のときだけ入れる」形にしていたため、
+  //   すでに住所が入っている人が郵便番号を直しても古い住所のままだった
+  //   （2026-08-21 指摘）。引けたら上書きする。
+  //   ただし読み込み直後に上書きしないよう、最初の値は済み扱いにしておく。
   const [lookedUp, setLookedUp] = useState('');
   useEffect(() => {
     const zip = f.postal.replace(/[^0-9]/g, '');
@@ -53,9 +60,9 @@ export default function Address() {
         if (!alive || !r) return;
         setF((prev) => ({
           ...prev,
-          pref: prev.pref || r.address1,
+          pref: r.address1,
           // 市区町村と町名までを埋める。番地から先は手入力
-          city: prev.city || `${r.address2}${r.address3}`,
+          city: `${r.address2}${r.address3}`,
         }));
       } catch {
         // 通信できなくても手入力で進められるので何も出さない

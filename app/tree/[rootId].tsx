@@ -36,7 +36,12 @@ export default function TreeScreen() {
   // 統計を押したときに開く一覧（2026-08-13 項目9）
   const [detail, setDetail] = useState<'all' | 'direct' | 'people' | null>(null);
 
-  const root = getItem(rootId ?? '');
+  // 通知からは「水やりされた子商品」のIDで来ることがある。
+  // そのまま根として扱うと、自分のタネの木なのに他人の木に見えて
+  // 「この木に水やりする」が出てしまっていた（2026-08-21 指摘）。
+  // 渡されたIDから本当の根までたどり直す。
+  const entered = getItem(rootId ?? '');
+  const root = entered ? (getItem(entered.rootId) ?? entered) : null;
   if (!root) return <View style={styles.root} />;
 
   const owner = users.user(root.ownerId);
