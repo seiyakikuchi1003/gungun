@@ -92,14 +92,6 @@ export default function ItemDetailScreen() {
             ))}
           </ScrollView>
 
-      {/* 戻る・共有・メニューは画面上部に固定する。
-          以前は画像の上に置いていたので、スクロールすると消えて戻れなかった（2026-08-13 指摘） */}
-      <View style={[styles.floatHeader, { top: insets.top + 6 }]} pointerEvents="box-none">
-        <RoundBtn icon="chevron-back" onPress={() => router.back()} />
-        <View style={styles.floatRight}>
-          <RoundBtn icon="ellipsis-horizontal" onPress={() => setMenu(true)} />
-        </View>
-      </View>
 
           {imgs.length > 1 && (
             <View style={styles.counter}>
@@ -228,6 +220,17 @@ export default function ItemDetailScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {/* 戻る・メニューは画面の上に固定する。
+          ScrollView の中に置くと中身と一緒に流れてしまい、
+          スクロールした先で戻れなくなる（2026-08-13 に直したつもりが
+          外側ではなく画像スライダーの直後に入っており、効いていなかった／2026-08-21 再修正） */}
+      <View style={[styles.floatHeader, { top: insets.top + 6 }]} pointerEvents="box-none">
+        <RoundBtn icon="chevron-back" onPress={() => router.back()} />
+        <View style={styles.floatRight}>
+          <RoundBtn icon="ellipsis-horizontal" onPress={() => setMenu(true)} />
+        </View>
+      </View>
 
       {/* 下部：水やりCTA（＝自分の商品を出品して子ノードに） */}
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>

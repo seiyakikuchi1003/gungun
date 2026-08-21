@@ -35,6 +35,8 @@ yarn-error.*
 .env.local
 .env*.local
 .env.mock-stash
+# 接続先を切り替えるときに作る控え。鍵が入るので絶対に上げない
+.env*.bak-*
 
 # IDE
 .vscode/

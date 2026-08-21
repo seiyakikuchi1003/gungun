@@ -51,6 +51,8 @@ export default function ExchangeScreen() {
   useAutoRefresh(reload);
   // 引っ張って更新（他の画面と同じ操作で最新にできるように）
   const [refreshing, setRefreshing] = useState(false);
+  // 完了した取引を見返したいときのための切り替え
+  const [showDone, setShowDone] = useState(false);
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
@@ -60,13 +62,16 @@ export default function ExchangeScreen() {
     }
     setRefreshing(false);
   }, [reload]);
-  const list = all.filter((t) => t.dir === tab);
+  // 発送・受け取り・評価まで終わった取引は、もう何もすることがない。
+  // 並べたままだと「対応が必要なもの」が埋もれるので、既定では隠す（2026-08-21 指摘）
+  const inTab = all.filter((t) => t.dir === tab);
+  const doneList = inTab.filter((t) => t.finished);
+  const list = showDone ? inTab : inTab.filter((t) => !t.finished);
   const accent = tab === 'receive' ? colors.green : colors.orange;
   const actionCount = list.filter((t) => (tab === 'receive' ? t.status === 'shipped' : t.status === 'pending')).length;
   // 「送る商品3件」と「1件が対応待ち」が並ぶと、数が食い違って見えた（2026-08-13 指摘）。
   // 見出しは進行中の件数にして、対応待ちはその内訳として書く
-  const ongoing = list.filter((t) => t.status !== 'received').length;
-  const finished = list.length - ongoing;
+  const ongoing = inTab.filter((t) => t.status !== 'received').length;
   // タブごとの「あなたの対応待ち」件数（表示中でない側も数える）
   const needReceive = all.filter((t) => t.dir === 'receive' && t.status === 'shipped').length;
   const needSend = all.filter((t) => t.dir === 'send' && t.status === 'pending').length;
@@ -110,8 +115,8 @@ export default function ExchangeScreen() {
                 ? `うち${actionCount}件があなたの対応待ちです`
                 : ongoing > 0
                   ? '相手の対応を待っています'
-                  : finished > 0
-                    ? `対応待ちはありません（完了 ${finished}件）`
+                  : doneList.length > 0
+                    ? `対応待ちはありません（完了 ${doneList.length}件）`
                     : '進行中の取引はありません'}
             </Text>
           </View>
@@ -147,7 +152,29 @@ export default function ExchangeScreen() {
             </PressableScale>
           );
         })}
-        {list.length === 0 && <Text style={styles.empty}>進行中の取引はありません</Text>}
+        {list.length === 0 && (
+          <Text style={styles.empty}>
+            {showDone ? '取引はありません' : '進行中の取引はありません'}
+          </Text>
+        )}
+
+        {/* 終わった取引は隠しているが、見返せなくなると困るので出し入れできるようにする */}
+        {doneList.length > 0 && (
+          <PressableScale
+            activeScale={0.98}
+            onPress={() => setShowDone((v) => !v)}
+            style={styles.doneToggle}
+          >
+            <Ionicons
+              name={showDone ? 'chevron-up' : 'chevron-down'}
+              size={15}
+              color={colors.textSecondary}
+            />
+            <Text style={styles.doneToggleText}>
+              {showDone ? '完了した取引を隠す' : `完了した取引を見る（${doneList.length}件）`}
+            </Text>
+          </PressableScale>
+        )}
       </ScrollView>
       </SwipePages>
     </View>
@@ -179,5 +206,10 @@ const styles = StyleSheet.create({
   cardFoot: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderTopWidth: 1, borderTopColor: colors.divider, paddingTop: spacing.md },
   hint: { flex: 1, fontFamily: fonts.medium, fontSize: 12.5, color: colors.textSecondary },
   date: { fontFamily: fonts.regular, fontSize: 11, color: colors.textSecondary },
+  doneToggle: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    paddingVertical: spacing.lg,
+  },
+  doneToggleText: { fontFamily: fonts.bold, fontSize: 13, color: colors.textSecondary },
   empty: { fontFamily: fonts.medium, fontSize: 14, color: colors.textSecondary, textAlign: 'center', marginTop: 40 },
 });

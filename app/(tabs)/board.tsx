@@ -103,10 +103,14 @@ export default function BoardScreen() {
 
       {/* フィルター */}
       <View style={styles.filtersRow}>
+      {/* カテゴリの帯。横に流すだけで、ここで引っぱり更新はさせない。
+          refreshControl が付いていたため、この帯だけが縦に動いて
+          リロードできてしまっていた（2026-08-21 指摘・再発） */}
       <ScrollView
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.green]} tintColor={colors.green} />}
-        keyboardDismissMode="on-drag"
-        keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={styles.filters}>
         {boardTagFilters.map((f) => {
           const on = filter === f.key;
           return (

@@ -17,6 +17,12 @@ export type Exchange = {
   partnerAvatar: string | null;
   /** 自分は送る側か（false なら受け取る側） */
   iAmSender: boolean;
+  /** 自分が評価を出したか */
+  iRated: boolean;
+  /** 相手が評価を出したか */
+  partnerRated: boolean;
+  /** 受け取りも評価も済み＝この取引はもう終わっている */
+  finished: boolean;
   status: ExchangeStatus;
   position: number;
   createdAt: string;
@@ -35,11 +41,15 @@ const COLUMNS =
   'items(name, item_images(url, sort_order)), ' +
   'sender:profiles!exchanges_from_user_id_fkey(nickname, avatar_url), ' +
   'receiver:profiles!exchanges_to_user_id_fkey(nickname, avatar_url), ' +
-  'harvests(created_at)';
+  'harvests(created_at), ' +
+  // 双方の評価が済んだ取引は一覧から下げるので、誰が評価したかも取る（2026-08-21 指摘）
+  'ratings(rater_id)';
 
 function toExchange(r: any, me: string): Exchange {
   const iAmSender = r.from_user_id === me;
   const partner = iAmSender ? r.receiver : r.sender;
+  const partnerId: string = iAmSender ? r.to_user_id : r.from_user_id;
+  const raters = new Set<string>(((r.ratings ?? []) as { rater_id: string }[]).map((x) => x.rater_id));
   const images: { url: string; sort_order: number }[] = r.items?.item_images ?? [];
   const thumb = [...images].sort((a, b) => a.sort_order - b.sort_order)[0]?.url ?? null;
   return {
@@ -54,6 +64,9 @@ function toExchange(r: any, me: string): Exchange {
     partnerAvatar: partner?.avatar_url ?? null,
     iAmSender,
     status: r.status,
+    iRated: raters.has(me),
+    partnerRated: raters.has(partnerId),
+    finished: r.status === 'received' && raters.has(me) && raters.has(partnerId),
     position: Number(r.position ?? 0),
     createdAt: r.harvests?.created_at ? relativeTime(r.harvests.created_at) : '',
   };

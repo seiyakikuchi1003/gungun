@@ -27,6 +27,8 @@ export type UITrade = Trade & {
   iAmSender: boolean;
   /** この取引が属する収穫（輪）。お祝い画面へ渡す。モックでは undefined */
   harvestId?: string;
+  /** 受け取りも評価も済んで、もう何もすることがない取引か */
+  finished?: boolean;
 };
 
 export type UIMessage = {
@@ -52,6 +54,7 @@ function toUITrade(e: api.Exchange): UITrade {
     partnerAvatar: e.partnerAvatar ?? '',
     iAmSender: e.iAmSender,
     harvestId: e.harvestId,
+    finished: e.finished,
   };
 }
 

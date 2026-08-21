@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { errorMessage } from '@/lib/errorMessage';
+import { openBillingPortal } from '@/lib/api/purchases';
 import { View, Text, StyleSheet, ScrollView, Linking } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,14 +20,16 @@ import { useTree } from '@/store/tree';
 import { useMe } from '@/store/me';
 import { warning } from '@/lib/haptics';
 import { useAutoRefresh } from '@/hooks/useAutoRefresh';
-
-type Action = 'about' | 'contact' | 'logout' | 'withdraw';
+type Action = 'about' | 'contact' | 'logout' | 'withdraw' | 'plan';
 const MENU: { icon: keyof typeof Ionicons.glyphMap; label: string; route?: string; action?: Action; danger?: boolean }[] = [
   { icon: 'pricetags-outline', label: '出品履歴', route: '/mypage/items' },
   { icon: 'heart-outline', label: 'いいね一覧', route: '/mypage/likes' },
   { icon: 'time-outline', label: '閲覧履歴', route: '/mypage/history' },
   { icon: 'chatbox-ellipses-outline', label: '掲示板の履歴', route: '/mypage/posts' },
   { icon: 'ban-outline', label: 'ブロックリスト', route: '/mypage/blocks' },
+  // プレミアムの案内には「マイページから解約できます」と書いてあるのに、
+  // マイページに入口が無かった（2026-08-21 指摘）
+  { icon: 'diamond-outline', label: 'プランを管理・解約する', action: 'plan' },
   { icon: 'information-circle-outline', label: 'ぐんぐんについて', action: 'about' },
   { icon: 'document-text-outline', label: '利用規約', route: '/mypage/terms' },
   { icon: 'shield-checkmark-outline', label: 'プライバシーポリシー', route: '/mypage/privacy' },
@@ -73,6 +77,7 @@ export default function MyPage() {
   const [sheet, setSheet] = useState<Action | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   // 退会は2段階（理由 → 最終確認）
+  const [planError, setPlanError] = useState<string | null>(null);
   const [withdrawStep, setWithdrawStep] = useState<1 | 2>(1);
   const [withdrawReason, setWithdrawReason] = useState<string | null>(null);
 
@@ -210,6 +215,48 @@ export default function MyPage() {
       </BottomSheetModal>
 
       {/* ログアウト */}
+      {/* プランの管理・解約 */}
+      <BottomSheetModal visible={sheet === 'plan'} onClose={() => setSheet(null)}>
+        <Text style={styles.sheetTitle}>プレミアムの管理</Text>
+        <Text style={styles.sheetBody}>
+          {me.isPremium
+            ? '支払い方法の変更と解約は、決済ページ（Stripe）で行えます。解約しても、その期間の終了まではプレミアムのままご利用いただけます。'
+            : '現在プレミアムには加入していません。内容はプレミアム画面でご確認いただけます。'}
+        </Text>
+        {planError ? <FormError message={planError} /> : null}
+        {me.isPremium ? (
+          <PressableScale
+            onPress={async () => {
+              setPlanError(null);
+              try {
+                await openBillingPortal();
+                setSheet(null);
+              } catch (e) {
+                setPlanError(errorMessage(e, '決済ページを開けませんでした'));
+              }
+            }}
+            activeScale={0.97}
+            style={[styles.sheetBtn, shadows.button]}
+          >
+            <Text style={styles.sheetBtnText}>支払い方法の変更・解約へ</Text>
+          </PressableScale>
+        ) : (
+          <PressableScale
+            onPress={() => { setSheet(null); router.push('/premium'); }}
+            activeScale={0.97}
+            style={[styles.sheetBtn, shadows.button]}
+          >
+            <Text style={styles.sheetBtnText}>プレミアムの内容を見る</Text>
+          </PressableScale>
+        )}
+        <Text style={styles.planNote}>
+          うまく開けないときは、マイページの「お問い合わせ」からご連絡ください。
+        </Text>
+        <PressableScale onPress={() => setSheet(null)} activeScale={0.98} style={styles.sheetCancel}>
+          <Text style={styles.sheetCancelText}>閉じる</Text>
+        </PressableScale>
+      </BottomSheetModal>
+
       <BottomSheetModal visible={sheet === 'logout'} onClose={() => setSheet(null)}>
         <Text style={styles.sheetTitle}>ログアウトしますか？</Text>
         <PressableScale
@@ -309,6 +356,7 @@ const WITHDRAW_REASONS = [
 ];
 
 const styles = StyleSheet.create({
+  planNote: { fontFamily: fonts.medium, fontSize: 11.5, lineHeight: 18, color: colors.textSecondary, textAlign: 'center', marginTop: spacing.md },
   reasonRow: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.md,
     backgroundColor: colors.cardMuted, borderRadius: radius.md,
