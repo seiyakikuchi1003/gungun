@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
+import { useMe } from '@/store/me';
 import { View, Text, StyleSheet, Modal, ScrollView, useWindowDimensions } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Animated, {
@@ -36,23 +37,24 @@ type Props = {
  * ポンッと押される（BounceIn）。カレンダーは実際の日付・曜日に連動する。
  */
 
-const WEEK = ['月', '火', '水', '木', '金', '土', '日'];
+// 日曜始まり。カレンダーアプリの並びに合わせる（2026-08-21 指摘）
+const WEEK = ['日', '月', '火', '水', '木', '金', '土'];
 
 /**
  * カレンダーを実際の日付に合わせる（2026-07-28 MTG めたん様のご質問対応）。
  *
  * 以前は「連続◯日目」の通し番号を 1〜21 で並べていただけで、
  * 見出しの曜日とマスの中身が一致していなかった。
- * ここでは **今週の月曜から3週間ぶんの実日付** を作り、
+ * ここでは **今週の日曜から3週間ぶんの実日付** を作り、
  * 曜日の列と実際の曜日が必ず揃うようにする。
  */
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 function buildCalendar(now: Date) {
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  // JS の getDay() は日曜=0。月曜始まりにするためのオフセット
-  const mondayOffset = (today.getDay() + 6) % 7;
-  const start = new Date(today.getTime() - mondayOffset * DAY_MS);
+  // JS の getDay() は日曜=0。そのまま引けば日曜始まりになる
+  const sundayOffset = today.getDay();
+  const start = new Date(today.getTime() - sundayOffset * DAY_MS);
 
   const days = Array.from({ length: 21 }, (_, i) => {
     const d = new Date(start.getTime() + i * DAY_MS);
@@ -140,7 +142,10 @@ export function LoginBonusSheet({ visible, claimedToday, amount, onClose }: Prop
   const cell = (cardW - 32 - 6 * 6) / 7;
   // 実際の日付でカレンダーを組む（シートを開いた時点の日付で固定）
   const { days } = useMemo(() => buildCalendar(new Date()), [visible]);
+  const me = useMe();
   const daily = amount ?? settings.dailyLoginBonus;
+  // 受け取り前は「今日を足したら何日目か」を見せたいので、未受取なら +1 して出す
+  const streak = me.loginStreak + (claimedToday ? 0 : me.loginStreak > 0 ? 1 : 1);
 
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
@@ -159,6 +164,15 @@ export function LoginBonusSheet({ visible, claimedToday, amount, onClose }: Prop
               <View style={{ flex: 1 }}>
                 <Text style={styles.title}>ログインボーナス</Text>
                 <Text style={styles.subtitle}>毎日ログインして肥料をもらおう！</Text>
+                {/* 何日続いているかを出す。積み上がっている感じが分かるように（2026-08-21 指摘） */}
+                {streak > 0 && (
+                  <View style={styles.streakPill}>
+                    <Text style={styles.streakFire}>🔥</Text>
+                    <Text style={styles.streakText}>
+                      <Text style={styles.streakNum}>{streak}</Text>日連続
+                    </Text>
+                  </View>
+                )}
               </View>
               <View style={styles.headArt}>
                 <WateringCan size={54} />
@@ -282,6 +296,14 @@ const styles = StyleSheet.create({
   checkCircle: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.green, justifyContent: 'center', alignItems: 'center' },
   calHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm },
   calTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  streakPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'center',
+    backgroundColor: colors.orangeSoft, borderRadius: 999,
+    paddingHorizontal: spacing.md, paddingVertical: 4, marginTop: 6,
+  },
+  streakFire: { fontSize: 13 },
+  streakText: { fontFamily: fonts.bold, fontSize: 12.5, color: colors.orangeDeep },
+  streakNum: { fontFamily: fonts.black, fontSize: 15 },
   calTitle: { fontFamily: fonts.bold, fontSize: 14.5, color: colors.textPrimary },
   calNote: { fontFamily: fonts.bold, fontSize: 10.5, color: colors.orangeDeep },
   week: { flexDirection: 'row', gap: 6, borderTopWidth: 1, borderTopColor: colors.border, borderBottomWidth: 1, borderBottomColor: colors.border, paddingVertical: 7, marginBottom: spacing.sm },

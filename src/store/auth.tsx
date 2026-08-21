@@ -18,6 +18,8 @@ export type Profile = {
   bio: string | null;
   fertilizer: number;
   isPremium: boolean;
+  /** 連続してログインボーナスを受け取っている日数（2026-08-21 追加） */
+  loginStreak: number;
 };
 
 /** 各操作の戻り値。error が null なら成功 */
@@ -98,6 +100,7 @@ function toProfile(row: any): Profile {
     bio: row.bio ?? null,
     fertilizer: row.fertilizer ?? 0,
     isPremium: Boolean(row.is_premium),
+    loginStreak: Number(row.login_streak ?? 0),
   };
 }
 

@@ -18,6 +18,8 @@ export type Me = {
   avatar: string | number;
   fertilizer: number;
   isPremium: boolean;
+  /** 連続ログイン日数 */
+  loginStreak: number;
   /** 実DBのアカウントか（モックなら false） */
   live: boolean;
 };
@@ -33,6 +35,7 @@ export function useMe(): Me {
         avatar: profile.avatarUrl ?? '',
         fertilizer: profile.fertilizer,
         isPremium: profile.isPremium,
+        loginStreak: profile.loginStreak,
         live: true,
       };
     }
@@ -42,6 +45,7 @@ export function useMe(): Me {
       avatar: currentUser.avatar,
       fertilizer: currentUser.fertilizer,
       isPremium: false,
+      loginStreak: 0,
       live: false,
     };
   }, [live, profile]);

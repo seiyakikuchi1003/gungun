@@ -1,4 +1,6 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
+import { isSupabaseEnabled } from '@/lib/supabase';
+import { fetchViewHistory } from '@/lib/api/social';
 import {
   View,
   Text,
@@ -68,6 +70,15 @@ const STEP_ART: Record<string, React.ReactNode> = {
 /** 固定した上部バーの高さ（検索欄 46 ＋ 下の余白 16） */
 const TOP_BAR_H = 62;
 
+/** ホームの並び替え */
+const SORTS = [
+  { key: 'recommend', label: 'おすすめ', note: '最近見たものに近い順' },
+  { key: 'new', label: '新着順', note: '出品が新しい順' },
+  { key: 'water', label: '水やりが多い順', note: '多くの人が交換を希望している順' },
+  { key: 'like', label: '人気順', note: 'いいねが多い順' },
+] as const;
+type SortKey = (typeof SORTS)[number]['key'];
+
 export default function HomeScreen() {
   const me = useMe();
   const insets = useSafeAreaInsets();
@@ -90,6 +101,15 @@ export default function HomeScreen() {
   // モックでは並びを回転させて「新しい内容が届いた」感を出す
   const [refreshing, setRefreshing] = useState(false);
   const [refreshTick, setRefreshTick] = useState(0);
+  const [sort, setSort] = useState<SortKey>('recommend');
+  // 「おすすめ」で最近見た区分を優先するために、閲覧履歴のカテゴリーを取る
+  const [viewedCategories, setViewedCategories] = useState<string[]>([]);
+  useEffect(() => {
+    if (!isSupabaseEnabled || !me.live) return;
+    fetchViewHistory(me.id)
+      .then((list) => setViewedCategories([...new Set(list.slice(0, 20).map((i) => i.category))]))
+      .catch(() => {});
+  }, [me.live, me.id]);
   const scrollY = useSharedValue(0); // 引っ張り量 → カスタムスピナーの回転に連動
   const onScroll = useAnimatedScrollHandler((e) => {
     scrollY.value = e.contentOffset.y;
@@ -144,15 +164,45 @@ export default function HomeScreen() {
     'チケット': 'イベント・優待券',
     'その他': 'どれにも当てはまらないもの',
   };
-  const visibleGroups = categories
-    .map((c) => ({
-      title: c,
-      subtitle: SUBTITLE[c] ?? '',
-      items: seeds.filter((s) => s.category === c),
-    }))
-    .filter((g) => g.items.length > 0)
-    // 出品が多い区分から見せる（空の見出しばかり並ばないように）
-    .sort((a, b) => b.items.length - a.items.length);
+  /**
+   * 並び替え（2026-08-21 指摘）。
+   *
+   * 既定の「おすすめ」はカテゴリー別に並べる。そのとき、
+   * 最近見た商品と同じカテゴリーを先に出す（閲覧履歴に基づく関連順）。
+   * それ以外を選んだときは、カテゴリーの区切りをやめて1本の並びで見せる。
+   * 「水やりが多い順」と「新着順」は区切ったままだと比べにくいため。
+   */
+  const recentCats = new Set(viewedCategories);
+  const visibleGroups =
+    sort === 'recommend'
+      ? categories
+          .map((c) => ({
+            title: c,
+            subtitle: SUBTITLE[c] ?? '',
+            items: seeds.filter((s) => s.category === c),
+          }))
+          .filter((g) => g.items.length > 0)
+          .sort((a, b) => {
+            // 最近見た区分を優先し、その中では出品の多い順
+            const ra = recentCats.has(a.title) ? 1 : 0;
+            const rb = recentCats.has(b.title) ? 1 : 0;
+            if (ra !== rb) return rb - ra;
+            return b.items.length - a.items.length;
+          })
+      : [
+          {
+            title: SORTS.find((x) => x.key === sort)?.label ?? '',
+            subtitle: SORTS.find((x) => x.key === sort)?.note ?? '',
+            items: [...seeds].sort((a, b) => {
+              if (sort === 'water') return b.waterCount - a.waterCount;
+              if (sort === 'like') return b.likeCount - a.likeCount;
+              // 新着順。createdAt が無いモックでは並びを変えない
+              const ta = a.createdAt ? Date.parse(a.createdAt) : 0;
+              const tb = b.createdAt ? Date.parse(b.createdAt) : 0;
+              return tb - ta;
+            }),
+          },
+        ].filter((g) => g.items.length > 0);
 
   return (
     <View style={styles.root}>
@@ -263,6 +313,24 @@ export default function HomeScreen() {
               <Text style={styles.seeAll}>すべて見る ›</Text>
             </PressableScale>
           </View>
+
+          {/* 並び替え。押した順番で見え方が変わるので、選んでいるものを塗って示す */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.sortRow}
+          >
+            {SORTS.map((o) => (
+              <PressableScale
+                key={o.key}
+                activeScale={0.95}
+                onPress={() => setSort(o.key)}
+                style={[styles.sortChip, sort === o.key && styles.sortChipOn]}
+              >
+                <Text style={[styles.sortText, sort === o.key && styles.sortTextOn]}>{o.label}</Text>
+              </PressableScale>
+            ))}
+          </ScrollView>
           {/* 更新のたびに key が変わり、新しい並びがふわっと入れ替わる */}
           <Animated.View key={refreshTick} entering={FadeIn.duration(420)}>
             {visibleGroups.map((g) => (
@@ -319,6 +387,14 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  sortRow: { gap: spacing.sm, paddingHorizontal: 20, paddingBottom: spacing.md },
+  sortChip: {
+    paddingHorizontal: spacing.lg, paddingVertical: 7, borderRadius: 999,
+    backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
+  },
+  sortChipOn: { backgroundColor: colors.green, borderColor: colors.green },
+  sortText: { fontFamily: fonts.medium, fontSize: 12.5, color: colors.textSecondary },
+  sortTextOn: { fontFamily: fonts.bold, color: colors.white },
   infoLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   fertCharge: { fontFamily: fonts.bold, fontSize: 10.5, color: colors.green, marginTop: 4 },
   topBarFixed: {
