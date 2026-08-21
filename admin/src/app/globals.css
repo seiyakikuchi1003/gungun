@@ -20,8 +20,30 @@
     @apply text-left text-xs font-bold text-muted uppercase tracking-wide px-4 py-3 border-b border-line whitespace-nowrap;
   }
   .td {
-    @apply px-4 py-3 border-b border-line/70 text-sm align-middle;
+    @apply px-4 py-2.5 border-b border-line/70 text-sm align-middle;
   }
+  /* 行に触れていることが分かると、横に長い表でも目線を追いやすい */
+  tbody tr {
+    @apply transition-colors;
+  }
+  tbody tr:hover {
+    @apply bg-cream/60;
+  }
+  tbody tr:last-child .td {
+    @apply border-b-0;
+  }
+  /* 金額・個数の列。桁をそろえて読む */
+  .num {
+    @apply text-right tabular-nums;
+  }
+  /* 状態を表す小さなラベル */
+  .pill {
+    @apply inline-block text-[11px] font-bold rounded-full px-2 py-0.5 whitespace-nowrap;
+  }
+  .pill-green { @apply bg-green-soft text-green-deep; }
+  .pill-mikan { @apply bg-mikan-soft text-mikan; }
+  .pill-gray  { @apply bg-cream text-muted; }
+  .pill-danger{ @apply bg-danger/10 text-danger; }
   .btn {
     @apply inline-flex items-center justify-center gap-1.5 rounded-full px-4 h-9 text-sm font-bold transition-colors;
   }

@@ -202,8 +202,17 @@ export default async function ReportsPage({
         })}
 
         {reportList.length === 0 && (
-          <div className="card p-6 text-sm text-muted">
-            {s === 'open' ? '未対応の通報はありません。' : '該当する通報はありません。'}
+          /* 空のときこそ、この画面が何をするところなのかを説明しておく。
+             はじめて開いた人が「壊れているのかも」と思わないように */
+          <div className="card p-10 text-center">
+            <div className="text-sm font-black">
+              {s === 'open' ? '未対応の通報はありません' : '該当する通報はありません'}
+            </div>
+            <p className="text-xs text-muted mt-1.5 leading-relaxed">
+              {s === 'open'
+                ? '利用者がアプリから商品・投稿・ユーザーを報告すると、ここに届きます。内容を見て「対応済み」か「問題なし」を記録してください。'
+                : '上のボタンで表示する種類を切り替えられます。'}
+            </p>
           </div>
         )}
       </div>

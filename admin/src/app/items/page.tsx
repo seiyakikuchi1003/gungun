@@ -13,10 +13,10 @@ export const dynamic = 'force-dynamic';
 
 /** 状態の見せ方。色でも区別できるようにする */
 const STATUS: Record<string, { label: string; cls: string; note: string }> = {
-  growing: { label: '出品中', cls: 'bg-green-soft text-green-deep', note: '水やりを待っている' },
-  trading: { label: '取引中', cls: 'bg-mikan-soft text-mikan', note: '交換が決まり配送中' },
-  completed: { label: '完了', cls: 'bg-cream text-muted', note: '交換が終わった' },
-  deleted: { label: '非表示', cls: 'bg-danger/10 text-danger', note: '運営が非表示にした' },
+  growing: { label: '出品中', cls: 'pill-green', note: '水やりを待っている' },
+  trading: { label: '取引中', cls: 'pill-mikan', note: '交換が決まり配送中' },
+  completed: { label: '完了', cls: 'pill-gray', note: '交換が終わった' },
+  deleted: { label: '非表示', cls: 'pill-danger', note: '運営が非表示にした' },
 };
 
 const FILTERS = [
@@ -120,7 +120,7 @@ export default async function ItemsPage({
               <th className="th">カテゴリ</th>
               <th className="th">状態</th>
               <th className="th">出品日</th>
-              <th className="th">操作</th>
+              <th className="th"><span className="sr-only">操作</span></th>
             </tr>
           </thead>
           <tbody>
@@ -138,9 +138,7 @@ export default async function ItemsPage({
                 <td className="td">
                   <span
                     title={STATUS[it.status]?.note}
-                    className={`text-[11px] font-bold rounded-full px-2 py-0.5 whitespace-nowrap ${
-                      STATUS[it.status]?.cls ?? 'bg-cream text-muted'
-                    }`}
+                    className={`pill ${STATUS[it.status]?.cls ?? 'pill-gray'}`}
                   >
                     {STATUS[it.status]?.label ?? it.status}
                   </span>

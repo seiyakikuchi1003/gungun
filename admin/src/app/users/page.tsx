@@ -6,7 +6,7 @@ import { isConnected, rows } from '@/lib/supabase';
 import { grantFertilizer, setSuspended } from '@/lib/actions';
 import { redirectWithResult } from '@/lib/result';
 import Link from 'next/link';
-import { jst, num, shortId } from '@/lib/format';
+import { jst, num } from '@/lib/format';
 import { ConfirmButton } from '@/components/ConfirmButton';
 
 export const dynamic = 'force-dynamic';
@@ -42,8 +42,11 @@ export default async function UsersPage({
   }
 
   const { data: users, error: dbError } = await rows((db) => {
-    let query = db.from('profiles').select('*').order('created_at', { ascending: false }).limit(200);
-    if (q) query = query.ilike('nickname', `%${q}%`);
+    // メール・出品数・取引数まで入ったビュー（0041）。
+    // 名前だけでは同じ人かどうか判断できないため
+    let query = db.from('admin_user_cards').select('*').order('created_at', { ascending: false }).limit(200);
+    // 名前でもメールでも探せるようにする（運営はメールで問い合わせを受けるため）
+    if (q) query = query.or(`nickname.ilike.%${q}%,email.ilike.%${q}%`);
     if (f === 'suspended') query = query.eq('is_suspended', true);
     if (f === 'premium') query = query.eq('is_premium', true);
     return query;
@@ -70,7 +73,7 @@ export default async function UsersPage({
 
       <div className="flex flex-wrap items-center gap-3 mb-4">
         <form className="flex gap-2 grow max-w-md">
-          <input name="q" defaultValue={q} placeholder="ニックネームで検索" className="input" />
+          <input name="q" defaultValue={q} placeholder="名前・メールアドレスで検索" className="input" />
           {f !== 'all' && <input type="hidden" name="f" value={f} />}
           <button className="btn-primary shrink-0">検索</button>
         </form>
@@ -92,9 +95,10 @@ export default async function UsersPage({
         <table className="w-full min-w-[860px]">
           <thead>
             <tr>
-              <th className="th">ニックネーム</th>
-              <th className="th">肥料</th>
-              <th className="th">プレミアム</th>
+              <th className="th">ユーザー</th>
+              <th className="th num">肥料</th>
+              <th className="th num">出品</th>
+              <th className="th num">取引</th>
               <th className="th">状態</th>
               <th className="th">登録日</th>
               <th className="th">操作</th>
@@ -103,17 +107,26 @@ export default async function UsersPage({
           <tbody>
             {users.map((u: any) => (
               <tr key={u.id}>
-                <td className="td font-bold">
-                  {u.nickname?.trim() || <span className="text-muted font-normal">名前未設定</span>}
-                  <div className="text-[11px] font-mono font-normal text-muted">{shortId(u.id)}</div>
-                  {u.suspended_reason ? (
-                    <div className="text-xs font-normal text-muted">理由: {u.suspended_reason}</div>
-                  ) : null}
-                </td>
-                <td className="td">{num(u.fertilizer)}</td>
-                <td className="td">{u.is_premium ? <span className="text-mikan font-bold">加入中</span> : '—'}</td>
                 <td className="td">
-                  {u.is_suspended ? <span className="text-danger font-bold">停止中</span> : '通常'}
+                  <div className="font-bold">
+                    {u.nickname?.trim() || <span className="text-muted font-normal">名前未設定</span>}
+                  </div>
+                  {/* 同じ名前の人を取り違えないように、連絡先のメールを添える */}
+                  <div className="text-[11px] text-muted">{u.email ?? '—'}</div>
+                </td>
+                <td className="td num">{num(u.fertilizer)}</td>
+                <td className="td num">{u.item_count ? num(u.item_count) : <span className="text-muted">0</span>}</td>
+                <td className="td num">{u.trade_count ? num(u.trade_count) : <span className="text-muted">0</span>}</td>
+                <td className="td">
+                  {/* 何もなければ空にする。印がついている行だけが目に入るようにしたい */}
+                  <div className="flex flex-wrap gap-1">
+                    {u.is_suspended && <span className="pill pill-danger">停止中</span>}
+                    {u.is_premium && <span className="pill pill-mikan">プレミアム</span>}
+                    {u.reported_count > 0 && <span className="pill pill-gray">通報{num(u.reported_count)}</span>}
+                    {!u.is_suspended && !u.is_premium && !u.reported_count && (
+                      <span className="text-muted text-xs">—</span>
+                    )}
+                  </div>
                 </td>
                 <td className="td text-muted text-xs whitespace-nowrap">{jst(u.created_at)}</td>
                 <td className="td">
@@ -161,7 +174,7 @@ export default async function UsersPage({
             ))}
             {users.length === 0 && (
               <tr>
-                <td className="td text-muted" colSpan={6}>
+                <td className="td text-muted" colSpan={7}>
                   {q ? `「${q}」にあてはまる人はいません` : '該当する人はいません'}
                 </td>
               </tr>
