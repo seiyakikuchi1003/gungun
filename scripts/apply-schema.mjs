@@ -56,7 +56,10 @@ if (!dbUrl) {
 // 接続先を伏せ字で表示して、取り違えに気づけるようにする
 try {
   const u = new URL(dbUrl);
+  // pooler の user は postgres.<project-ref>。取り違えが一番怖いので ref を単独で出す。
+  const ref = (u.username.match(/^postgres\.([a-z0-9]{20})$/) || [])[1];
   console.log(`\n接続先: ${u.hostname}:${u.port || 5432} / user=${u.username}`);
+  if (ref) console.log(`\x1b[1mプロジェクト: ${ref}\x1b[0m  ← ここが意図した先か必ず確かめる`);
 } catch {
   console.log('\n\x1b[31mSUPABASE_DB_URL の形式が正しくありません（postgresql://... の形）。\x1b[0m\n');
   process.exit(1);
@@ -93,12 +96,30 @@ try {
   // ── 適用台帳 ──────────────────────────────────────────────
   await db.query(`
     create table if not exists public._gungun_migrations (
-      filename    text primary key,
+      name        text primary key,
       applied_at  timestamptz not null default now()
     )
   `);
-  const { rows: done } = await db.query('select filename from public._gungun_migrations');
-  const applied = new Set(done.map((r) => r.filename));
+  // 昔の版は filename 列で作っていた。apply-schema-api.mjs は name で作るので、
+  // 同じ台帳を両方のスクリプトから読めるように名前を揃える。
+  await db.query(`
+    do $$ begin
+      if exists (
+        select 1 from information_schema.columns
+         where table_schema = 'public'
+           and table_name   = '_gungun_migrations'
+           and column_name  = 'filename'
+      ) then
+        alter table public._gungun_migrations rename column filename to name;
+      end if;
+    end $$;
+  `);
+  // 台帳は運用者しか触らない。RLS を入れて anon / authenticated の権限を落としておく
+  // （付け忘れると Supabase から "Table publicly accessible" の警告が飛ぶ）。
+  await db.query('alter table public._gungun_migrations enable row level security');
+  await db.query('revoke all on public._gungun_migrations from anon, authenticated');
+  const { rows: done } = await db.query('select name from public._gungun_migrations');
+  const applied = new Set(done.map((r) => r.name));
 
   const files = readdirSync(MIG_DIR).filter((f) => f.endsWith('.sql')).sort();
 
@@ -119,7 +140,7 @@ try {
         if (r[0].ok) upto.push(file);
       }
       for (const f of upto) {
-        await db.query('insert into public._gungun_migrations (filename) values ($1) on conflict do nothing', [f]);
+        await db.query('insert into public._gungun_migrations (name) values ($1) on conflict do nothing', [f]);
         applied.add(f);
       }
       console.log(`  \x1b[33m!\x1b[0m 既にスキーマが入っていました。${upto.length} 件を「適用済み」として台帳に登録しました`);
@@ -142,7 +163,7 @@ try {
     try {
       await db.query('begin');
       await db.query(sql);
-      await db.query('insert into public._gungun_migrations (filename) values ($1)', [f]);
+      await db.query('insert into public._gungun_migrations (name) values ($1)', [f]);
       await db.query('commit');
       ok(`${f} を適用しました`);
       ran++;

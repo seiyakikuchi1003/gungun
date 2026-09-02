@@ -2,7 +2,9 @@
 /**
  * Supabase の Management API 経由でマイグレーションを流す（npm run db:apply:api）。
  *
- *   node scripts/apply-schema-api.mjs <project-ref> [--seed]
+ *   node scripts/apply-schema-api.mjs <project-ref>            # 未適用のぶんを流す
+ *   node scripts/apply-schema-api.mjs <project-ref> --seed     # デモデータも入れる
+ *   node scripts/apply-schema-api.mjs <project-ref> --status   # 何が適用済みかだけ見る
  *
  * 通常の db:apply は DB のパスワード（SUPABASE_DB_URL）が要るが、
  * お客様のプロジェクトはパスワードを預からずに構築したい。
@@ -23,8 +25,9 @@ const ng = (m) => console.log(`  \x1b[31m✗\x1b[0m ${m}`);
 
 const ref = process.argv[2];
 const wantSeed = process.argv.includes('--seed');
-if (!ref) {
-  console.error('使い方: node scripts/apply-schema-api.mjs <project-ref> [--seed]');
+const statusOnly = process.argv.includes('--status');
+if (!ref || ref.startsWith('--')) {
+  console.error('使い方: node scripts/apply-schema-api.mjs <project-ref> [--seed|--status]');
   process.exit(1);
 }
 
@@ -63,10 +66,34 @@ console.log(`\n接続先: ${ref}\n`);
 await run(`create table if not exists public._gungun_migrations (
   name text primary key, applied_at timestamptz not null default now()
 )`);
+// 台帳は運用者しか触らない。RLS を入れて anon / authenticated の権限を落としておく
+// （付け忘れると Supabase から "Table publicly accessible" の警告が飛ぶ）。
+await run(`alter table public._gungun_migrations enable row level security`);
+await run(`revoke all on public._gungun_migrations from anon, authenticated`);
+// 昔の apply-schema.mjs は filename 列で作っていた。どちらから流しても同じ台帳を
+// 読めるように、残っていれば name に改名する。
+await run(`do $$ begin
+  if exists (
+    select 1 from information_schema.columns
+     where table_schema = 'public'
+       and table_name   = '_gungun_migrations'
+       and column_name  = 'filename'
+  ) then
+    alter table public._gungun_migrations rename column filename to name;
+  end if;
+end $$;`);
 const done = new Set((await run('select name from public._gungun_migrations')).map((r) => r.name));
 
-console.log('\x1b[1mマイグレーション\x1b[0m');
 const files = readdirSync(MIG_DIR).filter((f) => f.endsWith('.sql')).sort();
+
+if (statusOnly) {
+  console.log('\x1b[1m適用状況\x1b[0m');
+  for (const f of files) (done.has(f) ? ok : skip)(`${f}${done.has(f) ? '' : '（未適用）'}`);
+  console.log('');
+  process.exit(0);
+}
+
+console.log('\x1b[1mマイグレーション\x1b[0m');
 for (const f of files) {
   if (done.has(f)) {
     skip(`${f}（適用済み）`);

@@ -25,15 +25,15 @@ export type Database = {
       _gungun_migrations: {
         Row: {
           applied_at: string
-          filename: string
+          name: string
         }
         Insert: {
           applied_at?: string
-          filename: string
+          name: string
         }
         Update: {
           applied_at?: string
-          filename?: string
+          name?: string
         }
         Relationships: []
       }
