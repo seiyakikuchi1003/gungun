@@ -77,7 +77,7 @@ export default function HarvestScreen() {
         <Animated.View entering={FadeInDown.duration(400)}>
           <View style={styles.headRow}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.title}>あなたの森</Text>
+              <Text style={styles.title}>あなたの畑</Text>
               <Text style={styles.subtitle}>植えたタネが、交換の輪に育ちます</Text>
             </View>
             <Mikan size={46} />

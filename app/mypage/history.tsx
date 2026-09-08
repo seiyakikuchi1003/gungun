@@ -106,7 +106,7 @@ export default function History() {
               icon="time-outline"
               title="まだ見た商品がありません"
               note="商品を開くと、ここに履歴が残ります。"
-              actionLabel="森を見にいく"
+              actionLabel="畑を見にいく"
               onAction={() => router.push('/(tabs)')}
             />
           )}
