@@ -22,9 +22,16 @@ import { useBlocks } from '@/store/blocks';
 import { medium } from '@/lib/haptics';
 import { playSfx } from '@/lib/sound';
 import { loadSearchHistory, pushSearchHistory, removeSearchHistory } from '@/lib/searchHistory';
+import { logSearch } from '@/lib/api/search';
+import { usePopularKeywords } from '@/hooks/usePopularKeywords';
 
 const RECENT = ['Nintendo Switch', 'iPhone', 'バッグ', 'カメラ'];
-const TRENDING = ['ゲーム機', 'ワイヤレスイヤホン', 'ブランド財布', 'ギフト券', 'スニーカー', '本まとめ売り'];
+/**
+ * 「人気のキーワード」の初期値。
+ * 実際の検索ログが貯まるまでのあいだだけ使う（2026-08-21 指摘）。
+ * ギフト券はカテゴリーごと廃止したので外した。
+ */
+const TRENDING_FALLBACK = ['ゲーム機', 'ワイヤレスイヤホン', 'ブランド財布', 'スニーカー', '本まとめ売り', 'アウター'];
 type Sort = 'new' | 'water';
 
 export default function SearchScreen() {
@@ -57,7 +64,12 @@ export default function SearchScreen() {
   const commitSearch = useCallback((word: string) => {
     setQ(word);
     pushSearchHistory(word).then(setHistory);
+    // 何が検索されているかを貯めて「人気のキーワード」に反映する（2026-08-21 指摘）
+    logSearch(word, 'item');
   }, []);
+
+  // 実際によく検索されている語。まだ貯まっていなければ既定の並び
+  const trending = usePopularKeywords(TRENDING_FALLBACK, 'item');
 
   // 注目の種：引っ張って更新で並びが入れ替わる（X/インスタ風）
   const hot = useMemo(
@@ -189,7 +201,7 @@ export default function SearchScreen() {
 
             <Text style={[styles.sectionTitle, { marginTop: 28 }]}>人気のキーワード</Text>
             <View style={styles.recentWrap}>
-              {TRENDING.map((r, i) => (
+              {trending.map((r, i) => (
                 <PressableScale key={r} onPress={() => commitSearch(r)} activeScale={0.96} style={styles.trendChip}>
                   <Text style={styles.trendRank}>{i + 1}</Text>
                   <Text style={styles.trendText}>{r}</Text>

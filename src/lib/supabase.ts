@@ -1,5 +1,5 @@
 import 'react-native-url-polyfill/auto';
-import { Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
@@ -29,6 +29,28 @@ export const supabase: SupabaseClient | null = isSupabaseEnabled
       },
     })
   : null;
+
+/**
+ * トークンの自動更新をアプリの前面／背面に合わせて開始・停止する。
+ *
+ * supabase-js の autoRefreshToken はタイマーで動くが、React Native では
+ * アプリが背面にいる間タイマーが止まる。これを繋いでいないと、
+ * しばらく背面に置いたあと戻したときに更新の機会を逃したままになり、
+ * リフレッシュトークンの期限が切れてセッションごと消える。
+ * ＝「アプリを開くとログインが外れている／別のアカウントになっている」
+ * （2026-08-21 指摘：アプリ更新するたびにアカウントが変わる）。
+ *
+ * Supabase の React Native 向けの手順どおり AppState に繋ぐ。
+ * Web はブラウザのタイマーが止まらないので不要。
+ */
+if (supabase && Platform.OS !== 'web') {
+  // 起動直後は前面にいる前提で回し始める
+  supabase.auth.startAutoRefresh();
+  AppState.addEventListener('change', (state) => {
+    if (state === 'active') supabase.auth.startAutoRefresh();
+    else supabase.auth.stopAutoRefresh();
+  });
+}
 
 /** supabase が未設定のときに分かりやすく落とすためのヘルパー */
 export function requireSupabase(): SupabaseClient {

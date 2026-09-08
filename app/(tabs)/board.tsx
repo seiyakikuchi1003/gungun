@@ -12,6 +12,8 @@ import { Toast } from '@/components/ui/Toast';
 import { PostActionSheet } from '@/components/feature/PostActionSheet';
 import { ReportSheet } from '@/components/feature/ReportSheet';
 import { boardTagFilters, trendingTags } from '@/data/mockSocial';
+import { logSearch } from '@/lib/api/search';
+import { usePopularKeywords } from '@/hooks/usePopularKeywords';
 import { useBoard, type UIPost } from '@/hooks/useBoard';
 import { useBlocks } from '@/store/blocks';
 import { useMe } from '@/store/me';
@@ -53,10 +55,18 @@ export default function BoardScreen() {
       !hidden.includes(p.id)
   );
 
+  /**
+   * 人気のタグ（2026-08-21 指摘）。
+   * 定数を並べるのをやめ、掲示板で実際に検索されている語の多い順にする。
+   * まだログが貯まっていなければ既定の並びのまま。
+   */
+  const tags = usePopularKeywords(trendingTags, 'board');
+
   /** 人気のタグをタップ＝そのキーワードで検索する */
   const searchTag = (tag: string) => {
     setQuery(tag);
     setSearchOpen(true);
+    logSearch(tag.replace(/^#/, ''), 'board');
   };
 
   // 投稿FABの開閉に使うスクロール位置
@@ -92,6 +102,10 @@ export default function BoardScreen() {
             placeholder="投稿を検索"
             placeholderTextColor={colors.textPlaceholder}
             style={styles.searchInput}
+            maxFontSizeMultiplier={1.4}
+            returnKeyType="search"
+            // 何が検索されているかを貯めて「人気のタグ」に反映する（2026-08-21 指摘）
+            onSubmitEditing={(e) => logSearch(e.nativeEvent.text.replace(/^#/, ''), 'board')}
           />
           {query.length > 0 && (
             <PressableScale onPress={() => setQuery('')} activeScale={0.85} hitSlop={8}>
@@ -137,7 +151,7 @@ export default function BoardScreen() {
             <Text style={styles.trendTitle}>人気のタグ</Text>
           </View>
           <View style={styles.trendTags}>
-            {trendingTags.map((t) => {
+            {tags.map((t) => {
               const on = q !== '' && t.toLowerCase().includes(q);
               return (
                 <PressableScale key={t} activeScale={0.95} onPress={() => searchTag(t)} style={[styles.trendChip, on && styles.trendChipOn]}>
