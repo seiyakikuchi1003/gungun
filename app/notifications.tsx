@@ -15,9 +15,17 @@ import { useUsers } from '@/store/users';
 import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 import { Toast } from '@/components/ui/Toast';
 
+/**
+ * 種類ごとの色。
+ *
+ * DB 側に新しい通知種別を足したのにここへ足し忘れると、
+ * 色が undefined になって行ごと壊れる（実際に 'sapling' で踏んだ）。
+ * 取りこぼしても画面が出るよう、参照は tone() 経由にする。
+ */
 const TONE: Record<NotificationType, string> = {
   watered: colors.green,
   harvested: colors.orange,
+  sapling: colors.green,
   shipped: colors.orange,
   received: colors.green,
   message: colors.green,
@@ -25,6 +33,11 @@ const TONE: Record<NotificationType, string> = {
   item_comment: colors.orange,
   ring_completed: colors.orangeDeep,
 };
+
+/** 知らない種別が来ても既定の色・アイコンで出す（DB が先行しても画面を壊さない） */
+const tone = (t: NotificationType): string => TONE[t] ?? colors.green;
+const icon = (t: NotificationType): keyof typeof Ionicons.glyphMap =>
+  (NOTIF_ICON[t] ?? 'notifications') as keyof typeof Ionicons.glyphMap;
 
 function Row({ n, onPress, onSave, onDelete, onBlockedDelete }: { n: Notif; onPress: () => void; onSave: () => void; onDelete: () => void; onBlockedDelete: () => void }) {
   const users = useUsers();
@@ -40,16 +53,12 @@ function Row({ n, onPress, onSave, onDelete, onBlockedDelete }: { n: Notif; onPr
         ) : n.actorAvatar || actor ? (
           <Avatar uri={n.actorAvatar ?? actor?.avatar} name={n.actorName ?? actor?.nickname} size={44} />
         ) : (
-          <View style={[styles.avatarFallback, { backgroundColor: TONE[n.type] + '22' }]}>
-            <Ionicons
-              name={NOTIF_ICON[n.type] as keyof typeof Ionicons.glyphMap}
-              size={20}
-              color={TONE[n.type]}
-            />
+          <View style={[styles.avatarFallback, { backgroundColor: tone(n.type) + '22' }]}>
+            <Ionicons name={icon(n.type)} size={20} color={tone(n.type)} />
           </View>
         )}
-        <View style={[styles.badge, { backgroundColor: TONE[n.type] }]}>
-          <Ionicons name={NOTIF_ICON[n.type] as keyof typeof Ionicons.glyphMap} size={11} color={colors.white} />
+        <View style={[styles.badge, { backgroundColor: tone(n.type) }]}>
+          <Ionicons name={icon(n.type)} size={11} color={colors.white} />
         </View>
       </View>
       <View style={{ flex: 1 }}>

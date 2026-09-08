@@ -8,6 +8,7 @@ import type { NotificationType } from '@/data/mockSocial';
  *
  * relatedId が指すものは種類によって違う：
  *   watered                      → 商品ID
+ *   sapling                      → 商品ID（苗木として独立した自分の商品）
  *   harvested                    → ★収穫ID（商品IDではない）
  *   shipped / received / message → 取引ID
  *   board_comment                → 投稿ID
@@ -28,6 +29,11 @@ export function notificationRoute(type: NotificationType | string, relatedId?: s
       // 対象が見つからず真っ白な画面で戻れなくなっていた（2026-08-12 修正）。
       // 取引一覧に寄せる（自分の取引が「送る」タブに並ぶ）。
       return '/exchange';
+    case 'sapling':
+      // 苗木＝収穫の一本道から外れて、自分の商品が新しいタネとして独立した。
+      // relatedId はその商品ID。独立した時点で自分自身が根なので、
+      // /tree/<商品ID> がそのまま「自分の新しい木」になる。
+      return id ? `/tree/${id}` : '/(tabs)/harvest';
     case 'shipped':
     case 'received':
     case 'message':

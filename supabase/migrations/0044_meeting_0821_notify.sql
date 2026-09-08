@@ -17,7 +17,7 @@
 
 -- ── 1. 苗木として独立したら、その持ち主に知らせる ──────────
 create or replace function detach_children(p_item_id uuid, p_exclude_id uuid default null)
-returns void language plpgsql as $$
+returns void language plpgsql as $detach$
 declare c record;
 begin
   for c in
@@ -51,7 +51,7 @@ begin
     end if;
   end loop;
 end;
-$$;
+$detach$;
 
 -- ── 2. 水やりは、木の持ち主にも届くようにする ───────────────
 create or replace function water(
@@ -62,7 +62,7 @@ create or replace function water(
   p_category text,
   p_condition text,
   p_images text[] default '{}'
-) returns uuid language plpgsql security definer as $$
+) returns uuid language plpgsql security definer as $water$
 declare
   v_id uuid;
   v_cost int;
@@ -132,4 +132,4 @@ begin
 
   return v_id;
 end;
-$$;
+$water$;

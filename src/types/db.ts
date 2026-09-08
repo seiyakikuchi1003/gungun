@@ -13,6 +13,7 @@ export type NotificationType =
   | 'shipped'
   | 'received'
   | 'message'
+  | 'sapling'
   | 'board_comment'
   | 'item_comment'
   | 'ring_completed';

@@ -32,15 +32,12 @@ drop policy if exists search_logs_insert on search_logs;
 create policy search_logs_insert on search_logs
   for insert to authenticated with check (user_id = auth.uid());
 
-/**
- * 直近30日でよく検索された語。
- *
- * 1文字だけの語と、極端に長い語は雑音になるので落とす。
- * 同じ人が連打したぶんで順位が動かないよう、人数（distinct user）で数える。
- */
+-- 直近30日でよく検索された語。
+-- 1文字だけの語と、極端に長い語は雑音になるので落とす。
+-- 同じ人が連打したぶんで順位が動かないよう、人数（distinct user）で数える。
 create or replace function popular_keywords(p_scope text default 'item', p_limit int default 10)
 returns table (term text, hits bigint)
-language sql security definer set search_path = public stable as $$
+language sql security definer set search_path = public stable as $kw$
   select s.term, count(distinct coalesce(s.user_id::text, s.id::text)) as hits
   from search_logs s
   where s.scope = p_scope
@@ -49,20 +46,20 @@ language sql security definer set search_path = public stable as $$
   group by s.term
   order by hits desc, max(s.created_at) desc
   limit greatest(1, least(p_limit, 30));
-$$;
+$kw$;
 
 grant execute on function popular_keywords(text, int) to anon, authenticated;
 
-/** 検索語を1件記録する（呼び出しは画面から。失敗しても検索は続ける） */
+-- 検索語を1件記録する（呼び出しは画面から。失敗しても検索は続ける）
 create or replace function log_search(p_term text, p_scope text default 'item')
-returns void language plpgsql security definer set search_path = public as $$
+returns void language plpgsql security definer set search_path = public as $ls$
 declare v_term text;
 begin
   if auth.uid() is null then return; end if;
   v_term := lower(btrim(coalesce(p_term, '')));
   if char_length(v_term) < 2 or char_length(v_term) > 30 then return; end if;
   insert into search_logs (user_id, term, scope) values (auth.uid(), v_term, p_scope);
-end $$;
+end $ls$;
 
 grant execute on function log_search(text, text) to authenticated;
 

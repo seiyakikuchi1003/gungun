@@ -54,6 +54,7 @@ export const boardComments: Record<string, BoardComment[]> = {
 
 export type NotificationType =
   | 'watered' | 'harvested' | 'shipped' | 'received' | 'message'
+  | 'sapling'         // 収穫の輪から外れて、自分の商品が新しいタネ（苗木）になった
   | 'board_comment'   // 掲示板の投稿へのコメント
   | 'item_comment'    // 自分の出品へのコメント（2026-08-12 に掲示板から分離）
   | 'ring_completed'; // 玉突きの輪が一周した（お祝い）
@@ -93,6 +94,7 @@ export const notifications: Notif[] = [
 export const NOTIF_ICON: Record<NotificationType, string> = {
   watered: 'water',
   harvested: 'leaf',
+  sapling: 'flower',
   shipped: 'cube',
   received: 'checkmark-done',
   message: 'chatbubble-ellipses',
