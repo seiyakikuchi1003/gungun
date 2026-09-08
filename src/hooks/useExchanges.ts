@@ -29,6 +29,12 @@ export type UITrade = Trade & {
   harvestId?: string;
   /** 受け取りも評価も済んで、もう何もすることがない取引か */
   finished?: boolean;
+  /**
+   * 自分が評価を出したか（2026-08-21 指摘）。
+   * これを運んでいなかったため、一覧が受け取り済みというだけで
+   * 「評価済み」と出しており、評価を後回しにした人にも同じ文言が出ていた。
+   */
+  iRated?: boolean;
 };
 
 export type UIMessage = {
@@ -55,6 +61,7 @@ function toUITrade(e: api.Exchange): UITrade {
     iAmSender: e.iAmSender,
     harvestId: e.harvestId,
     finished: e.finished,
+    iRated: e.iRated,
   };
 }
 

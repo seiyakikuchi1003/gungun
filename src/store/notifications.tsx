@@ -96,17 +96,26 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   );
 
   /** 1件消す。画面を先に更新してから消しに行く */
+  /**
+   * 1件消す。未読は消せない（2026-08-21 指摘）。
+   * 読んでいないものを消せてしまうと、何が起きたのか分からないまま消える。
+   */
   const remove = useCallback(
     (id: string) => {
-      setList((prev) => prev.filter((n) => n.id !== id));
-      if (live && me.live) api.removeNotification(id).catch(() => refreshRef.current());
+      let allowed = false;
+      setList((prev) => {
+        const target = prev.find((n) => n.id === id);
+        allowed = !!target?.read;
+        return allowed ? prev.filter((n) => n.id !== id) : prev;
+      });
+      if (allowed && live && me.live) api.removeNotification(id).catch(() => refreshRef.current());
     },
     [live, me.live]
   );
 
-  /** 保存していないものをまとめて消す */
+  /** 保存していない「既読の」ものをまとめて消す（未読は残す：2026-08-21 指摘） */
   const clearAll = useCallback(() => {
-    setList((prev) => prev.filter((n) => n.saved));
+    setList((prev) => prev.filter((n) => n.saved || !n.read));
     if (live && me.live) api.clearNotifications(me.id).catch(() => refreshRef.current());
   }, [live, me.live, me.id]);
 

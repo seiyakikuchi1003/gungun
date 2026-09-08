@@ -96,20 +96,32 @@ export default function HarvestDetail() {
           const ring = pathTo(g); // この商品を選んだときの輪
           return (
             <View key={g.id} style={[styles.gCard, shadows.soft]}>
-              <Thumb source={g.local} uri={g.image} style={styles.gThumb} radius={radius.md} markSize={26} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.gName} numberOfLines={1}>{g.name}</Text>
-                <View style={styles.gMeta}>
-                  <Text style={styles.gOwner}>{u.nickname}さん</Text>
-                  <View style={styles.depthChip}>
-                    <Text style={styles.depthChipText}>{g.depth}段目</Text>
+              {/* 写真と名前を押すと商品詳細へ（2026-08-21 指摘）。
+                  集まった水やりを見ても、その商品がどんな物なのか確かめられず、
+                  収穫の判断ができなかった。収穫ボタンとは別の当たり判定にする。 */}
+              <PressableScale
+                onPress={() => router.push(`/item/${g.id}`)}
+                activeScale={0.97}
+                style={styles.gTap}
+              >
+                <Thumb source={g.local} uri={g.image} style={styles.gThumb} radius={radius.md} markSize={26} />
+                <View style={{ flex: 1 }}>
+                  <View style={styles.gNameRow}>
+                    <Text style={styles.gName} numberOfLines={1}>{g.name}</Text>
+                    <Ionicons name="chevron-forward" size={14} color={colors.textPlaceholder} />
+                  </View>
+                  <View style={styles.gMeta}>
+                    <Text style={styles.gOwner}>{u.nickname}さん</Text>
+                    <View style={styles.depthChip}>
+                      <Text style={styles.depthChipText}>{g.depth}段目</Text>
+                    </View>
+                  </View>
+                  <View style={styles.ringChip}>
+                    <Ionicons name="sync" size={11} color={colors.green} />
+                    <Text style={styles.ringChipText}>{ring.length}人の輪</Text>
                   </View>
                 </View>
-                <View style={styles.ringChip}>
-                  <Ionicons name="sync" size={11} color={colors.green} />
-                  <Text style={styles.ringChipText}>{ring.length}人の輪</Text>
-                </View>
-              </View>
+              </PressableScale>
               {canHarvest ? (
                 <PressableScale onPress={() => setTarget(g)} activeScale={0.94} style={styles.harvestBtn}>
                   <Text style={styles.harvestText}>収穫する</Text>
@@ -248,9 +260,11 @@ const styles = StyleSheet.create({
   hintStrong: { fontFamily: fonts.bold, color: colors.green },
   gCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.md, marginBottom: spacing.md },
   gThumb: { width: 56, height: 56 },
-  gName: { fontFamily: fonts.bold, fontSize: 14.5, color: colors.textPrimary },
+  gName: { flexShrink: 1, fontFamily: fonts.bold, fontSize: 14.5, color: colors.textPrimary },
   gMeta: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: 3 },
   gOwner: { fontFamily: fonts.regular, fontSize: 12, color: colors.textSecondary },
+  gTap: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  gNameRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   depthChip: { backgroundColor: colors.cardMuted, paddingHorizontal: 7, paddingVertical: 2, borderRadius: radius.pill },
   depthChipText: { fontFamily: fonts.bold, fontSize: 10, color: colors.textSecondary },
   ringChip: { flexDirection: 'row', alignItems: 'center', gap: 3, alignSelf: 'flex-start', backgroundColor: colors.greenSoft, paddingHorizontal: 8, paddingVertical: 2.5, borderRadius: radius.pill, marginTop: 5 },

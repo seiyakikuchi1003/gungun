@@ -13,6 +13,7 @@ import { useNotifications } from '@/store/notifications';
 import { notificationRoute } from '@/lib/notificationRoute';
 import { useUsers } from '@/store/users';
 import { useAutoRefresh } from '@/hooks/useAutoRefresh';
+import { Toast } from '@/components/ui/Toast';
 
 const TONE: Record<NotificationType, string> = {
   watered: colors.green,
@@ -25,7 +26,7 @@ const TONE: Record<NotificationType, string> = {
   ring_completed: colors.orangeDeep,
 };
 
-function Row({ n, onPress, onSave, onDelete }: { n: Notif; onPress: () => void; onSave: () => void; onDelete: () => void }) {
+function Row({ n, onPress, onSave, onDelete, onBlockedDelete }: { n: Notif; onPress: () => void; onSave: () => void; onDelete: () => void; onBlockedDelete: () => void }) {
   const users = useUsers();
   const actor = n.actorId ? users.user(n.actorId) : null;
   return (
@@ -67,8 +68,15 @@ function Row({ n, onPress, onSave, onDelete }: { n: Notif; onPress: () => void; 
             color={n.saved ? colors.orange : colors.textSecondary}
           />
         </PressableScale>
-        <PressableScale onPress={onDelete} activeScale={0.85} hitSlop={8} style={styles.rowBtn}>
-          <Ionicons name="trash-outline" size={17} color={colors.textSecondary} />
+        {/* 未読は消せない（2026-08-21 指摘）。押せないことが見て分かるよう薄くし、
+            押されたときは理由を出す（黙って効かないのがいちばん困る） */}
+        <PressableScale
+          onPress={n.read ? onDelete : onBlockedDelete}
+          activeScale={n.read ? 0.85 : 1}
+          hitSlop={8}
+          style={[styles.rowBtn, !n.read && styles.rowBtnOff]}
+        >
+          <Ionicons name="trash-outline" size={17} color={n.read ? colors.textSecondary : colors.textPlaceholder} />
         </PressableScale>
       </View>
     </PressableScale>
@@ -78,6 +86,7 @@ function Row({ n, onPress, onSave, onDelete }: { n: Notif; onPress: () => void; 
 export default function Notifications() {
   const insets = useSafeAreaInsets();
   const [confirmClear, setConfirmClear] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
   const { list, markRead, markAllRead, remove, clearAll, toggleSaved, refresh } = useNotifications();
   // 画面に戻ったとき・アプリを前面に戻したときに最新を取り直す
   useAutoRefresh(refresh, { intervalMs: 20000 });
@@ -125,7 +134,8 @@ export default function Notifications() {
       <BottomSheetModal visible={confirmClear} onClose={() => setConfirmClear(false)}>
         <Text style={styles.clearTitle}>通知をまとめて消しますか？</Text>
         <Text style={styles.clearBody}>
-          保存した通知は残ります。消した通知は元に戻せません。
+          読み終わった通知だけを消します。{'\n'}
+          未読の通知と保存した通知は残ります。消した通知は元に戻せません。
         </Text>
         <PressableScale
           onPress={() => { clearAll(); setConfirmClear(false); }}
@@ -147,7 +157,7 @@ export default function Notifications() {
           <>
             <Text style={styles.groupTitle}>保存した通知</Text>
             {saved.map((n) => (
-              <Row key={n.id} n={n} onPress={() => open(n)} onSave={() => toggleSaved(n.id)} onDelete={() => remove(n.id)} />
+              <Row key={n.id} n={n} onPress={() => open(n)} onSave={() => toggleSaved(n.id)} onDelete={() => remove(n.id)} onBlockedDelete={() => setToast('未読の通知は消せません。開いて確認すると消せます')} />
             ))}
           </>
         )}
@@ -156,7 +166,7 @@ export default function Notifications() {
           <>
             <Text style={styles.groupTitle}>今日</Text>
             {today.map((n) => (
-              <Row key={n.id} n={n} onPress={() => open(n)} onSave={() => toggleSaved(n.id)} onDelete={() => remove(n.id)} />
+              <Row key={n.id} n={n} onPress={() => open(n)} onSave={() => toggleSaved(n.id)} onDelete={() => remove(n.id)} onBlockedDelete={() => setToast('未読の通知は消せません。開いて確認すると消せます')} />
             ))}
           </>
         )}
@@ -164,11 +174,13 @@ export default function Notifications() {
           <>
             <Text style={styles.groupTitle}>これまで</Text>
             {earlier.map((n) => (
-              <Row key={n.id} n={n} onPress={() => open(n)} onSave={() => toggleSaved(n.id)} onDelete={() => remove(n.id)} />
+              <Row key={n.id} n={n} onPress={() => open(n)} onSave={() => toggleSaved(n.id)} onDelete={() => remove(n.id)} onBlockedDelete={() => setToast('未読の通知は消せません。開いて確認すると消せます')} />
             ))}
           </>
         )}
       </ScrollView>
+
+      <Toast message={toast} onHide={() => setToast(null)} />
     </View>
   );
 }
@@ -195,6 +207,7 @@ const styles = StyleSheet.create({
   clearBtnText: { fontFamily: fonts.bold, fontSize: 16, color: colors.white },
   clearCancel: { alignItems: 'center', paddingVertical: spacing.lg },
   clearCancelText: { fontFamily: fonts.bold, fontSize: 15, color: colors.textSecondary },
+  rowBtnOff: { opacity: 0.5 },
   rowActions: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   rowBtn: { padding: 6 },
   dot: { width: 9, height: 9, borderRadius: 5, backgroundColor: colors.heart },

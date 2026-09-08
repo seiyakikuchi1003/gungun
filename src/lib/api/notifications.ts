@@ -61,21 +61,36 @@ export async function markRead(ids?: string[]): Promise<void> {
 }
 
 /** 通知を1件消す（自分の通知だけ。RLS で守られている） */
+/**
+ * 通知を1件消す。
+ *
+ * 未読のものは消せない（2026-08-21 指摘：読んでないものは消せない仕様、
+ * 既読がついてから消せる仕様にして）。読まずに消してしまうと、
+ * 何が起きたのか二度と分からなくなるため。
+ * 画面側でもボタンを止めているが、ここでも条件を付けて二重に守る。
+ */
 export async function removeNotification(id: string): Promise<void> {
-  const { error } = await requireSupabase().from('notifications').delete().eq('id', id);
+  const { error } = await requireSupabase()
+    .from('notifications')
+    .delete()
+    .eq('id', id)
+    .not('read_at', 'is', null);
   if (error) throw error;
 }
 
 /**
  * 読み終わった通知をまとめて消す。
  * 保存したものは残す（うっかり大事なものまで消さないため）。
+ * 未読も残す（2026-08-21 指摘。まだ読んでいないものが「まとめて消す」で
+ * 巻き添えになると、そもそも気づけない）。
  */
 export async function clearNotifications(userId: string): Promise<void> {
   const { error } = await requireSupabase()
     .from('notifications')
     .delete()
     .eq('user_id', userId)
-    .is('saved_at', null);
+    .is('saved_at', null)
+    .not('read_at', 'is', null);
   if (error) throw error;
 }
 

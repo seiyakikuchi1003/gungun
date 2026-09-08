@@ -49,6 +49,19 @@ export default function TreeScreen() {
   const rootChildren = childrenOf(root.id);
   // 木のノード全部（root＋子孫）。順序は付けない（ツリー表示側で親子順に並べる）
   const all = treeItems(root.id);
+  /**
+   * 木にぶら下げる商品は3段目まで（2026-08-21 指摘）。
+   *
+   * これまでは直接水やりされたもの（1段目）だけがぶら下がっていたため、
+   * 連鎖して伸びていても木は育って見えず、何段目まで来ているのか分からなかった。
+   * 浅い順に並べて、根に近いものから先に枠を埋める。
+   *
+   * ※ 2026-08-12 には「段は見せない」方針だったが、
+   *   連鎖が見えないほうが分かりにくいという指摘を受けて改めた。
+   */
+  const hanging = all
+    .filter((i) => i.depth >= 1 && i.depth <= 3)
+    .sort((a, b) => a.depth - b.depth);
   // 木が読めていないときに 0 - 1 = -1 と出ていた（2026-08-13 修正）
   const waterings = Math.max(0, all.length - 1);
   const branches = rootChildren.length;
@@ -106,11 +119,12 @@ export default function TreeScreen() {
         <View style={[styles.canvasCard, shadows.card]}>
           <TreeCanvas
             width={cardW - 4}
-            children={rootChildren}
+            children={hanging}
             treeSize={all.length}
             highlightId={newId}
             onPressNode={(it) => router.push(`/item/${it.id}`)}
             onPressEmpty={() => setPickWater(true)}
+            onPressMore={() => setDetail('all')}
           />
         </View>
 

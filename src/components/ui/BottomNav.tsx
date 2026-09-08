@@ -78,8 +78,16 @@ export function BottomNav({ state, navigation }: TabBarProps) {
                 size={24}
                 color={focused ? colors.green : colors.textSecondary}
               />
-              {/* 進行中の取引があれば赤ポチ。見ていないタブの用事に気づけるように（2026-08-12 指摘） */}
-              {route.name === 'exchange' && activeTrades > 0 && <View style={styles.dot} />}
+              {/* 進行中の取引があれば赤いバッジ。見ていないタブの用事に気づけるように（2026-08-12 指摘）。
+                  9px の点では小さすぎて気づかない、もっと大きくしてほしいという指摘を受け、
+                  件数入りの大きめのバッジにした（2026-08-21） */}
+              {route.name === 'exchange' && activeTrades > 0 && (
+                <View style={styles.dot}>
+                  <Text style={styles.dotText} maxFontSizeMultiplier={1.2}>
+                    {activeTrades > 99 ? '99+' : activeTrades}
+                  </Text>
+                </View>
+              )}
             </View>
             <Text style={[styles.label, focused && styles.labelActive]}>{meta.label}</Text>
           </PressableScale>
@@ -100,9 +108,12 @@ const styles = StyleSheet.create({
   },
   tab: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3, paddingTop: 4 },
   dot: {
-    position: 'absolute', top: -1, right: -3, width: 9, height: 9, borderRadius: 5,
-    backgroundColor: '#E5484D', borderWidth: 1.5, borderColor: colors.card,
+    position: 'absolute', top: -6, right: -12, minWidth: 20, height: 20, borderRadius: 10,
+    paddingHorizontal: 5,
+    justifyContent: 'center', alignItems: 'center',
+    backgroundColor: '#E5484D', borderWidth: 2, borderColor: colors.card,
   },
+  dotText: { fontFamily: fonts.black, fontSize: 11, color: colors.white, lineHeight: 14 },
   label: { fontFamily: fonts.medium, fontSize: 10.5, color: colors.textSecondary },
   labelActive: { color: colors.green, fontFamily: fonts.bold },
   labelActiveOrange: { color: colors.orangeDeep, fontFamily: fonts.bold },

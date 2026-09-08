@@ -11,11 +11,19 @@ import { useUsers } from '@/store/users';
 
 type Props = {
   width: number;
-  children: MockItem[]; // 木にぶら下がる商品（＝直接の子ノード）
+  /**
+   * 木にぶら下げる商品。
+   * 以前は直接の子（1段目）だけだったが、連鎖しているのに木が育って見えず、
+   * 何段目まで伸びているのか分からなかった（2026-08-21 指摘）。
+   * 呼び出し側で3段目までを渡す。深さ順に並んでいる前提。
+   */
+  children: MockItem[];
   treeSize?: number; // 木に属する総数（root＋子孫）。未指定なら children+1
   highlightId?: string | null; // 直近に追加された商品（NEW 表示）
   onPressNode?: (item: MockItem) => void;
   onPressEmpty?: () => void; // 空きスロット「水やり待ち」をタップ
+  /** 入りきらなかったぶんの「その他を見る」（2026-08-21 指摘） */
+  onPressMore?: () => void;
   showEmptySlot?: boolean;
   mascotText?: string;
 };
@@ -46,7 +54,7 @@ const BLOOMS = [
 // 2026-07-28 MTG（めたん様）：木の大小を示す表現は使わない。
 // 数が増えたことを事実として伝えるだけにする。
 
-export function TreeCanvas({ width, children, treeSize, highlightId, onPressNode, onPressEmpty, showEmptySlot = true, mascotText }: Props) {
+export function TreeCanvas({ width, children, treeSize, highlightId, onPressNode, onPressEmpty, onPressMore, showEmptySlot = true, mascotText }: Props) {
   const users = useUsers();
   const cx = width / 2;
   const size = treeSize ?? children.length + 1;
@@ -59,12 +67,17 @@ export function TreeCanvas({ width, children, treeSize, highlightId, onPressNode
   const trunkTopY = canopyCY + canopyR * 0.32;
   const trunkW = 8 + stage * 4;
 
-  // キャンバス上の実は最大4個まで（残りは「この木の全商品」で確認）。
-  const MAX_NODES = 4;
+  // キャンバス上の実の数。3段目までを見せるので、以前の4個では足りない。
+  // 「その他を見る」を出すぶん、1枠を空けておく（2026-08-21 指摘）。
+  const MAX_NODES = 5;
   const shown = children.slice(0, MAX_NODES);
   const extra = children.length - shown.length;
-  const wantEmpty = showEmptySlot && shown.length < MAX_NODES;
-  const slots = OFFSETS.slice(0, Math.max(shown.length + (wantEmpty ? 1 : 0), 1));
+  // 空きスロット（＋水やりする）と「その他を見る」は同じ余り枠を取り合うので、
+  // 入りきらなかったぶんがあるときは「その他を見る」を優先する。
+  const wantMore = extra > 0 && !!onPressMore;
+  const wantEmpty = showEmptySlot && !wantMore && shown.length < MAX_NODES;
+  const tailSlots = (wantEmpty || wantMore) ? 1 : 0;
+  const slots = OFFSETS.slice(0, Math.max(shown.length + tailSlots, 1));
   const pos = (o: { dx: number; dy: number }) => ({
     x: cx + o.dx * canopyR,
     y: canopyCY + o.dy * canopyR,
@@ -202,11 +215,32 @@ export function TreeCanvas({ width, children, treeSize, highlightId, onPressNode
               {isNew && (
                 <View style={styles.newBadge}><Text style={styles.newText}>NEW</Text></View>
               )}
+              {/* 何段目の水やりか。連鎖して伸びていることが見て分かるように */}
+              {item.depth > 1 && (
+                <View style={styles.depthBadge}>
+                  <Text style={styles.depthText}>{item.depth}段</Text>
+                </View>
+              )}
             </PressableScale>
             <Text style={styles.nodeName} numberOfLines={1}>{item.name}</Text>
           </View>
         );
       })}
+
+      {/* 入りきらなかったぶん：「その他を見る」もぶら下げる（2026-08-21 指摘）。
+          残数チップだけだと押せるように見えず、木の外に置かれて繋がりも見えなかった */}
+      {wantMore && slots[shown.length] && (() => {
+        const p = pos(slots[shown.length]);
+        return (
+          <View style={[styles.node, { left: p.x - NODE / 2, top: p.y - NODE / 2, width: NODE }]}>
+            <View style={styles.stem} />
+            <PressableScale activeScale={0.9} onPress={onPressMore} style={styles.moreBubble}>
+              <Text style={styles.moreNum}>+{extra}</Text>
+            </PressableScale>
+            <Text style={styles.nodeName} numberOfLines={1}>その他を見る</Text>
+          </View>
+        );
+      })()}
 
       {/* 空きスロット（水やり待ち） */}
       {wantEmpty && slots[shown.length] && (() => {
@@ -222,8 +256,8 @@ export function TreeCanvas({ width, children, treeSize, highlightId, onPressNode
         );
       })()}
 
-      {/* 実が多いときの残数チップ */}
-      {extra > 0 && (
+      {/* 実が多いときの残数チップ（「その他を見る」を出せないときだけ） */}
+      {extra > 0 && !wantMore && (
         <View style={styles.extraChip}>
           <Text style={styles.extraText}>ほか +{extra}個</Text>
         </View>
@@ -250,6 +284,12 @@ const styles = StyleSheet.create({
   countOn: { backgroundColor: colors.orange },
   countZero: { backgroundColor: colors.textPlaceholder },
   countText: { fontFamily: fonts.black, fontSize: 11, color: colors.white },
+  // 何段目の水やりか（2段目以降だけ出す）。右上の水やり数バッジとぶつからないよう左下に置く
+  depthBadge: { position: 'absolute', bottom: -4, left: -4, paddingHorizontal: 5, height: 16, borderRadius: 8, backgroundColor: colors.green, justifyContent: 'center', borderWidth: 1.5, borderColor: colors.white },
+  depthText: { fontFamily: fonts.bold, fontSize: 9, color: colors.white },
+  // 「その他を見る」。実と区別しつつ、押せることが分かる見た目にする
+  moreBubble: { width: NODE, height: NODE, borderRadius: NODE / 2, backgroundColor: colors.bgWarm, borderWidth: 2, borderColor: colors.border, justifyContent: 'center', alignItems: 'center' },
+  moreNum: { fontFamily: fonts.black, fontSize: 17, color: colors.textSecondary },
   newBadge: { position: 'absolute', top: -10, left: -8, backgroundColor: colors.green, paddingHorizontal: 6, paddingVertical: 2, borderRadius: radius.pill, borderWidth: 2, borderColor: colors.white },
   newText: { fontFamily: fonts.black, fontSize: 8, color: colors.white, letterSpacing: 0.3 },
   nodeName: { fontFamily: fonts.bold, fontSize: 10.5, color: colors.textPrimary, marginTop: 6, maxWidth: NODE + 36, textAlign: 'center' },

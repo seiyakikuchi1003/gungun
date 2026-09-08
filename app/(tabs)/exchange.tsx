@@ -35,9 +35,20 @@ function Steps({ labels, done, accent }: { labels: [string, string]; done: numbe
   );
 }
 
+/**
+ * 一覧に出す一言。
+ *
+ * 「評価済み」は受け取り済みかどうかではなく、**実際に評価を送ったか**で出す
+ * （2026-08-21 指摘：評価してなくても、後でにしても、評価済みって出てた）。
+ * まだ評価していない取引は、次にやることとして評価を促す。
+ */
 function actionHint(t: UITrade): string {
-  if (t.dir === 'receive') return t.status === 'received' ? '取引完了・評価済み' : t.status === 'shipped' ? '届いたら受け取り報告を' : '相手の発送を待っています';
-  return t.status === 'received' ? '取引完了' : t.status === 'shipped' ? '相手の受け取りを待っています' : '発送して報告しましょう';
+  if (t.dir === 'receive') {
+    if (t.status === 'received') return t.iRated ? '取引完了・評価済み' : '取引相手を評価しましょう';
+    return t.status === 'shipped' ? '届いたら受け取り報告を' : '相手の発送を待っています';
+  }
+  if (t.status === 'received') return t.iRated ? '取引完了・評価済み' : '取引相手を評価しましょう';
+  return t.status === 'shipped' ? '相手の受け取りを待っています' : '発送して報告しましょう';
 }
 
 /** 左右にはらって行き来する順番 */
