@@ -7,6 +7,7 @@ import { PressableScale } from '@/components/ui/PressableScale';
 import { useBlocks } from '@/store/blocks';
 import { success, warning } from '@/lib/haptics';
 import { useUsers } from '@/store/users';
+import { lh } from '@/lib/fontScale';
 
 type Props = {
   visible: boolean;
@@ -100,9 +101,9 @@ const styles = StyleSheet.create({
   rowText: { fontFamily: fonts.bold, fontSize: 15.5 },
   confirm: { paddingBottom: spacing.sm },
   confirmTitle: { fontFamily: fonts.bold, fontSize: 17, color: colors.textPrimary, textAlign: 'center' },
-  confirmBody: { fontFamily: fonts.medium, fontSize: 13, lineHeight: 20, color: colors.textSecondary, textAlign: 'center', marginTop: 8, marginBottom: spacing.lg },
-  danger: { height: 54, borderRadius: radius.pill, backgroundColor: colors.heart, justifyContent: 'center', alignItems: 'center' },
-  dangerText: { fontFamily: fonts.bold, fontSize: 16, color: colors.white },
-  cancel: { height: 48, justifyContent: 'center', alignItems: 'center', marginTop: spacing.xs },
-  cancelText: { fontFamily: fonts.bold, fontSize: 14.5, color: colors.textSecondary },
+  confirmBody: { fontFamily: fonts.medium, fontSize: 13, lineHeight: lh(20), color: colors.textSecondary, textAlign: 'center', marginTop: 8, marginBottom: spacing.lg },
+  danger: { minHeight: 54, borderRadius: radius.pill, backgroundColor: colors.heart, justifyContent: 'center', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 14 },
+  dangerText: { flexShrink: 1, textAlign: 'center', fontFamily: fonts.bold, fontSize: 16, color: colors.white, },
+  cancel: { minHeight: 48, justifyContent: 'center', alignItems: 'center', marginTop: spacing.xs, paddingVertical: 8, paddingHorizontal: 14 },
+  cancelText: { flexShrink: 1, textAlign: 'center', fontFamily: fonts.bold, fontSize: 14.5, color: colors.textSecondary, },
 });

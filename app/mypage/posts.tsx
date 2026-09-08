@@ -12,6 +12,7 @@ import { useBoard, toUIPost, type UIPost } from '@/hooks/useBoard';
 import { useMe } from '@/store/me';
 import { isSupabaseEnabled } from '@/lib/supabase';
 import { fetchMyComments, fetchMyPosts, type MyComment } from '@/lib/api/board';
+import { lh } from '@/lib/fontScale';
 
 /**
  * 掲示板の履歴。
@@ -150,8 +151,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   quoteAuthor: { fontFamily: fonts.bold, fontSize: 12.5, color: colors.textSecondary },
-  quoteBody: { fontFamily: fonts.regular, fontSize: 13.5, lineHeight: 20, color: colors.textSecondary, marginTop: 2 },
+  quoteBody: { fontFamily: fonts.regular, fontSize: 13.5, lineHeight: lh(20), color: colors.textSecondary, marginTop: 2 },
   myRow: { flexDirection: 'row', gap: 6 },
-  myBody: { flex: 1, fontFamily: fonts.medium, fontSize: 14.5, lineHeight: 22, color: colors.textPrimary },
+  myBody: { flex: 1, fontFamily: fonts.medium, fontSize: 14.5, lineHeight: lh(22), color: colors.textPrimary },
   time: { fontFamily: fonts.regular, fontSize: 12, color: colors.textPlaceholder, marginTop: spacing.sm, textAlign: 'right' },
 });

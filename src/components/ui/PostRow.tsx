@@ -7,6 +7,7 @@ import { Avatar } from './Avatar';
 import { HeartButton } from './HeartButton';
 import { BoardPost } from '@/data/mockSocial';
 import { useUsers } from '@/store/users';
+import { lh } from '@/lib/fontScale';
 
 /**
  * 掲示板の投稿行（Twitter風）。一覧・履歴で共用。
@@ -58,7 +59,7 @@ const styles = StyleSheet.create({
   postHead: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   name: { fontFamily: fonts.bold, fontSize: 14.5, color: colors.textPrimary, flexShrink: 1 },
   time: { fontFamily: fonts.regular, fontSize: 12.5, color: colors.textSecondary },
-  body: { fontFamily: fonts.regular, fontSize: 14.5, lineHeight: 22, color: colors.textPrimary, marginTop: 4 },
+  body: { fontFamily: fonts.regular, fontSize: 14.5, lineHeight: lh(22), color: colors.textPrimary, marginTop: 4 },
   actions: { flexDirection: 'row', gap: spacing['2xl'], marginTop: spacing.md, alignItems: 'center' },
   action: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   actionText: { fontFamily: fonts.medium, fontSize: 12.5, color: colors.textSecondary },

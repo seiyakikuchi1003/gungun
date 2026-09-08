@@ -27,10 +27,10 @@ export function TopTabs({ tabs, active, onChange }: Props) {
         return (
           <PressableScale key={t.key} activeScale={0.97} style={styles.tab} onPress={() => onChange(t.key)}>
             <View style={styles.labelRow}>
-              <Text style={[styles.label, on && { color: accent, fontFamily: fonts.bold }]}>{t.label}</Text>
+              <Text style={[styles.label, on && { color: accent, fontFamily: fonts.bold }]} numberOfLines={1}>{t.label}</Text>
               {!!t.alert && t.alert > 0 && (
                 <View style={styles.alert}>
-                  <Text style={styles.alertText}>{t.alert > 99 ? '99+' : t.alert}</Text>
+                  <Text style={styles.alertText} maxFontSizeMultiplier={1.2}>{t.alert > 99 ? '99+' : t.alert}</Text>
                 </View>
               )}
             </View>
@@ -46,8 +46,18 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', backgroundColor: colors.card },
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   alert: {
-    minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 5,
-    backgroundColor: '#E5484D',  // 対応が必要なことを一目で伝える赤 justifyContent: 'center', alignItems: 'center',
+    // 対応が必要なことを一目で伝える赤。
+    // ※ 以前は justifyContent / alignItems が行コメントに巻き込まれていて効いておらず、
+    //   数字が中央に来ずに欠けて見えていた（2026-08-21 修正）。
+    // 文字サイズを大きくしても数字が収まるよう、高さは伸びられるようにする。
+    minWidth: 18,
+    minHeight: 18,
+    borderRadius: 9,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    backgroundColor: '#E5484D',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   alertText: { fontFamily: fonts.bold, fontSize: 11, color: colors.white },
   tab: { flex: 1, alignItems: 'center', paddingTop: spacing.md, gap: spacing.sm },

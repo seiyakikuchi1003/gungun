@@ -27,6 +27,7 @@ import { useItemComments } from '@/hooks/useItemComments';
 import { useUsers } from '@/store/users';
 import { recordItemView } from '@/lib/api/social';
 import { isSupabaseEnabled } from '@/lib/supabase';
+import { lh } from '@/lib/fontScale';
 
 function RoundBtn({ icon, onPress }: { icon: keyof typeof Ionicons.glyphMap; onPress?: () => void }) {
   return (
@@ -146,7 +147,7 @@ export default function ItemDetailScreen() {
                 ))}
                 {treeThumbs.length > 3 && (
                   <View style={[styles.treeMore, { marginLeft: -14 }]}>
-                    <Text style={styles.treeMoreText}>+{treeThumbs.length - 3}</Text>
+                    <Text style={styles.treeMoreText} maxFontSizeMultiplier={1.2}>+{treeThumbs.length - 3}</Text>
                   </View>
                 )}
               </View>
@@ -294,7 +295,7 @@ const styles = StyleSheet.create({
   counterText: { fontFamily: fonts.bold, fontSize: 12, color: colors.white },
   sheet: { backgroundColor: colors.bg, borderTopLeftRadius: 26, borderTopRightRadius: 26, marginTop: -24, paddingHorizontal: 20, paddingTop: spacing.xl, gap: spacing.lg },
   titleRow: { flexDirection: 'row', alignItems: 'flex-start' },
-  title: { fontFamily: fonts.bold, fontSize: 23, color: colors.textPrimary, lineHeight: 30 },
+  title: { fontFamily: fonts.bold, fontSize: 23, color: colors.textPrimary, lineHeight: lh(30) },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm, flexWrap: 'wrap' },
   catChip: { backgroundColor: colors.greenSoft, paddingHorizontal: 10, paddingVertical: 4, borderRadius: radius.pill },
   catText: { fontFamily: fonts.bold, fontSize: 11.5, color: colors.green },
@@ -319,7 +320,7 @@ const styles = StyleSheet.create({
   treeCountUnit: { fontFamily: fonts.bold, fontSize: 13, color: colors.green },
   section: { gap: spacing.sm },
   sectionTitle: { fontFamily: fonts.bold, fontSize: 16, color: colors.textPrimary },
-  descText: { fontFamily: fonts.regular, fontSize: 14.5, lineHeight: 24, color: colors.textPrimary },
+  descText: { fontFamily: fonts.regular, fontSize: 14.5, lineHeight: lh(24), color: colors.textPrimary },
   commentHead: { flexDirection: 'row', alignItems: 'baseline', gap: spacing.sm },
   commentCount: { fontFamily: fonts.medium, fontSize: 13, color: colors.textSecondary },
   comment: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.sm },
@@ -328,7 +329,7 @@ const styles = StyleSheet.create({
   cHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   cName: { fontFamily: fonts.bold, fontSize: 12.5, color: colors.textPrimary },
   cTime: { fontFamily: fonts.regular, fontSize: 11, color: colors.textSecondary },
-  cBody: { fontFamily: fonts.regular, fontSize: 14, lineHeight: 21, color: colors.textPrimary, marginTop: 3 },
+  cBody: { fontFamily: fonts.regular, fontSize: 14, lineHeight: lh(21), color: colors.textPrimary, marginTop: 3 },
   commentEmpty: { fontFamily: fonts.regular, fontSize: 13.5, color: colors.textSecondary, textAlign: 'center', marginVertical: spacing.md },
   commentInputRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.md },
   commentField: { flex: 1, minWidth: 0, backgroundColor: colors.cardMuted, borderRadius: radius.pill, paddingHorizontal: spacing.lg, paddingVertical: 12, fontFamily: fonts.regular, fontSize: 14, color: colors.textPrimary },
@@ -336,17 +337,17 @@ const styles = StyleSheet.create({
   commentSendOff: { backgroundColor: colors.textPlaceholder, opacity: 0.5 },
   cDelete: { marginLeft: 'auto', padding: 2 },
   footer: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 20, paddingTop: spacing.md, backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.divider, ...shadows.sheet },
-  waterBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, height: 56, borderRadius: radius.pill, backgroundColor: colors.waterBlue },
+  waterBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, minHeight: 56, borderRadius: radius.pill, backgroundColor: colors.waterBlue, paddingVertical: 8, paddingHorizontal: 14 },
   ownerRow: { flexDirection: 'row', gap: spacing.md },
-  editBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, height: 56, borderRadius: radius.pill, backgroundColor: colors.green },
-  editText: { fontFamily: fonts.bold, fontSize: 16, color: colors.white },
-  treeBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 56, paddingHorizontal: spacing.lg, borderRadius: radius.pill, backgroundColor: colors.greenSoft, borderWidth: 1, borderColor: colors.greenSoftBorder },
-  treeBtnText: { fontFamily: fonts.bold, fontSize: 14, color: colors.green },
-  waterText: { fontFamily: fonts.bold, fontSize: 16, color: colors.white },
+  editBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, minHeight: 56, borderRadius: radius.pill, backgroundColor: colors.green, paddingVertical: 8, paddingHorizontal: 14 },
+  editText: { flexShrink: 1, textAlign: 'center', fontFamily: fonts.bold, fontSize: 16, color: colors.white, },
+  treeBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 56, paddingHorizontal: spacing.lg, borderRadius: radius.pill, backgroundColor: colors.greenSoft, borderWidth: 1, borderColor: colors.greenSoftBorder, paddingVertical: 8 },
+  treeBtnText: { flexShrink: 1, textAlign: 'center', fontFamily: fonts.bold, fontSize: 14, color: colors.green, },
+  waterText: { flexShrink: 1, textAlign: 'center', fontFamily: fonts.bold, fontSize: 16, color: colors.white, },
   waterCost: { backgroundColor: 'rgba(255,255,255,0.22)', paddingHorizontal: 10, paddingVertical: 3, borderRadius: radius.pill },
   waterCostText: { fontFamily: fonts.bold, fontSize: 12, color: colors.white },
-  wateredPill: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, height: 56, borderRadius: radius.pill, backgroundColor: colors.greenSoft },
-  wateredText: { fontFamily: fonts.bold, fontSize: 15, color: colors.green },
+  wateredPill: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, minHeight: 56, borderRadius: radius.pill, backgroundColor: colors.greenSoft, paddingVertical: 8, paddingHorizontal: 14 },
+  wateredText: { flexShrink: 1, textAlign: 'center', fontFamily: fonts.bold, fontSize: 15, color: colors.green, },
   // 高さ56固定・角丸ピルだと文が入りきらず窮屈だった（2026-08-05 指摘）。
   // 折り返せる箱にして、行数が増えても収まるようにする
   disabledBox: {
@@ -354,5 +355,5 @@ const styles = StyleSheet.create({
     minHeight: 56, borderRadius: radius.card, backgroundColor: colors.cardMuted,
     paddingHorizontal: spacing.lg, paddingVertical: spacing.md,
   },
-  disabledText: { flex: 1, fontFamily: fonts.medium, fontSize: 13.5, lineHeight: 19, color: colors.textSecondary },
+  disabledText: { flex: 1, fontFamily: fonts.medium, fontSize: 13.5, lineHeight: lh(19), color: colors.textSecondary },
 });

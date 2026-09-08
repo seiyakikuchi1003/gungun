@@ -133,9 +133,9 @@ const styles = StyleSheet.create({
   ratingRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap', justifyContent: 'center' },
   stat: { fontFamily: fonts.medium, fontSize: 12.5, color: colors.textSecondary },
   // alignSelf を付けないと親の alignItems:'center' で潰れるので、幅は自分で決める
-  blockBtn: { alignSelf: 'stretch', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 42, borderRadius: radius.pill, borderWidth: 1.5, borderColor: colors.heart, marginTop: spacing.md },
+  blockBtn: { alignSelf: 'stretch', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 42, borderRadius: radius.pill, borderWidth: 1.5, borderColor: colors.heart, marginTop: spacing.md, paddingVertical: 6, paddingHorizontal: 14 },
   blockBtnOn: { borderColor: colors.border },
-  blockText: { fontFamily: fonts.bold, fontSize: 13.5, color: colors.heart },
+  blockText: { flexShrink: 1, textAlign: 'center', fontFamily: fonts.bold, fontSize: 13.5, color: colors.heart, },
   blockTextOn: { color: colors.textSecondary },
   sectionTitle: { fontFamily: fonts.bold, fontSize: 16, color: colors.textPrimary, marginBottom: spacing.md },
   card: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.md, marginBottom: spacing.md },

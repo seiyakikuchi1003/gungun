@@ -14,6 +14,7 @@ import { notificationRoute } from '@/lib/notificationRoute';
 import { useUsers } from '@/store/users';
 import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 import { Toast } from '@/components/ui/Toast';
+import { lh } from '@/lib/fontScale';
 
 /**
  * 種類ごとの色。
@@ -206,14 +207,14 @@ const styles = StyleSheet.create({
   thumb: { width: 44, height: 44 },
   avatarFallback: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.greenSoft, justifyContent: 'center', alignItems: 'center' },
   badge: { position: 'absolute', right: -2, bottom: -2, width: 20, height: 20, borderRadius: 10, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: colors.bg },
-  body: { fontFamily: fonts.regular, fontSize: 14, lineHeight: 20, color: colors.textPrimary },
+  body: { fontFamily: fonts.regular, fontSize: 14, lineHeight: lh(20), color: colors.textPrimary },
   actor: { fontFamily: fonts.bold },
   time: { fontFamily: fonts.regular, fontSize: 11.5, color: colors.textSecondary, marginTop: 3 },
   hRight: { flexDirection: 'row', alignItems: 'center' },
   clearTitle: { fontFamily: fonts.bold, fontSize: 18, color: colors.textPrimary, textAlign: 'center' },
-  clearBody: { fontFamily: fonts.medium, fontSize: 13, lineHeight: 20, color: colors.textSecondary, textAlign: 'center', marginTop: spacing.sm, marginBottom: spacing.lg },
-  clearBtn: { height: 52, borderRadius: radius.pill, backgroundColor: '#E5484D', justifyContent: 'center', alignItems: 'center' },
-  clearBtnText: { fontFamily: fonts.bold, fontSize: 16, color: colors.white },
+  clearBody: { fontFamily: fonts.medium, fontSize: 13, lineHeight: lh(20), color: colors.textSecondary, textAlign: 'center', marginTop: spacing.sm, marginBottom: spacing.lg },
+  clearBtn: { minHeight: 52, borderRadius: radius.pill, backgroundColor: '#E5484D', justifyContent: 'center', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 14 },
+  clearBtnText: { flexShrink: 1, textAlign: 'center', fontFamily: fonts.bold, fontSize: 16, color: colors.white, },
   clearCancel: { alignItems: 'center', paddingVertical: spacing.lg },
   clearCancelText: { fontFamily: fonts.bold, fontSize: 15, color: colors.textSecondary },
   rowBtnOff: { opacity: 0.5 },

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { colors, fonts, radius, spacing } from '@/theme';
+import { lh } from '@/lib/fontScale';
 
 /** フォームの入力エラーを出す帯。message が空なら何も描かない */
 export function FormError({ message }: { message: string | null }) {
@@ -25,5 +26,5 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 14,
   },
-  text: { flex: 1, fontFamily: fonts.medium, fontSize: 13.5, color: colors.heart, lineHeight: 20 },
+  text: { flex: 1, fontFamily: fonts.medium, fontSize: 13.5, color: colors.heart, lineHeight: lh(20) },
 });

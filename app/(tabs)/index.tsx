@@ -34,6 +34,7 @@ import { useLoginBonus } from '@/hooks/useLoginBonus';
 import { useExchanges } from '@/hooks/useExchanges';
 import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 import { usePremiumOwners } from '@/hooks/usePremiumOwners';
+import { lh } from '@/lib/fontScale';
 
 /**
  * ヘッダーのアイコン。未読件数を数字で出す（点だけだと何件あるか分からない）。
@@ -295,8 +296,12 @@ export default function HomeScreen() {
             <View style={styles.fertBody}>
               <Sprout size={44} base />
               <View style={styles.fertNumRow}>
-                <Text style={styles.fertNum}>{fertilizer.toLocaleString()}</Text>
-                <Text style={styles.fertUnit}>肥料</Text>
+                {/* 34px の数字がそのまま倍になるとカードから溢れる。
+                    数字は読めれば足りるので、伸びしろに上限をつける（2026-08-21） */}
+                <Text style={styles.fertNum} numberOfLines={1} maxFontSizeMultiplier={1.4}>
+                  {fertilizer.toLocaleString()}
+                </Text>
+                <Text style={styles.fertUnit} maxFontSizeMultiplier={1.4}>肥料</Text>
               </View>
             </View>
             <Text style={styles.fertCharge}>タップでチャージ</Text>
@@ -327,7 +332,7 @@ export default function HomeScreen() {
                 end={{ x: 1, y: 1 }}
                 style={[styles.claimBtn, !claimed && shadows.soft]}
               >
-                <Text style={styles.claimText}>{claimed ? '受取済' : '受け取る'}</Text>
+                <Text style={styles.claimText} numberOfLines={1} maxFontSizeMultiplier={1.5}>{claimed ? '受取済' : '受け取る'}</Text>
                 <Ionicons
                   name={claimed ? 'checkmark' : 'chevron-forward'}
                   size={15}
@@ -343,10 +348,12 @@ export default function HomeScreen() {
           <View style={styles.sectionHead}>
             <View style={styles.sectionTitleRow}>
               <Sprout size={20} />
-              <Text style={styles.sectionTitle}>みんなの出品</Text>
+              {/* 文字サイズを大きくすると「すべて見る」と重なっていた（2026-08-21）。
+                  見出し側を縮められるようにして、収まらなければ省略する */}
+              <Text style={styles.sectionTitle} numberOfLines={1}>みんなの出品</Text>
             </View>
-            <PressableScale onPress={() => router.push('/search')}>
-              <Text style={styles.seeAll}>すべて見る ›</Text>
+            <PressableScale onPress={() => router.push('/search')} style={styles.seeAllBtn}>
+              <Text style={styles.seeAll} numberOfLines={1}>すべて見る ›</Text>
             </PressableScale>
           </View>
 
@@ -460,7 +467,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#E4796F', justifyContent: 'center', alignItems: 'center',
     paddingHorizontal: 4, borderWidth: 1.5, borderColor: colors.bg,
   },
-  badgeText: { fontFamily: fonts.bold, fontSize: 10, color: colors.white, lineHeight: 13 },
+  badgeText: { fontFamily: fonts.bold, fontSize: 10, color: colors.white, lineHeight: lh(13) },
   headerIcon: {
     width: 44,
     height: 44,
@@ -498,17 +505,18 @@ const styles = StyleSheet.create({
   infoLabel: { fontFamily: fonts.bold, fontSize: 12, color: colors.textSecondary, textAlign: 'center' },
   // 左カード
   fertBody: { alignItems: 'center', marginTop: 2 },
-  fertNumRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 4, marginTop: 2 },
-  fertNum: { fontFamily: fonts.black, fontSize: 34, color: colors.textPrimary, includeFontPadding: false, letterSpacing: -0.5 },
+  fertNumRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 4, marginTop: 2, flexWrap: 'wrap' },
+  fertNum: { flexShrink: 1, fontFamily: fonts.black, fontSize: 34, color: colors.textPrimary, includeFontPadding: false, letterSpacing: -0.5 },
   fertUnit: { fontFamily: fonts.bold, fontSize: 12, color: colors.textSecondary, marginBottom: 6 },
   // 右カード
   bonusBody: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6, marginBottom: spacing.md },
-  bonusValue: { flex: 1, fontFamily: fonts.bold, fontSize: 13, lineHeight: 18, color: colors.textPrimary },
-  claimBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 3, height: 38, borderRadius: radius.pill },
-  claimText: { fontFamily: fonts.black, fontSize: 13.5, color: colors.white },
+  bonusValue: { flex: 1, fontFamily: fonts.bold, fontSize: 13, lineHeight: lh(18), color: colors.textPrimary },
+  claimBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 3, minHeight: 38, borderRadius: radius.pill, paddingVertical: 6 },
+  claimText: { flexShrink: 1, fontFamily: fonts.black, fontSize: 13.5, color: colors.white },
   sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: spacing.md },
-  sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  sectionTitle: { fontFamily: fonts.bold, fontSize: 18, color: colors.textPrimary },
+  sectionTitleRow: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, minWidth: 0 },
+  sectionTitle: { flexShrink: 1, fontFamily: fonts.bold, fontSize: 18, color: colors.textPrimary },
+  seeAllBtn: { flexShrink: 0, marginLeft: spacing.sm },
   seeAll: { fontFamily: fonts.bold, fontSize: 13, color: colors.green },
   grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 20, gap: 8 },
   howCard: {
@@ -523,5 +531,5 @@ const styles = StyleSheet.create({
   step: { alignItems: 'center', gap: 4, width: 84 },
   stepArt: { height: 40, justifyContent: 'center', alignItems: 'center' },
   stepTitle: { fontFamily: fonts.bold, fontSize: 13, color: colors.textPrimary, marginTop: 2 },
-  stepDesc: { fontFamily: fonts.regular, fontSize: 11, lineHeight: 16, color: colors.textSecondary, textAlign: 'center' },
+  stepDesc: { fontFamily: fonts.regular, fontSize: 11, lineHeight: lh(16), color: colors.textSecondary, textAlign: 'center' },
 });

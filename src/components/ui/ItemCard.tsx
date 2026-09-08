@@ -7,6 +7,7 @@ import { Thumb } from './Thumb';
 import { Avatar } from './Avatar';
 import { MockItem } from '@/data/mock';
 import { useUsers } from '@/store/users';
+import { lh } from '@/lib/fontScale';
 
 type Props = {
   item: MockItem;
@@ -68,7 +69,7 @@ const styles = StyleSheet.create({
   body: { padding: spacing.md, gap: 3 },
   bodyCompact: { padding: 7, gap: 2 },
   name: { fontFamily: fonts.bold, fontSize: 14.5, color: colors.textPrimary },
-  nameCompact: { fontSize: 12, lineHeight: 16 },
+  nameCompact: { fontSize: 12, lineHeight: lh(16) },
   category: { fontFamily: fonts.regular, fontSize: 11.5, color: colors.textSecondary },
   ownerRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 },
   avatar: { width: 18, height: 18, borderRadius: 9, backgroundColor: colors.cardMuted },

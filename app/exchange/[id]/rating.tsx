@@ -14,6 +14,7 @@ import { useExchange } from '@/hooks/useExchanges';
 import { FormError } from '@/components/ui/FormError';
 import { KeyboardDoneBar, KEYBOARD_DONE_ID } from '@/components/ui/KeyboardDoneBar';
 import { NotFound } from '@/components/ui/NotFound';
+import { lh } from '@/lib/fontScale';
 
 const GOOD = ['対応が丁寧', 'スムーズ', '説明通り', '発送が早い', '梱包が丁寧'];
 
@@ -150,7 +151,7 @@ const styles = StyleSheet.create({
   footer: { paddingHorizontal: 20, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: colors.divider },
   doneWrap: { justifyContent: 'center', alignItems: 'center', padding: 30 },
   doneTitle: { fontFamily: fonts.bold, fontSize: 21, color: colors.textPrimary, marginTop: spacing.lg, textAlign: 'center' },
-  doneSub: { fontFamily: fonts.regular, fontSize: 14, color: colors.textSecondary, textAlign: 'center', marginTop: spacing.sm, lineHeight: 22 },
+  doneSub: { fontFamily: fonts.regular, fontSize: 14, color: colors.textSecondary, textAlign: 'center', marginTop: spacing.sm, lineHeight: lh(22) },
   // 2026-07-28 MTG：ボタンずれ対策。80%幅を、Button の fullWidth（alignSelf:stretch）
   // に干渉させないよう、ラッパー View で幅を決めてから Button を置く。
   // ボタン同士がくっついて見えないよう間隔をあける（2026-08-13 項目7）

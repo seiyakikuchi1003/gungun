@@ -11,6 +11,7 @@ import { useMe } from '@/store/me';
 import { isSupabaseEnabled } from '@/lib/supabase';
 import { submitReport, type ReportTarget } from '@/lib/api/social';
 import { KeyboardDoneBar, KEYBOARD_DONE_ID } from '@/components/ui/KeyboardDoneBar';
+import { lh } from '@/lib/fontScale';
 
 type Props = {
   visible: boolean;
@@ -145,13 +146,13 @@ const styles = StyleSheet.create({
   reasonText: { fontFamily: fonts.medium, fontSize: 14.5, color: colors.textPrimary },
   reasonTextOn: { fontFamily: fonts.bold, color: colors.green },
   input: { marginTop: spacing.md, minHeight: 80, fontFamily: fonts.medium, fontSize: 15, color: colors.textPrimary, backgroundColor: colors.cardMuted, borderRadius: radius.md, padding: spacing.md, textAlignVertical: 'top' },
-  submit: { height: 54, borderRadius: radius.pill, backgroundColor: colors.orangeDeep, justifyContent: 'center', alignItems: 'center', marginTop: spacing.lg },
+  submit: { minHeight: 54, borderRadius: radius.pill, backgroundColor: colors.orangeDeep, justifyContent: 'center', alignItems: 'center', marginTop: spacing.lg, paddingVertical: 8, paddingHorizontal: 14 },
   submitOff: { backgroundColor: colors.textPlaceholder, opacity: 0.6 },
-  submitText: { fontFamily: fonts.bold, fontSize: 16, color: colors.white },
+  submitText: { flexShrink: 1, textAlign: 'center', fontFamily: fonts.bold, fontSize: 16, color: colors.white, },
   // alignItems:'center' だと中のボタンが内容幅まで縮んでしまうので、
   // テキストだけ中央寄せにしてボタンは stretch のままにする（stretch が既定）
   doneWrap: { paddingVertical: spacing.md },
   doneIcon: { width: 60, height: 60, borderRadius: 30, backgroundColor: colors.green, justifyContent: 'center', alignItems: 'center', marginBottom: spacing.md },
   doneTitle: { fontFamily: fonts.bold, fontSize: 17, color: colors.textPrimary },
-  doneNote: { fontFamily: fonts.medium, fontSize: 13, lineHeight: 20, color: colors.textSecondary, textAlign: 'center', marginTop: 6, marginBottom: spacing.lg },
+  doneNote: { fontFamily: fonts.medium, fontSize: 13, lineHeight: lh(20), color: colors.textSecondary, textAlign: 'center', marginTop: 6, marginBottom: spacing.lg },
 });

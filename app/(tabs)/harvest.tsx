@@ -17,6 +17,7 @@ import { MockItem } from '@/data/mock';
 import { useTree } from '@/store/tree';
 import { useMe } from '@/store/me';
 import { useAutoRefresh } from '@/hooks/useAutoRefresh';
+import { lh } from '@/lib/fontScale';
 
 export default function HarvestScreen() {
   const me = useMe();
@@ -188,6 +189,6 @@ const styles = StyleSheet.create({
   tipCard: { flexDirection: 'row', gap: spacing.md, backgroundColor: colors.bgWarm, borderRadius: radius.card, padding: spacing.lg, marginTop: spacing.md, borderWidth: 1, borderColor: colors.border },
   tipIcon: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.orangeSoft, justifyContent: 'center', alignItems: 'center' },
   tipTitle: { fontFamily: fonts.bold, fontSize: 14, color: colors.textPrimary, marginBottom: 3 },
-  tipBody: { fontFamily: fonts.regular, fontSize: 12.5, lineHeight: 19, color: colors.textSecondary },
+  tipBody: { fontFamily: fonts.regular, fontSize: 12.5, lineHeight: lh(19), color: colors.textSecondary },
   tipStrong: { fontFamily: fonts.bold, color: colors.green },
 });

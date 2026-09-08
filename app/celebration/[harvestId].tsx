@@ -16,6 +16,7 @@ import { isSupabaseEnabled } from '@/lib/supabase';
 import { useMe } from '@/store/me';
 import { success } from '@/lib/haptics';
 import { playSfx } from '@/lib/sound';
+import { lh } from '@/lib/fontScale';
 
 /**
  * 収穫完了（お祝い）画面 — 2026-08-12 指示書 項目9。
@@ -180,7 +181,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: colors.orange,
   },
   heroTitle: { fontFamily: fonts.black, fontSize: 20, color: colors.orangeDeep, textAlign: 'center' },
-  heroSub: { fontFamily: fonts.medium, fontSize: 13, lineHeight: 20, color: colors.textSecondary, textAlign: 'center' },
+  heroSub: { fontFamily: fonts.medium, fontSize: 13, lineHeight: lh(20), color: colors.textSecondary, textAlign: 'center' },
 
   sectionLabel: { fontFamily: fonts.bold, fontSize: 13, color: colors.textSecondary, marginBottom: spacing.sm },
 
@@ -212,7 +213,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: colors.greenSoftBorder, marginTop: spacing.md,
   },
   // 短い一言は中央のまま。長い説明は左揃えにして行頭をそろえる（2026-08-21 指摘）
-  thanksText: { fontFamily: fonts.medium, fontSize: 13, lineHeight: 22, color: colors.greenDeep },
+  thanksText: { fontFamily: fonts.medium, fontSize: 13, lineHeight: lh(22), color: colors.greenDeep },
 
   ghostBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',

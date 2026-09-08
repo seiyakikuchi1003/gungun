@@ -22,6 +22,7 @@ import { Toast } from '@/components/ui/Toast';
 import { useTree } from '@/store/tree';
 import { useMe } from '@/store/me';
 import { useUsers } from '@/store/users';
+import { lh } from '@/lib/fontScale';
 
 export default function TreeScreen() {
   const users = useUsers();
@@ -357,7 +358,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
     backgroundColor: colors.cardMuted, borderRadius: radius.card, padding: spacing.md,
   },
-  mineNoteText: { flex: 1, fontFamily: fonts.medium, fontSize: 12.5, lineHeight: 18, color: colors.textSecondary },
+  mineNoteText: { flex: 1, fontFamily: fonts.medium, fontSize: 12.5, lineHeight: lh(18), color: colors.textSecondary },
   root: { flex: 1, backgroundColor: colors.bg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingBottom: spacing.sm },
   hBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
@@ -395,13 +396,13 @@ const styles = StyleSheet.create({
   statNum: { fontFamily: fonts.black, fontSize: 24, color: colors.green },
   statLabel: { fontFamily: fonts.medium, fontSize: 11.5, color: colors.textSecondary },
   statDivider: { width: 1, height: 32, backgroundColor: colors.divider },
-  waterBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, height: 54, borderRadius: radius.pill, backgroundColor: colors.waterBlue },
-  harvestBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, height: 54, borderRadius: radius.pill, backgroundColor: colors.orangeDeep },
+  waterBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, minHeight: 54, borderRadius: radius.pill, backgroundColor: colors.waterBlue, paddingVertical: 8, paddingHorizontal: 14 },
+  harvestBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, minHeight: 54, borderRadius: radius.pill, backgroundColor: colors.orangeDeep, paddingVertical: 8, paddingHorizontal: 14 },
   shareText: { fontFamily: fonts.bold, fontSize: 16, color: colors.white },
-  ghostBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, height: 50, borderRadius: radius.pill, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
-  ghostText: { fontFamily: fonts.bold, fontSize: 15, color: colors.textSecondary },
+  ghostBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, minHeight: 50, borderRadius: radius.pill, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, paddingVertical: 8, paddingHorizontal: 14 },
+  ghostText: { flexShrink: 1, textAlign: 'center', fontFamily: fonts.bold, fontSize: 15, color: colors.textSecondary, },
   pickTitle: { fontFamily: fonts.bold, fontSize: 17, color: colors.textPrimary, textAlign: 'center' },
-  pickSub: { fontFamily: fonts.medium, fontSize: 12.5, color: colors.textSecondary, textAlign: 'center', marginTop: 4, marginBottom: spacing.md, lineHeight: 18 },
+  pickSub: { fontFamily: fonts.medium, fontSize: 12.5, color: colors.textSecondary, textAlign: 'center', marginTop: 4, marginBottom: spacing.md, lineHeight: lh(18) },
   pickRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.md, marginBottom: spacing.sm, borderWidth: 1, borderColor: colors.border },
   pickRowOff: { opacity: 0.55 },
   pickThumb: { width: 48, height: 48 },

@@ -14,6 +14,7 @@ import { useMe } from '@/store/me';
 import { useBoard } from '@/hooks/useBoard';
 import { FormError } from '@/components/ui/FormError';
 import { KeyboardDoneBar, KEYBOARD_DONE_ID } from '@/components/ui/KeyboardDoneBar';
+import { lh } from '@/lib/fontScale';
 
 const MAX = 280;
 const TAGS: BoardTag[] = ['harvest', 'question', 'chat', 'notice'];
@@ -238,7 +239,7 @@ const styles = StyleSheet.create({
   tag: { paddingHorizontal: 16, paddingVertical: 9, borderRadius: radius.pill },
   tagText: { fontFamily: fonts.bold, fontSize: 13 },
   inputCard: { backgroundColor: colors.card, borderRadius: radius.lg, padding: spacing.lg, gap: spacing.md, minHeight: 180 },
-  input: { fontFamily: fonts.regular, fontSize: 16, lineHeight: 26, color: colors.textPrimary, minHeight: 110, textAlignVertical: 'top' },
+  input: { fontFamily: fonts.regular, fontSize: 16, lineHeight: lh(26), color: colors.textPrimary, minHeight: 110, textAlignVertical: 'top' },
   photoRow: { gap: spacing.sm, paddingTop: spacing.xs },
   photo: { width: 84, height: 84 },
   photoImg: { width: 84, height: 84 },
@@ -253,7 +254,7 @@ const styles = StyleSheet.create({
   toolOn: { backgroundColor: colors.green },
   emojiRow: { gap: spacing.sm, paddingHorizontal: spacing.lg, paddingTop: spacing.md },
   emojiBtn: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bgWarm },
-  emojiText: { fontSize: 21, lineHeight: 26 },
+  emojiText: { fontSize: 21, lineHeight: lh(26) },
   ring: { width: 30, height: 30, justifyContent: 'center', alignItems: 'center' },
   ringNum: { position: 'absolute', fontFamily: fonts.bold, fontSize: 9 },
 });

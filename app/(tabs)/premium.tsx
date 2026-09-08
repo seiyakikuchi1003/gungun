@@ -15,6 +15,7 @@ import { useTree } from '@/store/tree';
 import { useAuth } from '@/store/auth';
 import { pay, openBillingPortal } from '@/lib/api/purchases';
 import { FormError } from '@/components/ui/FormError';
+import { lh } from '@/lib/fontScale';
 
 function makeFeatures(bonus: number): { icon: keyof typeof Ionicons.glyphMap; title: string; desc: string }[] {
   return [
@@ -196,14 +197,14 @@ const styles = StyleSheet.create({
   terms: { gap: 6, marginBottom: spacing.md },
   termRow: { flexDirection: 'row', alignItems: 'flex-start' },
   termDot: { fontFamily: fonts.medium, fontSize: 12.5, color: colors.textSecondary },
-  termText: { flex: 1, fontFamily: fonts.medium, fontSize: 12.5, lineHeight: 19, color: colors.textSecondary },
+  termText: { flex: 1, fontFamily: fonts.medium, fontSize: 12.5, lineHeight: lh(19), color: colors.textSecondary },
   agreeRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, marginBottom: spacing.md },
   agreeBox: {
     width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: colors.border,
     justifyContent: 'center', alignItems: 'center', marginTop: 1,
   },
   agreeBoxOn: { backgroundColor: colors.green, borderColor: colors.green },
-  agreeText: { flex: 1, fontFamily: fonts.medium, fontSize: 12.5, lineHeight: 20, color: colors.textPrimary },
+  agreeText: { flex: 1, fontFamily: fonts.medium, fontSize: 12.5, lineHeight: lh(20), color: colors.textPrimary },
   link: { fontFamily: fonts.bold, color: colors.green, textDecorationLine: 'underline' },
   root: { flex: 1, backgroundColor: colors.bg },
   header: { alignItems: 'center', paddingBottom: spacing.lg },
@@ -214,9 +215,9 @@ const styles = StyleSheet.create({
   priceRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 4, marginTop: spacing.md },
   price: { fontFamily: fonts.black, fontSize: 32, color: colors.white },
   priceUnit: { fontFamily: fonts.bold, fontSize: 14, color: colors.white, marginBottom: 6 },
-  heroCta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, alignSelf: 'stretch', height: 52, borderRadius: radius.pill, backgroundColor: colors.white, marginTop: spacing.lg },
+  heroCta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, alignSelf: 'stretch', minHeight: 52, borderRadius: radius.pill, backgroundColor: colors.white, marginTop: spacing.lg, paddingVertical: 8, paddingHorizontal: 14 },
   heroCtaDone: { backgroundColor: 'rgba(255,255,255,0.28)' },
-  heroCtaText: { fontFamily: fonts.black, fontSize: 16, color: colors.orangeDeep },
+  heroCtaText: { flexShrink: 1, textAlign: 'center', fontFamily: fonts.black, fontSize: 16, color: colors.orangeDeep, },
   heroCtaTextDone: { color: colors.white },
   manageBtn: { marginTop: spacing.md, paddingVertical: 8, paddingHorizontal: 14, borderRadius: radius.pill, borderWidth: 1, borderColor: 'rgba(255,255,255,0.7)' },
   manageText: { fontFamily: fonts.bold, fontSize: 13, color: colors.white },
@@ -231,9 +232,9 @@ const styles = StyleSheet.create({
   sheetHead: { alignItems: 'center', gap: 2, marginBottom: spacing.md },
   sheetTitle: { fontFamily: fonts.black, fontSize: 19, color: colors.textPrimary, marginTop: spacing.sm },
   sheetPrice: { fontFamily: fonts.black, fontSize: 22, color: colors.orangeDeep },
-  sheetNote: { fontFamily: fonts.medium, fontSize: 12.5, lineHeight: 19, color: colors.textSecondary, textAlign: 'center', marginBottom: spacing.lg },
-  sheetBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, height: 54, borderRadius: radius.pill, backgroundColor: colors.orange },
-  sheetBtnText: { fontFamily: fonts.bold, fontSize: 16.5, color: colors.white },
-  sheetCancel: { height: 46, justifyContent: 'center', alignItems: 'center', marginTop: spacing.xs },
-  sheetCancelText: { fontFamily: fonts.bold, fontSize: 14, color: colors.textSecondary },
+  sheetNote: { fontFamily: fonts.medium, fontSize: 12.5, lineHeight: lh(19), color: colors.textSecondary, textAlign: 'center', marginBottom: spacing.lg },
+  sheetBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, minHeight: 54, borderRadius: radius.pill, backgroundColor: colors.orange, paddingVertical: 8, paddingHorizontal: 14 },
+  sheetBtnText: { flexShrink: 1, textAlign: 'center', fontFamily: fonts.bold, fontSize: 16.5, color: colors.white, },
+  sheetCancel: { minHeight: 46, justifyContent: 'center', alignItems: 'center', marginTop: spacing.xs, paddingVertical: 8, paddingHorizontal: 14 },
+  sheetCancelText: { flexShrink: 1, textAlign: 'center', fontFamily: fonts.bold, fontSize: 14, color: colors.textSecondary, },
 });

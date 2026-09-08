@@ -22,6 +22,7 @@ import { success } from '@/lib/haptics';
 import { useTree } from '@/store/tree';
 import { KeyboardDoneBar, KEYBOARD_DONE_ID } from '@/components/ui/KeyboardDoneBar';
 import { OptionPicker } from '@/components/ui/OptionPicker';
+import { lh } from '@/lib/fontScale';
 
 type PickerKey = 'category' | 'condition' | null;
 
@@ -288,7 +289,7 @@ const styles = StyleSheet.create({
   photoRowWrap: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' },
   doneHead: { alignItems: 'center', gap: spacing.sm, marginBottom: spacing.lg },
   doneTitle: { fontFamily: fonts.black, fontSize: 20, color: colors.greenDeep },
-  doneSub: { fontFamily: fonts.medium, fontSize: 13, lineHeight: 20, color: colors.textSecondary, textAlign: 'center' },
+  doneSub: { fontFamily: fonts.medium, fontSize: 13, lineHeight: lh(20), color: colors.textSecondary, textAlign: 'center' },
   doneGhost: { alignItems: 'center', paddingVertical: spacing.lg },
   doneGhostText: { fontFamily: fonts.bold, fontSize: 15, color: colors.textSecondary },
   cropHint: {

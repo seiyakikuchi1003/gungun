@@ -22,6 +22,7 @@ import { Sprout } from '@/components/art/Sprout';
 import { settings } from '@/config/settings';
 import { success } from '@/lib/haptics';
 import { playSfx } from '@/lib/sound';
+import { lh } from '@/lib/fontScale';
 
 type Props = {
   visible: boolean;
@@ -321,7 +322,7 @@ const styles = StyleSheet.create({
   footer: { marginTop: spacing.md },
   mascotRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md },
   speech: { backgroundColor: colors.white, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 8, ...shadows.soft },
-  speechText: { fontFamily: fonts.bold, fontSize: 11.5, lineHeight: 17, color: colors.textPrimary },
-  closeBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, height: 50, borderRadius: radius.pill, backgroundColor: colors.green },
-  closeBtnText: { fontFamily: fonts.bold, fontSize: 16, color: colors.white },
+  speechText: { fontFamily: fonts.bold, fontSize: 11.5, lineHeight: lh(17), color: colors.textPrimary },
+  closeBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, minHeight: 50, borderRadius: radius.pill, backgroundColor: colors.green, paddingVertical: 8, paddingHorizontal: 14 },
+  closeBtnText: { flexShrink: 1, textAlign: 'center', fontFamily: fonts.bold, fontSize: 16, color: colors.white, },
 });

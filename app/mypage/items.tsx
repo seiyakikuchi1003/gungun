@@ -13,6 +13,7 @@ import { ItemActionSheet } from '@/components/feature/ItemActionSheet';
 import { type MockItem } from '@/data/mock';
 import { useTree } from '@/store/tree';
 import { useMe } from '@/store/me';
+import { lh } from '@/lib/fontScale';
 
 /** 左右にはらって行き来する順番 */
 const TABS = ['seed', 'water'] as const;
@@ -113,5 +114,5 @@ const styles = StyleSheet.create({
   category: { fontFamily: fonts.regular, fontSize: 12, color: colors.textSecondary, marginTop: 2 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: 6 },
   meta: { fontFamily: fonts.medium, fontSize: 11.5, color: colors.textSecondary },
-  empty: { fontFamily: fonts.medium, fontSize: 13.5, color: colors.textSecondary, textAlign: 'center', lineHeight: 21, marginTop: 60 },
+  empty: { fontFamily: fonts.medium, fontSize: 13.5, color: colors.textSecondary, textAlign: 'center', lineHeight: lh(21), marginTop: 60 },
 });

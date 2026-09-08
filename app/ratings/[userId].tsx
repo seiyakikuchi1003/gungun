@@ -10,6 +10,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { useUsers } from '@/store/users';
 import { isSupabaseEnabled } from '@/lib/supabase';
 import { fetchRatings, type RatingCard } from '@/lib/api/profile';
+import { lh } from '@/lib/fontScale';
 
 const TYPE_LABEL: Record<string, string> = {
   communication: '送った側として',
@@ -156,7 +157,7 @@ const styles = StyleSheet.create({
 
   summary: { flexDirection: 'row', gap: spacing.xl, backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.lg, marginBottom: spacing.lg },
   summaryLeft: { alignItems: 'center', justifyContent: 'center', minWidth: 84 },
-  avg: { fontFamily: fonts.bold, fontSize: 34, color: colors.textPrimary, lineHeight: 38 },
+  avg: { fontFamily: fonts.bold, fontSize: 34, color: colors.textPrimary, lineHeight: lh(38) },
   count: { fontFamily: fonts.medium, fontSize: 12, color: colors.textSecondary, marginTop: 2 },
   stars: { flexDirection: 'row', gap: 1 },
   dist: { flex: 1, justifyContent: 'center', gap: 4 },
@@ -170,5 +171,5 @@ const styles = StyleSheet.create({
   cardHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   name: { fontFamily: fonts.bold, fontSize: 14, color: colors.textPrimary },
   meta: { fontFamily: fonts.regular, fontSize: 12, color: colors.textSecondary, marginTop: 1 },
-  comment: { fontFamily: fonts.regular, fontSize: 14, lineHeight: 21, color: colors.textPrimary, marginTop: spacing.md },
+  comment: { fontFamily: fonts.regular, fontSize: 14, lineHeight: lh(21), color: colors.textPrimary, marginTop: spacing.md },
 });

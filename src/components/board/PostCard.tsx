@@ -9,6 +9,7 @@ import { HeartButton } from '@/components/ui/HeartButton';
 import { TAG_META } from '@/data/mockSocial';
 import type { UIPost } from '@/hooks/useBoard';
 import { shareText } from '@/lib/share';
+import { lh } from '@/lib/fontScale';
 
 /** モダンなカード型の投稿。掲示板フィードの主役。 */
 export function PostCard({ post, onPress, onMore, onCopied }: { post: UIPost; onPress?: () => void; onMore?: () => void; onCopied?: () => void }) {
@@ -82,7 +83,7 @@ const styles = StyleSheet.create({
   tagText: { fontFamily: fonts.bold, fontSize: 10.5 },
   time: { fontFamily: fonts.regular, fontSize: 11.5, color: colors.textSecondary, marginTop: 2 },
   more: { padding: 4 },
-  body: { fontFamily: fonts.regular, fontSize: 14.5, lineHeight: 23, color: colors.textPrimary },
+  body: { fontFamily: fonts.regular, fontSize: 14.5, lineHeight: lh(23), color: colors.textPrimary },
   image: { width: '100%', aspectRatio: 16 / 10, borderRadius: radius.md, backgroundColor: colors.cardMuted },
   actions: { flexDirection: 'row', alignItems: 'center', gap: spacing.xl, paddingTop: spacing.sm, borderTopWidth: 1, borderTopColor: colors.divider },
   action: { flexDirection: 'row', alignItems: 'center', gap: 6 },

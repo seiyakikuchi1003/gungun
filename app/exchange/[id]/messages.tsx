@@ -9,6 +9,7 @@ import { Thumb } from '@/components/ui/Thumb';
 import { NotFound } from '@/components/ui/NotFound';
 import { useExchange } from '@/hooks/useExchanges';
 import { supabase, isSupabaseEnabled } from '@/lib/supabase';
+import { lh } from '@/lib/fontScale';
 
 /**
  * 取引メッセージ（2026-08-13 項目8で取引詳細から分離）。
@@ -144,7 +145,7 @@ const styles = StyleSheet.create({
   itemName: { fontFamily: fonts.bold, fontSize: 14, color: colors.textPrimary },
   dir: { fontFamily: fonts.medium, fontSize: 12, marginTop: 2 },
   chat: { padding: 20, gap: spacing.md },
-  empty: { fontFamily: fonts.medium, fontSize: 13, lineHeight: 21, color: colors.textSecondary, textAlign: 'center', paddingVertical: spacing.xl },
+  empty: { fontFamily: fonts.medium, fontSize: 13, lineHeight: lh(21), color: colors.textSecondary, textAlign: 'center', paddingVertical: spacing.xl },
   system: { alignSelf: 'center', backgroundColor: colors.bgWarm, borderRadius: radius.pill, paddingHorizontal: spacing.lg, paddingVertical: 6, marginVertical: spacing.xs },
   systemText: { fontFamily: fonts.medium, fontSize: 12, color: colors.textSecondary, textAlign: 'center' },
   msgRow: { maxWidth: '80%', gap: 3 },
@@ -153,7 +154,7 @@ const styles = StyleSheet.create({
   bubble: { paddingHorizontal: spacing.md, paddingVertical: 10, borderRadius: 18 },
   mine: { backgroundColor: colors.green, borderBottomRightRadius: 4 },
   theirs: { backgroundColor: colors.card, borderBottomLeftRadius: 4, ...shadows.soft },
-  msgText: { fontFamily: fonts.regular, fontSize: 14.5, lineHeight: 21, color: colors.textPrimary },
+  msgText: { fontFamily: fonts.regular, fontSize: 14.5, lineHeight: lh(21), color: colors.textPrimary },
   msgTime: { fontFamily: fonts.regular, fontSize: 10.5, color: colors.textPlaceholder, marginHorizontal: 4 },
   footer: { backgroundColor: colors.card, paddingHorizontal: 16, paddingTop: spacing.md, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
   inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm },

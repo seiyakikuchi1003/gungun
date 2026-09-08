@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingBottom: spacing.sm },
   hBtn: { width: 44, height: 40, justifyContent: 'center', alignItems: 'center' },
   hTitle: { fontFamily: fonts.bold, fontSize: 17, color: colors.textPrimary },
-  clearBtn: { width: 44, height: 40, justifyContent: 'center', alignItems: 'flex-end', paddingRight: 8 },
+  clearBtn: { width: 44, minHeight: 40, justifyContent: 'center', alignItems: 'flex-end', paddingRight: 8, paddingVertical: 6 },
   clearText: { fontFamily: fonts.medium, fontSize: 14, color: colors.textSecondary },
   center: { paddingTop: 60, alignItems: 'center' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 14, paddingTop: spacing.md, paddingBottom: 40 },

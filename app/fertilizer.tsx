@@ -15,6 +15,7 @@ import { useTree } from '@/store/tree';
 import { useAuth } from '@/store/auth';
 import { pay } from '@/lib/api/purchases';
 import { FormError } from '@/components/ui/FormError';
+import { lh } from '@/lib/fontScale';
 
 export default function Fertilizer() {
   const insets = useSafeAreaInsets();
@@ -215,11 +216,11 @@ const styles = StyleSheet.create({
   terms: { gap: 6, marginBottom: spacing.md },
   termRow: { flexDirection: 'row', alignItems: 'flex-start' },
   termDot: { fontFamily: fonts.medium, fontSize: 12.5, color: colors.textSecondary },
-  termText: { flex: 1, fontFamily: fonts.medium, fontSize: 12.5, lineHeight: 19, color: colors.textSecondary },
+  termText: { flex: 1, fontFamily: fonts.medium, fontSize: 12.5, lineHeight: lh(19), color: colors.textSecondary },
   agreeRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, marginBottom: spacing.md },
   agreeBox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: colors.border, justifyContent: 'center', alignItems: 'center', marginTop: 1 },
   agreeBoxOn: { backgroundColor: colors.green, borderColor: colors.green },
-  agreeText: { flex: 1, fontFamily: fonts.medium, fontSize: 12.5, lineHeight: 20, color: colors.textPrimary },
+  agreeText: { flex: 1, fontFamily: fonts.medium, fontSize: 12.5, lineHeight: lh(20), color: colors.textPrimary },
   link: { fontFamily: fonts.bold, color: colors.green, textDecorationLine: 'underline' },
   confirmCancel: { alignItems: 'center', paddingVertical: spacing.lg },
   confirmCancelText: { fontFamily: fonts.bold, fontSize: 15, color: colors.textSecondary },
@@ -245,6 +246,6 @@ const styles = StyleSheet.create({
   note: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: spacing.md },
   noteText: { fontFamily: fonts.regular, fontSize: 12, color: colors.textSecondary },
   footer: { paddingHorizontal: 20, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: colors.divider },
-  doneRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, height: 54, borderRadius: radius.pill, backgroundColor: colors.greenSoft },
-  doneText: { fontFamily: fonts.bold, fontSize: 14.5, color: colors.green },
+  doneRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, minHeight: 54, borderRadius: radius.pill, backgroundColor: colors.greenSoft, paddingVertical: 8, paddingHorizontal: 14 },
+  doneText: { flexShrink: 1, textAlign: 'center', fontFamily: fonts.bold, fontSize: 14.5, color: colors.green, },
 });

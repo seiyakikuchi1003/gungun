@@ -9,6 +9,7 @@ import { FormError } from '@/components/ui/FormError';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { Mikan } from '@/components/art/Mikan';
 import { useAuth } from '@/store/auth';
+import { lh } from '@/lib/fontScale';
 
 const RESEND_SEC = 60;
 
@@ -138,7 +139,7 @@ const styles = StyleSheet.create({
   back: { position: 'absolute', top: 8, left: 8, zIndex: 10, padding: 6 },
   wrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 60 },
   title: { fontFamily: fonts.bold, fontSize: 24, color: colors.textPrimary, marginTop: spacing.lg },
-  sub: { fontFamily: fonts.regular, fontSize: 14, color: colors.textSecondary, textAlign: 'center', marginTop: spacing.sm, lineHeight: 21 },
+  sub: { fontFamily: fonts.regular, fontSize: 14, color: colors.textSecondary, textAlign: 'center', marginTop: spacing.sm, lineHeight: lh(21) },
   errorSlot: { alignSelf: 'stretch', marginTop: spacing.lg },
   codeRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xl },
   box: { width: 48, height: 58, borderRadius: radius.md, backgroundColor: colors.card, textAlign: 'center', fontFamily: fonts.bold, fontSize: 24, color: colors.textPrimary, borderWidth: 2, borderColor: 'transparent' },

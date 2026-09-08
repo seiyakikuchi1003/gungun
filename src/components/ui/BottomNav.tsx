@@ -6,6 +6,7 @@ import { colors, fonts, shadows } from '@/theme';
 import { useExchanges, type UITrade } from '@/hooks/useExchanges';
 import { PressableScale } from './PressableScale';
 import { Mikan } from '@/components/art/Mikan';
+import { lh } from '@/lib/fontScale';
 
 type TabMeta = { label: string; icon: keyof typeof Ionicons.glyphMap };
 
@@ -63,7 +64,7 @@ export function BottomNav({ state, navigation }: TabBarProps) {
               <View style={[styles.centerCircle, shadows.button]}>
                 <Mikan size={44} />
               </View>
-              <Text style={[styles.label, styles.centerLabel, focused && styles.labelActiveOrange]}>
+              <Text style={[styles.label, styles.centerLabel, focused && styles.labelActiveOrange]} numberOfLines={1} maxFontSizeMultiplier={1.3}>
                 {meta.label}
               </Text>
             </PressableScale>
@@ -89,7 +90,7 @@ export function BottomNav({ state, navigation }: TabBarProps) {
                 </View>
               )}
             </View>
-            <Text style={[styles.label, focused && styles.labelActive]}>{meta.label}</Text>
+            <Text style={[styles.label, focused && styles.labelActive]} numberOfLines={1} maxFontSizeMultiplier={1.3}>{meta.label}</Text>
           </PressableScale>
         );
       })}
@@ -108,12 +109,12 @@ const styles = StyleSheet.create({
   },
   tab: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3, paddingTop: 4 },
   dot: {
-    position: 'absolute', top: -6, right: -12, minWidth: 20, height: 20, borderRadius: 10,
+    position: 'absolute', top: -6, right: -12, minWidth: 20, minHeight: 20, borderRadius: 10,
     paddingHorizontal: 5,
     justifyContent: 'center', alignItems: 'center',
     backgroundColor: '#E5484D', borderWidth: 2, borderColor: colors.card,
   },
-  dotText: { fontFamily: fonts.black, fontSize: 11, color: colors.white, lineHeight: 14 },
+  dotText: { fontFamily: fonts.black, fontSize: 11, color: colors.white, lineHeight: lh(14) },
   label: { fontFamily: fonts.medium, fontSize: 10.5, color: colors.textSecondary },
   labelActive: { color: colors.green, fontFamily: fonts.bold },
   labelActiveOrange: { color: colors.orangeDeep, fontFamily: fonts.bold },

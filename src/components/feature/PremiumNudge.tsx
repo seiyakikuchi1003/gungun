@@ -7,6 +7,7 @@ import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { Mikan } from '@/components/art/Mikan';
+import { lh } from '@/lib/fontScale';
 
 /**
  * プレミアムのお知らせ（2026-08-13 指摘）。
@@ -121,7 +122,7 @@ const styles = StyleSheet.create({
   head: { alignItems: 'center', gap: spacing.sm, marginBottom: spacing.lg },
   title: { fontFamily: fonts.black, fontSize: 19, color: colors.textPrimary },
   // 短い一言は中央のまま。長い説明は左揃えにして行頭をそろえる（2026-08-21 指摘）
-  sub: { fontFamily: fonts.medium, fontSize: 13, lineHeight: 21, color: colors.textSecondary },
+  sub: { fontFamily: fonts.medium, fontSize: 13, lineHeight: lh(21), color: colors.textSecondary },
   perks: { gap: spacing.sm, backgroundColor: colors.bgWarm, borderRadius: radius.card, padding: spacing.lg, marginBottom: spacing.lg },
   perk: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   perkText: { fontFamily: fonts.medium, fontSize: 13.5, color: colors.textPrimary },

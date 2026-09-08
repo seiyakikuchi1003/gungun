@@ -199,6 +199,6 @@ const styles = StyleSheet.create({
   ratioTextOn: { fontFamily: fonts.bold, color: colors.textPrimary },
   resetBtn: { alignSelf: 'center', paddingVertical: 4, paddingHorizontal: spacing.md },
   resetText: { fontFamily: fonts.medium, fontSize: 12.5, color: 'rgba(255,255,255,0.7)' },
-  done: { height: 54, borderRadius: radius.pill, backgroundColor: colors.green, justifyContent: 'center', alignItems: 'center' },
-  doneText: { fontFamily: fonts.bold, fontSize: 16, color: colors.white },
+  done: { minHeight: 54, borderRadius: radius.pill, backgroundColor: colors.green, justifyContent: 'center', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 14 },
+  doneText: { flexShrink: 1, textAlign: 'center', fontFamily: fonts.bold, fontSize: 16, color: colors.white, },
 });

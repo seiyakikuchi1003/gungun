@@ -20,6 +20,7 @@ import { useTree } from '@/store/tree';
 import { useMe } from '@/store/me';
 import { warning } from '@/lib/haptics';
 import { useAutoRefresh } from '@/hooks/useAutoRefresh';
+import { lh } from '@/lib/fontScale';
 type Action = 'about' | 'contact' | 'logout' | 'withdraw' | 'plan';
 const MENU: { icon: keyof typeof Ionicons.glyphMap; label: string; route?: string; action?: Action; danger?: boolean }[] = [
   { icon: 'pricetags-outline', label: '出品履歴', route: '/mypage/items' },
@@ -355,7 +356,7 @@ const WITHDRAW_REASONS = [
 ];
 
 const styles = StyleSheet.create({
-  planNote: { fontFamily: fonts.medium, fontSize: 11.5, lineHeight: 19, color: colors.textSecondary, marginTop: spacing.md },
+  planNote: { fontFamily: fonts.medium, fontSize: 11.5, lineHeight: lh(19), color: colors.textSecondary, marginTop: spacing.md },
   reasonRow: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.md,
     backgroundColor: colors.cardMuted, borderRadius: radius.md,
@@ -375,16 +376,16 @@ const styles = StyleSheet.create({
     backgroundColor: colors.orangeSoft, borderRadius: radius.md, padding: spacing.md,
     marginTop: spacing.md,
   },
-  warnText: { flex: 1, fontFamily: fonts.medium, fontSize: 12.5, lineHeight: 19, color: colors.orangeDeep },
+  warnText: { flex: 1, fontFamily: fonts.medium, fontSize: 12.5, lineHeight: lh(19), color: colors.orangeDeep },
   root: { flex: 1, backgroundColor: colors.bg },
   sheetTitle: { fontFamily: fonts.bold, fontSize: 17, color: colors.textPrimary, textAlign: 'center' },
   // 長い説明を中央揃えにすると行頭がそろわず読みにくい。左揃えにする（2026-08-21 指摘）
-  sheetBody: { fontFamily: fonts.medium, fontSize: 13, lineHeight: 22, color: colors.textSecondary, marginTop: 10, marginBottom: spacing.lg },
-  sheetBtn: { flexDirection: 'row', gap: spacing.sm, height: 54, borderRadius: radius.pill, backgroundColor: colors.green, justifyContent: 'center', alignItems: 'center', marginTop: spacing.md },
-  sheetDanger: { height: 54, borderRadius: radius.pill, backgroundColor: '#D5675C', justifyContent: 'center', alignItems: 'center', marginTop: spacing.md },
-  sheetBtnText: { fontFamily: fonts.bold, fontSize: 15.5, color: colors.white },
-  sheetCancel: { height: 48, justifyContent: 'center', alignItems: 'center', marginTop: spacing.xs },
-  sheetCancelText: { fontFamily: fonts.bold, fontSize: 14.5, color: colors.textSecondary },
+  sheetBody: { fontFamily: fonts.medium, fontSize: 13, lineHeight: lh(22), color: colors.textSecondary, marginTop: 10, marginBottom: spacing.lg },
+  sheetBtn: { flexDirection: 'row', gap: spacing.sm, minHeight: 54, borderRadius: radius.pill, backgroundColor: colors.green, justifyContent: 'center', alignItems: 'center', marginTop: spacing.md, paddingVertical: 8, paddingHorizontal: 14 },
+  sheetDanger: { minHeight: 54, borderRadius: radius.pill, backgroundColor: '#D5675C', justifyContent: 'center', alignItems: 'center', marginTop: spacing.md, paddingVertical: 8, paddingHorizontal: 14 },
+  sheetBtnText: { flexShrink: 1, textAlign: 'center', fontFamily: fonts.bold, fontSize: 15.5, color: colors.white, },
+  sheetCancel: { minHeight: 48, justifyContent: 'center', alignItems: 'center', marginTop: spacing.xs, paddingVertical: 8, paddingHorizontal: 14 },
+  sheetCancelText: { flexShrink: 1, textAlign: 'center', fontFamily: fonts.bold, fontSize: 14.5, color: colors.textSecondary, },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20, paddingBottom: spacing.lg },
   title: { fontFamily: fonts.bold, fontSize: 20, color: colors.textPrimary },
   settingsBtn: { position: 'absolute', right: 20, padding: 4 },
@@ -396,7 +397,7 @@ const styles = StyleSheet.create({
   ratingText: { fontFamily: fonts.medium, fontSize: 12.5, color: colors.textSecondary },
   editBtn: { borderWidth: 1.5, borderColor: colors.green, borderRadius: radius.pill, paddingHorizontal: 16, paddingVertical: 6 },
   editText: { fontFamily: fonts.bold, fontSize: 13, color: colors.green },
-  bio: { fontFamily: fonts.regular, fontSize: 13.5, lineHeight: 21, color: colors.textSecondary },
+  bio: { fontFamily: fonts.regular, fontSize: 13.5, lineHeight: lh(21), color: colors.textSecondary },
   bioEmpty: { color: colors.textPlaceholder },
   stats: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.bgWarm, borderRadius: radius.md, paddingVertical: spacing.md },
   stat: { flex: 1, alignItems: 'center', gap: 2 },

@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, spacing, fonts, radius, shadows } from '@/theme';
+import { lh } from '@/lib/fontScale';
 
 /**
  * 規約・プライバシーポリシーの表示（2026-08-17 指摘）。
@@ -117,11 +118,11 @@ const styles = StyleSheet.create({
   sectionBar: { width: 3, height: 16, borderRadius: 2, backgroundColor: colors.green },
   sectionTitle: { flex: 1, fontFamily: fonts.bold, fontSize: 15, color: colors.greenDeep },
 
-  para: { fontFamily: fonts.regular, fontSize: 13.5, lineHeight: 23, color: colors.textPrimary },
+  para: { fontFamily: fonts.regular, fontSize: 13.5, lineHeight: lh(23), color: colors.textPrimary },
   bulletRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, paddingVertical: 2 },
   bulletDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: colors.green, marginTop: 9 },
-  bulletText: { flex: 1, fontFamily: fonts.regular, fontSize: 13.5, lineHeight: 23, color: colors.textPrimary },
+  bulletText: { flex: 1, fontFamily: fonts.regular, fontSize: 13.5, lineHeight: lh(23), color: colors.textPrimary },
   pairRow: { paddingVertical: 4, gap: 1 },
   pairKey: { fontFamily: fonts.bold, fontSize: 13, color: colors.textPrimary },
-  pairVal: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 21, color: colors.textSecondary },
+  pairVal: { fontFamily: fonts.regular, fontSize: 13, lineHeight: lh(21), color: colors.textSecondary },
 });

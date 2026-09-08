@@ -7,6 +7,7 @@ import { colors, spacing, fonts } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { useTree } from '@/store/tree';
 import { LegalDocument } from '@/components/feature/LegalDocument';
+import { lh } from '@/lib/fontScale';
 
 /**
  * プライバシーポリシー。本文は app_settings.privacy_policy に格納する。
@@ -40,5 +41,5 @@ const styles = StyleSheet.create({
   hBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
   hTitle: { fontFamily: fonts.bold, fontSize: 16, color: colors.textPrimary },
   body: { padding: 20, paddingBottom: 60 },
-  text: { fontFamily: fonts.regular, fontSize: 14, lineHeight: 24, color: colors.textPrimary },
+  text: { fontFamily: fonts.regular, fontSize: 14, lineHeight: lh(24), color: colors.textPrimary },
 });

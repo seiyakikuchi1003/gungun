@@ -12,6 +12,7 @@ import { Mikan } from '@/components/art/Mikan';
 import { LeafDecor } from '@/components/art/LeafDecor';
 import { colors, spacing, fonts } from '@/theme';
 import { useAuth } from '@/store/auth';
+import { lh } from '@/lib/fontScale';
 
 export default function SignupScreen() {
   const { signUp } = useAuth();
@@ -154,7 +155,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   checkboxOn: { backgroundColor: colors.green, borderColor: colors.green },
-  agreeText: { flex: 1, fontFamily: fonts.medium, fontSize: 14.5, color: colors.textPrimary, lineHeight: 22 },
+  agreeText: { flex: 1, fontFamily: fonts.medium, fontSize: 14.5, color: colors.textPrimary, lineHeight: lh(22) },
   link: { color: colors.green, fontFamily: fonts.bold },
   footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.md, marginTop: 28 },
   footerText: { fontFamily: fonts.medium, fontSize: 14, color: colors.textPrimary },

@@ -13,6 +13,7 @@ import { ReportSheet } from '@/components/feature/ReportSheet';
 import { TAG_META } from '@/data/mockSocial';
 import { useBoardPost } from '@/hooks/useBoard';
 import { useMe } from '@/store/me';
+import { lh } from '@/lib/fontScale';
 
 export default function BoardDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -135,7 +136,7 @@ const styles = StyleSheet.create({
   tag: { paddingHorizontal: 9, paddingVertical: 2, borderRadius: radius.pill },
   tagText: { fontFamily: fonts.bold, fontSize: 10.5 },
   time: { fontFamily: fonts.regular, fontSize: 12, color: colors.textSecondary, marginTop: 2 },
-  body: { fontFamily: fonts.regular, fontSize: 15.5, lineHeight: 25, color: colors.textPrimary },
+  body: { fontFamily: fonts.regular, fontSize: 15.5, lineHeight: lh(25), color: colors.textPrimary },
   image: { width: '100%', aspectRatio: 16 / 10, borderRadius: radius.md, backgroundColor: colors.cardMuted },
   stats: { flexDirection: 'row', alignItems: 'center', gap: spacing.xl, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: colors.divider },
   stat: { flexDirection: 'row', alignItems: 'center', gap: 6 },
@@ -150,7 +151,7 @@ const styles = StyleSheet.create({
   bubble: { flex: 1, backgroundColor: colors.card, borderRadius: 16, padding: spacing.md, ...shadows.soft },
   cHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   cName: { fontFamily: fonts.bold, fontSize: 13, color: colors.textPrimary },
-  cBody: { fontFamily: fonts.regular, fontSize: 14, lineHeight: 21, color: colors.textPrimary, marginTop: 3 },
+  cBody: { fontFamily: fonts.regular, fontSize: 14, lineHeight: lh(21), color: colors.textPrimary, marginTop: 3 },
   empty: { fontFamily: fonts.regular, fontSize: 13.5, color: colors.textSecondary, textAlign: 'center', marginTop: 20 },
   inputBar: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.card, paddingHorizontal: spacing.lg, paddingTop: spacing.md, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
   input: { flex: 1, minWidth: 0, backgroundColor: colors.cardMuted, borderRadius: 999, paddingHorizontal: spacing.lg, paddingVertical: 10, fontFamily: fonts.regular, fontSize: 14.5, color: colors.textPrimary },

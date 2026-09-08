@@ -8,6 +8,7 @@ import { Mikan } from '@/components/art/Mikan';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { treeVisual, MockItem } from '@/data/mock';
 import { useUsers } from '@/store/users';
+import { lh } from '@/lib/fontScale';
 
 type Props = {
   width: number;
@@ -210,7 +211,7 @@ export function TreeCanvas({ width, children, treeSize, highlightId, onPressNode
                 <Avatar uri={owner.avatar} name={owner.nickname} size={20} />
               </View>
               <View style={[styles.countBadge, item.waterCount > 0 ? styles.countOn : styles.countZero]}>
-                <Text style={styles.countText}>{item.waterCount}</Text>
+                <Text style={styles.countText} maxFontSizeMultiplier={1.2}>{item.waterCount}</Text>
               </View>
               {isNew && (
                 <View style={styles.newBadge}><Text style={styles.newText}>NEW</Text></View>
@@ -218,7 +219,7 @@ export function TreeCanvas({ width, children, treeSize, highlightId, onPressNode
               {/* 何段目の水やりか。連鎖して伸びていることが見て分かるように */}
               {item.depth > 1 && (
                 <View style={styles.depthBadge}>
-                  <Text style={styles.depthText}>{item.depth}段</Text>
+                  <Text style={styles.depthText} maxFontSizeMultiplier={1.2}>{item.depth}段</Text>
                 </View>
               )}
             </PressableScale>
@@ -235,7 +236,7 @@ export function TreeCanvas({ width, children, treeSize, highlightId, onPressNode
           <View style={[styles.node, { left: p.x - NODE / 2, top: p.y - NODE / 2, width: NODE }]}>
             <View style={styles.stem} />
             <PressableScale activeScale={0.9} onPress={onPressMore} style={styles.moreBubble}>
-              <Text style={styles.moreNum}>+{extra}</Text>
+              <Text style={styles.moreNum} maxFontSizeMultiplier={1.2}>+{extra}</Text>
             </PressableScale>
             <Text style={styles.nodeName} numberOfLines={1}>その他を見る</Text>
           </View>
@@ -296,7 +297,7 @@ const styles = StyleSheet.create({
   nodeOwner: { fontFamily: fonts.medium, fontSize: 9.5, color: colors.textSecondary, maxWidth: NODE + 36, textAlign: 'center' },
   emptyBubble: { width: NODE, height: NODE, borderRadius: NODE / 2, borderWidth: 2, borderColor: colors.greenSoftBorder, borderStyle: 'dashed', backgroundColor: 'rgba(255,255,255,0.65)', justifyContent: 'center', alignItems: 'center' },
   emptyPlus: { fontFamily: fonts.bold, fontSize: 26, color: colors.green, marginTop: -2 },
-  emptyLabel: { fontFamily: fonts.medium, fontSize: 9.5, color: colors.textSecondary, marginTop: 5, textAlign: 'center', lineHeight: 13 },
+  emptyLabel: { fontFamily: fonts.medium, fontSize: 9.5, color: colors.textSecondary, marginTop: 5, textAlign: 'center', lineHeight: lh(13) },
   extraChip: { position: 'absolute', top: 12, right: 12, backgroundColor: 'rgba(255,255,255,0.9)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.pill, ...shadows.soft },
   extraText: { fontFamily: fonts.bold, fontSize: 11.5, color: colors.orangeDeep },
   mascot: { position: 'absolute', left: 10, bottom: 8, flexDirection: 'row', alignItems: 'flex-end', gap: 6 },

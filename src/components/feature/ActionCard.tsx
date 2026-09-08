@@ -4,6 +4,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, fonts, spacing, radius } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { TONE, type Action } from '@/lib/exchangeStatus';
+import { lh } from '@/lib/fontScale';
 
 /**
  * 「次にやること」を1枚のカードで出す（docs/gungun-retool-adopt.md 1-5）。
@@ -53,7 +54,7 @@ const styles = StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   icon: { width: 38, height: 38, borderRadius: 19, justifyContent: 'center', alignItems: 'center' },
   title: { flex: 1, fontFamily: fonts.bold, fontSize: 15.5 },
-  body: { fontFamily: fonts.medium, fontSize: 13, lineHeight: 20, color: colors.textSecondary },
+  body: { fontFamily: fonts.medium, fontSize: 13, lineHeight: lh(20), color: colors.textSecondary },
   cta: {
     height: 50, borderRadius: radius.pill, justifyContent: 'center', alignItems: 'center',
     marginTop: spacing.xs,

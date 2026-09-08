@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, fonts, spacing, radius } from '@/theme';
 import { PressableScale } from './PressableScale';
+import { lh } from '@/lib/fontScale';
 
 /**
  * 対象が見つからないときの画面。
@@ -52,7 +53,7 @@ const styles = StyleSheet.create({
   hBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
   body: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: spacing.md, paddingHorizontal: 32, paddingBottom: 80 },
   title: { fontFamily: fonts.bold, fontSize: 16, color: colors.textPrimary, textAlign: 'center' },
-  hint: { fontFamily: fonts.medium, fontSize: 13, lineHeight: 20, color: colors.textSecondary, textAlign: 'center' },
+  hint: { fontFamily: fonts.medium, fontSize: 13, lineHeight: lh(20), color: colors.textSecondary, textAlign: 'center' },
   btn: {
     marginTop: spacing.sm, paddingHorizontal: 28, height: 44, justifyContent: 'center',
     borderRadius: radius.pill, backgroundColor: colors.green,

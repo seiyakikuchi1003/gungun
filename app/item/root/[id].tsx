@@ -10,6 +10,7 @@ import { Thumb } from '@/components/ui/Thumb';
 import { Sprout } from '@/components/art/Sprout';
 import { useTree } from '@/store/tree';
 import { useUsers } from '@/store/users';
+import { lh } from '@/lib/fontScale';
 
 export default function RootDetail() {
   const users = useUsers();
@@ -101,10 +102,10 @@ const styles = StyleSheet.create({
   treeLabel: { fontFamily: fonts.medium, fontSize: 12, color: colors.textPrimary },
   treeDivider: { width: 1, height: 32, backgroundColor: colors.greenSoftBorder },
   noticeBox: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.bgWarm, borderRadius: radius.md, padding: spacing.md, marginTop: spacing.lg },
-  noticeText: { flex: 1, fontFamily: fonts.medium, fontSize: 13, color: colors.textSecondary, lineHeight: 19 },
+  noticeText: { flex: 1, fontFamily: fonts.medium, fontSize: 13, color: colors.textSecondary, lineHeight: lh(19) },
   sectionTitle: { fontFamily: fonts.bold, fontSize: 16, color: colors.textPrimary, marginTop: spacing.xl, marginBottom: spacing.md },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   footer: { paddingHorizontal: 20, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: colors.divider },
-  waterBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, height: 56, borderRadius: radius.pill, backgroundColor: colors.waterBlue },
-  waterText: { fontFamily: fonts.bold, fontSize: 16, color: colors.white },
+  waterBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, minHeight: 56, borderRadius: radius.pill, backgroundColor: colors.waterBlue, paddingVertical: 8, paddingHorizontal: 14 },
+  waterText: { flexShrink: 1, textAlign: 'center', fontFamily: fonts.bold, fontSize: 16, color: colors.white, },
 });

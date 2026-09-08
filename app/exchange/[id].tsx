@@ -19,6 +19,7 @@ import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 import { currentStep, nextAction } from '@/lib/exchangeStatus';
 import { success } from '@/lib/haptics';
 import { Linking, TextInput } from 'react-native';
+import { lh } from '@/lib/fontScale';
 
 /**
  * 取引詳細（2026-08-13 項目8 ／ docs/gungun-retool-adopt.md 1-5）。
@@ -600,8 +601,8 @@ const styles = StyleSheet.create({
   copyText: { fontFamily: fonts.bold, fontSize: 12, color: colors.green },
   addr: { gap: 3, backgroundColor: colors.bgWarm, borderRadius: radius.md, padding: spacing.md },
   addrName: { fontFamily: fonts.bold, fontSize: 14.5, color: colors.textPrimary },
-  addrLine: { fontFamily: fonts.medium, fontSize: 13, lineHeight: 20, color: colors.textSecondary },
-  addrNone: { fontFamily: fonts.medium, fontSize: 12.5, lineHeight: 19, color: colors.textSecondary },
+  addrLine: { fontFamily: fonts.medium, fontSize: 13, lineHeight: lh(20), color: colors.textSecondary },
+  addrNone: { fontFamily: fonts.medium, fontSize: 12.5, lineHeight: lh(19), color: colors.textSecondary },
 
   ringLink: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
@@ -613,15 +614,15 @@ const styles = StyleSheet.create({
   sheetIcon: { width: 68, height: 68, borderRadius: 34, justifyContent: 'center', alignItems: 'center', marginBottom: spacing.sm },
   sheetTitle: { fontFamily: fonts.bold, fontSize: 19, color: colors.textPrimary, textAlign: 'center' },
   // 短い一言は中央のまま。長い説明は左揃えにして行頭をそろえる（2026-08-21 指摘）
-  sheetSub: { fontFamily: fonts.regular, fontSize: 13.5, color: colors.textSecondary, lineHeight: 22, alignSelf: 'stretch' },
+  sheetSub: { fontFamily: fonts.regular, fontSize: 13.5, color: colors.textSecondary, lineHeight: lh(22), alignSelf: 'stretch' },
   // 320 だと最後の項目とボタンが同時に見えず、下まであることに気づけなかった
   // （2026-08-13 指摘）。画面の高さに応じて伸ばす
   sheetBody: { flexShrink: 1, marginBottom: spacing.md },
   checkRow: { flexDirection: 'row', gap: spacing.md, paddingVertical: spacing.sm, alignItems: 'flex-start' },
   checkBox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: colors.border, justifyContent: 'center', alignItems: 'center', marginTop: 2 },
   checkBoxOn: { backgroundColor: colors.green, borderColor: colors.green },
-  checkTitle: { fontFamily: fonts.bold, fontSize: 14, color: colors.textPrimary, lineHeight: 20 },
-  checkDetail: { fontFamily: fonts.medium, fontSize: 12, lineHeight: 18, color: colors.textSecondary, marginTop: 2 },
+  checkTitle: { fontFamily: fonts.bold, fontSize: 14, color: colors.textPrimary, lineHeight: lh(20) },
+  checkDetail: { fontFamily: fonts.medium, fontSize: 12, lineHeight: lh(18), color: colors.textSecondary, marginTop: 2 },
   checkOutro: { fontFamily: fonts.medium, fontSize: 12.5, color: colors.textSecondary, textAlign: 'center', marginTop: spacing.md },
   checkHint: { fontFamily: fonts.medium, fontSize: 12, color: colors.textSecondary, textAlign: 'center', marginTop: spacing.sm },
   trackBox: { gap: spacing.sm, marginTop: spacing.md },
@@ -639,9 +640,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg, height: 46,
     fontFamily: fonts.medium, fontSize: 15, color: colors.textPrimary,
   },
-  trackHint: { fontFamily: fonts.medium, fontSize: 11.5, lineHeight: 18, color: colors.textSecondary },
+  trackHint: { fontFamily: fonts.medium, fontSize: 11.5, lineHeight: lh(18), color: colors.textSecondary },
   trackOk: { fontFamily: fonts.bold, fontSize: 11.5, color: colors.green },
-  trackNg: { fontFamily: fonts.bold, fontSize: 11.5, lineHeight: 18, color: '#E5484D' },
+  trackNg: { fontFamily: fonts.bold, fontSize: 11.5, lineHeight: lh(18), color: '#E5484D' },
   trackCard: { backgroundColor: colors.bgWarm, borderRadius: radius.md, padding: spacing.md, gap: 2 },
   trackTop: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   trackCarrier: { fontFamily: fonts.bold, fontSize: 13.5, color: colors.textPrimary },

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, fonts, spacing } from '@/theme';
 import { PressableScale } from './PressableScale';
+import { lh } from '@/lib/fontScale';
 
 /**
  * 「まだ何もない」状態の共通表示。
@@ -48,7 +49,7 @@ const styles = StyleSheet.create({
   },
   title: { fontFamily: fonts.bold, fontSize: 15.5, color: colors.textPrimary, textAlign: 'center' },
   note: {
-    fontFamily: fonts.medium, fontSize: 13, lineHeight: 21, color: colors.textSecondary,
+    fontFamily: fonts.medium, fontSize: 13, lineHeight: lh(21), color: colors.textSecondary,
     textAlign: 'center', marginTop: 6,
   },
   btn: {

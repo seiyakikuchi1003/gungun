@@ -10,6 +10,7 @@ import { FormError } from '@/components/ui/FormError';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { Mikan } from '@/components/art/Mikan';
 import { useAuth } from '@/store/auth';
+import { lh } from '@/lib/fontScale';
 
 /**
  * パスワード再設定。
@@ -106,6 +107,6 @@ const styles = StyleSheet.create({
   back: { position: 'absolute', top: 8, left: 8, zIndex: 10, padding: 6 },
   wrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 60 },
   title: { fontFamily: fonts.bold, fontSize: 24, color: colors.textPrimary, marginTop: spacing.lg },
-  sub: { fontFamily: fonts.regular, fontSize: 14, color: colors.textSecondary, textAlign: 'center', marginTop: spacing.sm, lineHeight: 21, paddingHorizontal: 20 },
+  sub: { fontFamily: fonts.regular, fontSize: 14, color: colors.textSecondary, textAlign: 'center', marginTop: spacing.sm, lineHeight: lh(21), paddingHorizontal: 20 },
   form: { alignSelf: 'stretch', gap: spacing.lg, marginTop: spacing['2xl'] },
 });

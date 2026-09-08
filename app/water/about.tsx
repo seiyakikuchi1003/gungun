@@ -6,6 +6,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, spacing, fonts, radius, shadows } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { WateringCan } from '@/components/art/WateringCan';
+import { lh } from '@/lib/fontScale';
 
 const POINTS = [
   '対象商品の子として、あなたの商品が出品されます',
@@ -80,7 +81,7 @@ const styles = StyleSheet.create({
   hBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
   hTitle: { fontFamily: fonts.bold, fontSize: 17, color: colors.textPrimary },
   hero: { alignItems: 'center', marginBottom: spacing.lg },
-  lead: { fontFamily: fonts.medium, fontSize: 15, lineHeight: 24, color: colors.textPrimary, textAlign: 'center' },
+  lead: { fontFamily: fonts.medium, fontSize: 15, lineHeight: lh(24), color: colors.textPrimary, textAlign: 'center' },
   leadStrong: { fontFamily: fonts.black, color: colors.green },
   diagram: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.md, backgroundColor: colors.card, borderRadius: radius.card, paddingVertical: spacing.xl, marginTop: spacing.xl, ...shadows.soft },
   diagItem: { alignItems: 'center', gap: spacing.sm },
@@ -90,7 +91,7 @@ const styles = StyleSheet.create({
   diagArrowLabel: { fontFamily: fonts.bold, fontSize: 11, color: colors.green },
   sectionTitle: { fontFamily: fonts.bold, fontSize: 16, color: colors.textPrimary, marginTop: spacing['2xl'], marginBottom: spacing.md },
   point: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.lg },
-  pointText: { flex: 1, fontFamily: fonts.medium, fontSize: 14, lineHeight: 20, color: colors.textPrimary },
-  okBtn: { alignItems: 'center', justifyContent: 'center', height: 54, borderRadius: radius.pill, backgroundColor: colors.green, marginTop: spacing['2xl'] },
-  okText: { fontFamily: fonts.bold, fontSize: 16, color: colors.white },
+  pointText: { flex: 1, fontFamily: fonts.medium, fontSize: 14, lineHeight: lh(20), color: colors.textPrimary },
+  okBtn: { alignItems: 'center', justifyContent: 'center', minHeight: 54, borderRadius: radius.pill, backgroundColor: colors.green, marginTop: spacing['2xl'], paddingVertical: 8, paddingHorizontal: 14 },
+  okText: { flexShrink: 1, textAlign: 'center', fontFamily: fonts.bold, fontSize: 16, color: colors.white, },
 });
