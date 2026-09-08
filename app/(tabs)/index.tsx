@@ -155,15 +155,16 @@ export default function HomeScreen() {
   // 「メンズで出したのにファッション・小物に入る」と食い違って見えた（2026-08-13 指摘）。
   // 出品時に選べる区分（categories）とホームの見出しを一致させる。
   const SUBTITLE: Record<string, string> = {
-    'レディース': '服・バッグ・アクセサリー',
-    'メンズ': '服・バッグ・小物',
-    'スマホ・家電': 'スマホ・オーディオ・PC',
-    '家電': '生活家電・キッチン家電',
-    'ゲーム・おもちゃ': 'ゲーム機・ソフト・ホビー',
+    '本・漫画・CD・DVD': '読みもの・音楽・映像',
+    'ファッション・アクセサリー': '服・バッグ・小物',
+    '趣味・サブカル': 'ゲーム・ホビー・コレクション',
     'コスメ・美容': 'メイク・スキンケア',
-    'インテリア': '家具・雑貨',
-    '本・音楽': '本・CD・DVD',
-    'その他': 'どれにも当てはまらないもの',
+    'ベビー・キッズ用品': 'こども服・おもちゃ・育児用品',
+    '家電・デジタルガジェット': 'スマホ・PC・生活家電',
+    '日用品・雑貨・文具': 'キッチン・インテリア・文房具',
+    '食品（常温のみ）': '常温で送れるもの',
+    'スポーツ用品': '道具・ウェア・トレーニング',
+    'アウトドア・旅行品': 'キャンプ・登山・旅の道具',
   };
   /**
    * 並び替え（2026-08-21 指摘）。
@@ -185,25 +186,37 @@ export default function HomeScreen() {
    * カテゴリー分け。
    *
    * 一覧に無いカテゴリーの商品は、どのグループにも入らずホームから消えていた。
-   * 「チケット」を廃止したぶんの既存商品や、表記ゆれ（例：コスメ／コスメ・美容）が
-   * そのまま見えなくなってしまうので、未知のカテゴリーは「その他」に寄せる。
+   * Click の区分に合わせたことで旧カテゴリーの商品が出るうえ、
+   * 表記ゆれ（例：コスメ／コスメ・美容）も起こりうる。
+   *
+   * Click には「その他」が無いので、出品時に選べる区分としては持たない。
+   * ただし取りこぼした商品が黙って消えるのは困るので、
+   * **表示のときだけ**末尾に受け皿のグループを足す（該当が無ければ出ない）。
    */
   const known = new Set(categories);
+  const OTHER_GROUP = 'その他';
+  const leftovers = seeds.filter((s) => !known.has(s.category));
   const visibleGroups =
     sort === 'recommend'
-      ? categories
-          .map((c) => ({
+      ? [
+          ...categories.map((c) => ({
             title: c,
             subtitle: SUBTITLE[c] ?? '',
-            items: premiumFirst(
-              seeds.filter((s) =>
-                c === 'その他' ? s.category === c || !known.has(s.category) : s.category === c
-              )
-            ),
-          }))
+            items: premiumFirst(seeds.filter((s) => s.category === c)),
+          })),
+          {
+            title: OTHER_GROUP,
+            subtitle: 'どれにも当てはまらないもの',
+            items: premiumFirst(leftovers),
+          },
+        ]
           .filter((g) => g.items.length > 0)
-          // 出品の多いカテゴリーから見せる
-          .sort((a, b) => b.items.length - a.items.length)
+          // 出品の多いカテゴリーから見せる。受け皿は必ず最後に回す
+          .sort((a, b) => {
+            if (a.title === OTHER_GROUP) return 1;
+            if (b.title === OTHER_GROUP) return -1;
+            return b.items.length - a.items.length;
+          })
       : [
           {
             title: SORTS.find((x) => x.key === sort)?.label ?? '',

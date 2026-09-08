@@ -87,7 +87,7 @@ const rawItems: RawItem[] = [
   {
     id: 'switch',
     name: 'Nintendo Switch',
-    category: 'ゲーム・おもちゃ',
+    category: '趣味・サブカル',
     condition: '目立った傷や汚れなし',
     description: '2年ほど使用しました。動作は良好で、付属品はすべて揃っています。箱も保管してあります。喫煙者・ペットはいません。',
     image: img('switch1'),
@@ -100,19 +100,19 @@ const rawItems: RawItem[] = [
     treeCount: 12,
     status: 'growing',
   },
-  { id: 'lv-bag', name: 'ルイヴィトン バッグ', category: 'レディース', condition: 'やや傷や汚れあり', description: '数年前に購入したモノグラムのバッグです。使用感はありますが、まだまだ使えます。', image: img('bag1'), images: [img('bag1'), img('bag2')], local: P.bag, localImages: [P.bag], ownerId: 'sakura', waterCount: 8, likeCount: 41, treeCount: 8, status: 'growing' },
-  { id: 'iphone15', name: 'iPhone 15', category: 'スマホ・家電', condition: '目立った傷や汚れなし', description: 'バッテリー最大容量92%。画面割れなし。初期化して発送します。', image: img('phone1'), images: [img('phone1'), img('phone2')], local: P.iphone, localImages: [P.iphone], ownerId: 'yu', waterCount: 5, likeCount: 30, treeCount: 5, status: 'growing' },
-  { id: 'airpods', name: 'AirPods Pro', category: 'スマホ・家電', condition: '目立った傷や汚れなし', description: '第2世代。ケース・イヤーチップ揃っています。', image: img('airpods1'), images: [img('airpods1')], local: P.airpods, localImages: [P.airpods], ownerId: 'haru', waterCount: 3, likeCount: 18, treeCount: 3, status: 'growing' },
-  { id: 'controller', name: 'ワイヤレスコントローラー', category: 'ゲーム・おもちゃ', condition: '目立った傷や汚れなし', description: '数回使用のみ。動作確認済み、箱・ケーブル付き。', image: img('controller1'), images: [img('controller1')], local: P.controller, localImages: [P.controller], ownerId: 'kenta', waterCount: 5, likeCount: 22, treeCount: 5, status: 'growing' },
-  { id: 'books', name: '文庫本 まとめ売り', category: '本・音楽', condition: '目立った傷や汚れなし', description: '小説を中心に6冊セット。書き込みなし、状態良好です。', image: img('books1'), images: [img('books1')], local: P.books, localImages: [P.books], ownerId: 'sakura', waterCount: 3, likeCount: 16, treeCount: 3, status: 'growing' },
-  { id: 'wallet', name: 'ブランド財布', category: 'メンズ', condition: '未使用に近い', description: 'いただきものですが使わないため出品します。', image: img('wallet1'), images: [img('wallet1')], local: P.wallet, localImages: [P.wallet], ownerId: 'takusan', waterCount: 2, likeCount: 9, treeCount: 2, status: 'growing' },
-  { id: 'watch', name: '腕時計', category: 'メンズ', condition: '目立った傷や汚れなし', description: 'シンプルなアナログ時計。電池交換済み。', image: img('watch1'), images: [img('watch1')], local: P.watch, localImages: [P.watch], ownerId: 'sakura', waterCount: 4, likeCount: 14, treeCount: 4, status: 'growing' },
+  { id: 'lv-bag', name: 'ルイヴィトン バッグ', category: 'ファッション・アクセサリー', condition: 'やや傷や汚れあり', description: '数年前に購入したモノグラムのバッグです。使用感はありますが、まだまだ使えます。', image: img('bag1'), images: [img('bag1'), img('bag2')], local: P.bag, localImages: [P.bag], ownerId: 'sakura', waterCount: 8, likeCount: 41, treeCount: 8, status: 'growing' },
+  { id: 'iphone15', name: 'iPhone 15', category: '家電・デジタルガジェット', condition: '目立った傷や汚れなし', description: 'バッテリー最大容量92%。画面割れなし。初期化して発送します。', image: img('phone1'), images: [img('phone1'), img('phone2')], local: P.iphone, localImages: [P.iphone], ownerId: 'yu', waterCount: 5, likeCount: 30, treeCount: 5, status: 'growing' },
+  { id: 'airpods', name: 'AirPods Pro', category: '家電・デジタルガジェット', condition: '目立った傷や汚れなし', description: '第2世代。ケース・イヤーチップ揃っています。', image: img('airpods1'), images: [img('airpods1')], local: P.airpods, localImages: [P.airpods], ownerId: 'haru', waterCount: 3, likeCount: 18, treeCount: 3, status: 'growing' },
+  { id: 'controller', name: 'ワイヤレスコントローラー', category: '趣味・サブカル', condition: '目立った傷や汚れなし', description: '数回使用のみ。動作確認済み、箱・ケーブル付き。', image: img('controller1'), images: [img('controller1')], local: P.controller, localImages: [P.controller], ownerId: 'kenta', waterCount: 5, likeCount: 22, treeCount: 5, status: 'growing' },
+  { id: 'books', name: '文庫本 まとめ売り', category: '本・漫画・CD・DVD', condition: '目立った傷や汚れなし', description: '小説を中心に6冊セット。書き込みなし、状態良好です。', image: img('books1'), images: [img('books1')], local: P.books, localImages: [P.books], ownerId: 'sakura', waterCount: 3, likeCount: 16, treeCount: 3, status: 'growing' },
+  { id: 'wallet', name: 'ブランド財布', category: 'ファッション・アクセサリー', condition: '未使用に近い', description: 'いただきものですが使わないため出品します。', image: img('wallet1'), images: [img('wallet1')], local: P.wallet, localImages: [P.wallet], ownerId: 'takusan', waterCount: 2, likeCount: 9, treeCount: 2, status: 'growing' },
+  { id: 'watch', name: '腕時計', category: 'ファッション・アクセサリー', condition: '目立った傷や汚れなし', description: 'シンプルなアナログ時計。電池交換済み。', image: img('watch1'), images: [img('watch1')], local: P.watch, localImages: [P.watch], ownerId: 'sakura', waterCount: 4, likeCount: 14, treeCount: 4, status: 'growing' },
   { id: 'perfume', name: '香水', category: 'コスメ・美容', condition: '未使用に近い', description: '数回使用のみ。残量9割ほど。', image: img('perfume1'), images: [img('perfume1')], local: P.perfume, localImages: [P.perfume], ownerId: 'metan', waterCount: 1, likeCount: 7, treeCount: 1, status: 'growing' },
-  { id: 'sneaker', name: 'スニーカー', category: 'メンズ', condition: 'やや傷や汚れあり', description: '27cm。数回着用。', image: img('sneaker1'), images: [img('sneaker1')], local: P.sneaker, localImages: [P.sneaker], ownerId: 'kenta', waterCount: 2, likeCount: 11, treeCount: 2, status: 'growing' },
-  { id: 'coffee', name: 'コーヒーメーカー', category: '家電', condition: '目立った傷や汚れなし', description: '全自動タイプ。動作確認済み。', image: img('coffee1'), images: [img('coffee1')], local: P.coffee, localImages: [P.coffee], ownerId: 'metan', waterCount: 3, likeCount: 15, treeCount: 3, status: 'growing' },
-  { id: 'camera', name: 'ミラーレスカメラ', category: 'スマホ・家電', condition: '目立った傷や汚れなし', description: 'レンズキット付き。シャッター回数少なめ。', image: img('camera1'), images: [img('camera1')], local: P.camera, localImages: [P.camera], ownerId: 'yu', waterCount: 6, likeCount: 28, treeCount: 6, status: 'growing' },
-  { id: 'speaker', name: 'ワイヤレススピーカー', category: '家電', condition: '未使用に近い', description: '防水対応。箱付き。', image: img('speaker1'), images: [img('speaker1')], local: P.speaker, localImages: [P.speaker], ownerId: 'haru', waterCount: 3, likeCount: 10, treeCount: 7, status: 'growing' },
-  { id: 'giftcard', name: 'ギフト券', category: 'その他', condition: '新品・未使用', description: '5,000円分。有効期限まだあります。', image: img('gift1'), images: [img('gift1')], local: P.giftcard, localImages: [P.giftcard], ownerId: 'metan', waterCount: 4, likeCount: 19, treeCount: 4, status: 'growing' },
+  { id: 'sneaker', name: 'スニーカー', category: 'ファッション・アクセサリー', condition: 'やや傷や汚れあり', description: '27cm。数回着用。', image: img('sneaker1'), images: [img('sneaker1')], local: P.sneaker, localImages: [P.sneaker], ownerId: 'kenta', waterCount: 2, likeCount: 11, treeCount: 2, status: 'growing' },
+  { id: 'coffee', name: 'コーヒーメーカー', category: '家電・デジタルガジェット', condition: '目立った傷や汚れなし', description: '全自動タイプ。動作確認済み。', image: img('coffee1'), images: [img('coffee1')], local: P.coffee, localImages: [P.coffee], ownerId: 'metan', waterCount: 3, likeCount: 15, treeCount: 3, status: 'growing' },
+  { id: 'camera', name: 'ミラーレスカメラ', category: '家電・デジタルガジェット', condition: '目立った傷や汚れなし', description: 'レンズキット付き。シャッター回数少なめ。', image: img('camera1'), images: [img('camera1')], local: P.camera, localImages: [P.camera], ownerId: 'yu', waterCount: 6, likeCount: 28, treeCount: 6, status: 'growing' },
+  { id: 'speaker', name: 'ワイヤレススピーカー', category: '家電・デジタルガジェット', condition: '未使用に近い', description: '防水対応。箱付き。', image: img('speaker1'), images: [img('speaker1')], local: P.speaker, localImages: [P.speaker], ownerId: 'haru', waterCount: 3, likeCount: 10, treeCount: 7, status: 'growing' },
+  { id: 'giftcard', name: 'ギフト券', category: '日用品・雑貨・文具', condition: '新品・未使用', description: '5,000円分。有効期限まだあります。', image: img('gift1'), images: [img('gift1')], local: P.giftcard, localImages: [P.giftcard], ownerId: 'metan', waterCount: 4, likeCount: 19, treeCount: 4, status: 'growing' },
 
   // ── デモ用の「育った木」＝水やりの連鎖（わらしべの鎖）──────────────
   // ワイヤレススピーカー（はる）を起点に、水やり＝出品が連鎖してつながっている。
@@ -124,12 +124,12 @@ const rawItems: RawItem[] = [
   //   └─ ギフト券(けんた)                          … 深さ1
   //       └─ 文庫本セット(さくら)                 … 深さ2
   // これで「A→B→C→D と交換の輪がつながっていく」連鎖が一目で分かる。
-  { id: 'w-tote', name: 'キャンバストートバッグ', category: 'レディース', condition: '目立った傷や汚れなし', description: '無地のキャンバストート。数回使用のみで、大きな汚れもありません。', image: img('tote1'), images: [img('tote1')], local: P.bag, localImages: [P.bag], ownerId: 'metan', waterCount: 0, likeCount: 4, treeCount: 0, status: 'growing', parentId: 'speaker', rootId: 'speaker', depth: 1 },
-  { id: 'w-mug', name: 'マグカップ', category: 'インテリア', condition: '未使用に近い', description: 'いただきもののマグカップ。使わないのでお譲りします。', image: img('mug1'), images: [img('mug1')], local: P.coffee, localImages: [P.coffee], ownerId: 'sakura', waterCount: 1, likeCount: 3, treeCount: 0, status: 'growing', parentId: 'speaker', rootId: 'speaker', depth: 1 },
-  { id: 'w-cam', name: 'ミラーレスカメラ', category: 'スマホ・家電', condition: '目立った傷や汚れなし', description: 'マグカップと交換希望で水やりしました。レンズキット付き。', image: img('cam2'), images: [img('cam2')], local: P.camera, localImages: [P.camera], ownerId: 'yu', waterCount: 1, likeCount: 6, treeCount: 0, status: 'growing', parentId: 'w-mug', rootId: 'speaker', depth: 2 },
-  { id: 'w-watch2', name: '腕時計', category: 'メンズ', condition: '未使用に近い', description: 'カメラが欲しくて水やり。電池交換済みです。', image: img('watch2'), images: [img('watch2')], local: P.watch, localImages: [P.watch], ownerId: 'takusan', waterCount: 0, likeCount: 5, treeCount: 0, status: 'growing', parentId: 'w-cam', rootId: 'speaker', depth: 3 },
-  { id: 'w-gift', name: 'ギフト券 5,000円分', category: 'その他', condition: '新品・未使用', description: '有効期限まだあります。', image: img('gift2'), images: [img('gift2')], local: P.giftcard, localImages: [P.giftcard], ownerId: 'kenta', waterCount: 1, likeCount: 2, treeCount: 0, status: 'growing', parentId: 'speaker', rootId: 'speaker', depth: 1 },
-  { id: 'w-books2', name: '文庫本セット', category: '本・音楽', condition: '目立った傷や汚れなし', description: '人気作家の文庫本8冊セット。', image: img('books2'), images: [img('books2')], local: P.books, localImages: [P.books], ownerId: 'sakura', waterCount: 0, likeCount: 3, treeCount: 0, status: 'growing', parentId: 'w-gift', rootId: 'speaker', depth: 2 },
+  { id: 'w-tote', name: 'キャンバストートバッグ', category: 'ファッション・アクセサリー', condition: '目立った傷や汚れなし', description: '無地のキャンバストート。数回使用のみで、大きな汚れもありません。', image: img('tote1'), images: [img('tote1')], local: P.bag, localImages: [P.bag], ownerId: 'metan', waterCount: 0, likeCount: 4, treeCount: 0, status: 'growing', parentId: 'speaker', rootId: 'speaker', depth: 1 },
+  { id: 'w-mug', name: 'マグカップ', category: '日用品・雑貨・文具', condition: '未使用に近い', description: 'いただきもののマグカップ。使わないのでお譲りします。', image: img('mug1'), images: [img('mug1')], local: P.coffee, localImages: [P.coffee], ownerId: 'sakura', waterCount: 1, likeCount: 3, treeCount: 0, status: 'growing', parentId: 'speaker', rootId: 'speaker', depth: 1 },
+  { id: 'w-cam', name: 'ミラーレスカメラ', category: '家電・デジタルガジェット', condition: '目立った傷や汚れなし', description: 'マグカップと交換希望で水やりしました。レンズキット付き。', image: img('cam2'), images: [img('cam2')], local: P.camera, localImages: [P.camera], ownerId: 'yu', waterCount: 1, likeCount: 6, treeCount: 0, status: 'growing', parentId: 'w-mug', rootId: 'speaker', depth: 2 },
+  { id: 'w-watch2', name: '腕時計', category: 'ファッション・アクセサリー', condition: '未使用に近い', description: 'カメラが欲しくて水やり。電池交換済みです。', image: img('watch2'), images: [img('watch2')], local: P.watch, localImages: [P.watch], ownerId: 'takusan', waterCount: 0, likeCount: 5, treeCount: 0, status: 'growing', parentId: 'w-cam', rootId: 'speaker', depth: 3 },
+  { id: 'w-gift', name: 'ギフト券 5,000円分', category: '日用品・雑貨・文具', condition: '新品・未使用', description: '有効期限まだあります。', image: img('gift2'), images: [img('gift2')], local: P.giftcard, localImages: [P.giftcard], ownerId: 'kenta', waterCount: 1, likeCount: 2, treeCount: 0, status: 'growing', parentId: 'speaker', rootId: 'speaker', depth: 1 },
+  { id: 'w-books2', name: '文庫本セット', category: '本・漫画・CD・DVD', condition: '目立った傷や汚れなし', description: '人気作家の文庫本8冊セット。', image: img('books2'), images: [img('books2')], local: P.books, localImages: [P.books], ownerId: 'sakura', waterCount: 0, likeCount: 3, treeCount: 0, status: 'growing', parentId: 'w-gift', rootId: 'speaker', depth: 2 },
 
   // ── 自分（めたん）が植えたタネに集まった水やり ──────────────────
   // 収穫タブ「あなたの森」が空っぽに見えないように、通知の内容と辻褄が合う形で
@@ -137,14 +137,14 @@ const rawItems: RawItem[] = [
   //   香水(めたん)        └ スニーカー(たくさん)
   //   コーヒーメーカー(めたん) ├ ミラーレスカメラ(ゆう) └ 腕時計(けんた) └ 文庫本(さくら)
   //   ギフト券(めたん)     ├ AirPods(はる)  └ ブランド財布(さくら)
-  { id: 'w-sneaker', name: 'スニーカー', category: 'メンズ', condition: '目立った傷や汚れなし', description: '27cm。香水と交換したくて水やりしました。数回着用のみです。', image: img('sneaker2'), images: [img('sneaker2')], local: P.sneaker, localImages: [P.sneaker], ownerId: 'takusan', waterCount: 0, likeCount: 6, treeCount: 0, status: 'growing', parentId: 'perfume', rootId: 'perfume', depth: 1 },
+  { id: 'w-sneaker', name: 'スニーカー', category: 'ファッション・アクセサリー', condition: '目立った傷や汚れなし', description: '27cm。香水と交換したくて水やりしました。数回着用のみです。', image: img('sneaker2'), images: [img('sneaker2')], local: P.sneaker, localImages: [P.sneaker], ownerId: 'takusan', waterCount: 0, likeCount: 6, treeCount: 0, status: 'growing', parentId: 'perfume', rootId: 'perfume', depth: 1 },
 
-  { id: 'w-cam3', name: 'ミラーレスカメラ', category: 'スマホ・家電', condition: '目立った傷や汚れなし', description: 'コーヒーメーカーが欲しくて水やり。レンズキット付きです。', image: img('cam3'), images: [img('cam3')], local: P.camera, localImages: [P.camera], ownerId: 'yu', waterCount: 0, likeCount: 9, treeCount: 0, status: 'growing', parentId: 'coffee', rootId: 'coffee', depth: 1 },
-  { id: 'w-watch3', name: '腕時計', category: 'メンズ', condition: '未使用に近い', description: 'シンプルなアナログ時計。電池交換済みです。', image: img('watch3'), images: [img('watch3')], local: P.watch, localImages: [P.watch], ownerId: 'kenta', waterCount: 0, likeCount: 4, treeCount: 0, status: 'growing', parentId: 'coffee', rootId: 'coffee', depth: 1 },
-  { id: 'w-books3', name: '文庫本 まとめ売り', category: '本・音楽', condition: '目立った傷や汚れなし', description: '腕時計と交換希望です。小説6冊セット、書き込みなし。', image: img('books3'), images: [img('books3')], local: P.books, localImages: [P.books], ownerId: 'sakura', waterCount: 0, likeCount: 3, treeCount: 0, status: 'growing', parentId: 'w-watch3', rootId: 'coffee', depth: 2 },
+  { id: 'w-cam3', name: 'ミラーレスカメラ', category: '家電・デジタルガジェット', condition: '目立った傷や汚れなし', description: 'コーヒーメーカーが欲しくて水やり。レンズキット付きです。', image: img('cam3'), images: [img('cam3')], local: P.camera, localImages: [P.camera], ownerId: 'yu', waterCount: 0, likeCount: 9, treeCount: 0, status: 'growing', parentId: 'coffee', rootId: 'coffee', depth: 1 },
+  { id: 'w-watch3', name: '腕時計', category: 'ファッション・アクセサリー', condition: '未使用に近い', description: 'シンプルなアナログ時計。電池交換済みです。', image: img('watch3'), images: [img('watch3')], local: P.watch, localImages: [P.watch], ownerId: 'kenta', waterCount: 0, likeCount: 4, treeCount: 0, status: 'growing', parentId: 'coffee', rootId: 'coffee', depth: 1 },
+  { id: 'w-books3', name: '文庫本 まとめ売り', category: '本・漫画・CD・DVD', condition: '目立った傷や汚れなし', description: '腕時計と交換希望です。小説6冊セット、書き込みなし。', image: img('books3'), images: [img('books3')], local: P.books, localImages: [P.books], ownerId: 'sakura', waterCount: 0, likeCount: 3, treeCount: 0, status: 'growing', parentId: 'w-watch3', rootId: 'coffee', depth: 2 },
 
-  { id: 'w-airpods2', name: 'AirPods Pro', category: 'スマホ・家電', condition: '目立った傷や汚れなし', description: '第2世代。ケース・イヤーチップ揃っています。', image: img('airpods2'), images: [img('airpods2')], local: P.airpods, localImages: [P.airpods], ownerId: 'haru', waterCount: 0, likeCount: 12, treeCount: 0, status: 'growing', parentId: 'giftcard', rootId: 'giftcard', depth: 1 },
-  { id: 'w-wallet2', name: 'ブランド財布', category: 'レディース', condition: '未使用に近い', description: 'いただきものですが使わないためお譲りします。', image: img('wallet2'), images: [img('wallet2')], local: P.wallet, localImages: [P.wallet], ownerId: 'sakura', waterCount: 0, likeCount: 7, treeCount: 0, status: 'growing', parentId: 'giftcard', rootId: 'giftcard', depth: 1 },
+  { id: 'w-airpods2', name: 'AirPods Pro', category: '家電・デジタルガジェット', condition: '目立った傷や汚れなし', description: '第2世代。ケース・イヤーチップ揃っています。', image: img('airpods2'), images: [img('airpods2')], local: P.airpods, localImages: [P.airpods], ownerId: 'haru', waterCount: 0, likeCount: 12, treeCount: 0, status: 'growing', parentId: 'giftcard', rootId: 'giftcard', depth: 1 },
+  { id: 'w-wallet2', name: 'ブランド財布', category: 'ファッション・アクセサリー', condition: '未使用に近い', description: 'いただきものですが使わないためお譲りします。', image: img('wallet2'), images: [img('wallet2')], local: P.wallet, localImages: [P.wallet], ownerId: 'sakura', waterCount: 0, likeCount: 7, treeCount: 0, status: 'growing', parentId: 'giftcard', rootId: 'giftcard', depth: 1 },
 ];
 
 /**
@@ -238,13 +238,28 @@ export const howToSteps = [
 /**
  * 出品カテゴリー。
  *
- * 「チケット（イベント・優待券）」は外した（2026-08-21 指摘）。
+ * 現行 Click のカテゴリーをそのまま持ってきたもの（2026-08-21 指摘）。
+ * 独自のくくりを作らず、いま使われている区分に合わせる。
+ *
+ * 「チケット（イベント・優待券）」は同じ指摘で廃止した。
  * ギフト券・優待券・ライブチケットは金券性があり、物々交換ではなく
- * 金銭のやり取りになってしまうため、出品の選択肢から無くす。
+ * 金銭のやり取りになってしまうため。
+ *
+ * ★「その他」は無い（Click に無いため）。
+ *   どれにも当てはまらない区分の商品がホームから消えないよう、
+ *   一覧の表示側だけ受け皿を持たせている（app/(tabs)/index.tsx の OTHER_GROUP）。
  */
 export const categories = [
-  'レディース', 'メンズ', 'スマホ・家電', '家電', 'ゲーム・おもちゃ',
-  'コスメ・美容', 'インテリア', '本・音楽', 'その他',
+  '本・漫画・CD・DVD',
+  'ファッション・アクセサリー',
+  '趣味・サブカル',
+  'コスメ・美容',
+  'ベビー・キッズ用品',
+  '家電・デジタルガジェット',
+  '日用品・雑貨・文具',
+  '食品（常温のみ）',
+  'スポーツ用品',
+  'アウトドア・旅行品',
 ];
 
 export const conditions = [
