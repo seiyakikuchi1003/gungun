@@ -73,9 +73,17 @@ function Card({ item, w, h, onPress }: { item: MockItem; w: number; h: number; o
       <Thumb source={item.local} uri={item.image} style={styles.img} markSize={Math.min(w, h) * 0.4} />
       {rb && <Ribbon label={rb} />}
       <LikeDot itemId={item.id} initial={!!item.liked} />
+      {/* 水やりの数は2つ並べる（2026-08-21 指摘）。
+          左＝この商品そのものに付いた水やり（＝直接の交換希望の数）
+          右＝この商品が属する木ぜんぶに集まった水やり（種を除いた総数）
+          片方だけだと「人気なのか、木が育っているのか」が区別できなかった。
+          小さいカードでも収まるよう、2つを1つのピルに仕切り線で並べる。 */}
       <View style={styles.waterPill}>
         <Ionicons name="water" size={11} color="#fff" />
-        <Text style={styles.waterText}>{item.waterCount}</Text>
+        <Text style={styles.waterText} maxFontSizeMultiplier={1.2}>{item.waterCount}</Text>
+        <View style={styles.pillDivider} />
+        <Ionicons name="leaf" size={11} color="#fff" />
+        <Text style={styles.waterText} maxFontSizeMultiplier={1.2}>{Math.max(0, item.treeCount - 1)}</Text>
       </View>
     </PressableScale>
   );
@@ -144,4 +152,5 @@ const styles = StyleSheet.create({
   heart: { position: 'absolute', top: 8, right: 8, width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.9)', justifyContent: 'center', alignItems: 'center' },
   waterPill: { position: 'absolute', left: 8, bottom: 8, flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: 'rgba(38,34,28,0.6)', paddingHorizontal: 8, paddingVertical: 3.5, borderRadius: radius.pill },
   waterText: { fontFamily: fonts.bold, fontSize: 10.5, color: '#fff' },
+  pillDivider: { width: 1, height: 10, backgroundColor: 'rgba(255,255,255,0.45)', marginHorizontal: 2 },
 });

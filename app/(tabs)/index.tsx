@@ -1,6 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { isSupabaseEnabled } from '@/lib/supabase';
-import { fetchViewHistory } from '@/lib/api/social';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -35,6 +33,7 @@ import { useMe } from '@/store/me';
 import { useLoginBonus } from '@/hooks/useLoginBonus';
 import { useExchanges } from '@/hooks/useExchanges';
 import { useAutoRefresh } from '@/hooks/useAutoRefresh';
+import { usePremiumOwners } from '@/hooks/usePremiumOwners';
 
 /**
  * ヘッダーのアイコン。未読件数を数字で出す（点だけだと何件あるか分からない）。
@@ -54,7 +53,7 @@ function HeaderIcon({
       <Ionicons name={name} size={23} color={colors.textPrimary} />
       {count > 0 && (
         <View style={styles.badge}>
-          <Text style={styles.badgeText}>{count > 99 ? '99+' : count}</Text>
+          <Text style={styles.badgeText} maxFontSizeMultiplier={1.2}>{count > 99 ? '99+' : count}</Text>
         </View>
       )}
     </PressableScale>
@@ -67,12 +66,18 @@ const STEP_ART: Record<string, React.ReactNode> = {
   harvest: <Mikan size={30} />,
 };
 
-/** 固定した上部バーの高さ（検索欄 46 ＋ 下の余白 16） */
+/**
+ * 上部バーの高さの目安（検索欄 46 ＋ 下の余白 16）。
+ *
+ * 端末の文字サイズを大きくすると検索欄も高くなるので、実際の高さは
+ * onLayout で測って使う。ここはその測定が終わるまでの初期値。
+ * （2026-08-21 指摘：文字を大きくすると検索の枠から出る・改行される）
+ */
 const TOP_BAR_H = 62;
 
 /** ホームの並び替え */
 const SORTS = [
-  { key: 'recommend', label: 'おすすめ', note: '最近見たものに近い順' },
+  { key: 'recommend', label: 'おすすめ', note: 'プレミアム会員の出品を優先' },
   { key: 'new', label: '新着順', note: '出品が新しい順' },
   { key: 'water', label: '水やりが多い順', note: '多くの人が交換を希望している順' },
   { key: 'like', label: '人気順', note: 'いいねが多い順' },
@@ -102,14 +107,11 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [refreshTick, setRefreshTick] = useState(0);
   const [sort, setSort] = useState<SortKey>('recommend');
-  // 「おすすめ」で最近見た区分を優先するために、閲覧履歴のカテゴリーを取る
-  const [viewedCategories, setViewedCategories] = useState<string[]>([]);
-  useEffect(() => {
-    if (!isSupabaseEnabled || !me.live) return;
-    fetchViewHistory(me.id)
-      .then((list) => setViewedCategories([...new Set(list.slice(0, 20).map((i) => i.category))]))
-      .catch(() => {});
-  }, [me.live, me.id]);
+  // 「おすすめ」はプレミアム会員の出品を優先する（2026-08-21 指摘）。
+  // 以前は「最近見た区分に近い順」だったが、何を基準にしているのか伝わらなかった。
+  const premiumOwners = usePremiumOwners();
+  // 上部バーの実寸。文字サイズを大きくすると伸びるので、本文の余白もそれに追従させる
+  const [topBarH, setTopBarH] = useState(TOP_BAR_H);
   const scrollY = useSharedValue(0); // 引っ張り量 → カスタムスピナーの回転に連動
   const onScroll = useAnimatedScrollHandler((e) => {
     scrollY.value = e.contentOffset.y;
@@ -161,34 +163,47 @@ export default function HomeScreen() {
     'コスメ・美容': 'メイク・スキンケア',
     'インテリア': '家具・雑貨',
     '本・音楽': '本・CD・DVD',
-    'チケット': 'イベント・優待券',
     'その他': 'どれにも当てはまらないもの',
   };
   /**
    * 並び替え（2026-08-21 指摘）。
    *
-   * 既定の「おすすめ」はカテゴリー別に並べる。そのとき、
-   * 最近見た商品と同じカテゴリーを先に出す（閲覧履歴に基づく関連順）。
+   * 「おすすめ」はカテゴリー別に並べたうえで、
+   * 各カテゴリーの中で**プレミアム会員の出品を先に**出す。
+   * 以前は「最近見た区分に近い順」だったが、何を基準にしているのか
+   * 伝わらないという指摘があったため、説明できる基準に変えた。
    * それ以外を選んだときは、カテゴリーの区切りをやめて1本の並びで見せる。
    * 「水やりが多い順」と「新着順」は区切ったままだと比べにくいため。
    */
-  const recentCats = new Set(viewedCategories);
+  const premiumFirst = (list: typeof seeds) =>
+    [...list].sort((a, b) => {
+      const pa = premiumOwners.has(a.ownerId) ? 1 : 0;
+      const pb = premiumOwners.has(b.ownerId) ? 1 : 0;
+      return pb - pa; // それ以外の並びは元のまま保つ（sort は安定）
+    });
+  /**
+   * カテゴリー分け。
+   *
+   * 一覧に無いカテゴリーの商品は、どのグループにも入らずホームから消えていた。
+   * 「チケット」を廃止したぶんの既存商品や、表記ゆれ（例：コスメ／コスメ・美容）が
+   * そのまま見えなくなってしまうので、未知のカテゴリーは「その他」に寄せる。
+   */
+  const known = new Set(categories);
   const visibleGroups =
     sort === 'recommend'
       ? categories
           .map((c) => ({
             title: c,
             subtitle: SUBTITLE[c] ?? '',
-            items: seeds.filter((s) => s.category === c),
+            items: premiumFirst(
+              seeds.filter((s) =>
+                c === 'その他' ? s.category === c || !known.has(s.category) : s.category === c
+              )
+            ),
           }))
           .filter((g) => g.items.length > 0)
-          .sort((a, b) => {
-            // 最近見た区分を優先し、その中では出品の多い順
-            const ra = recentCats.has(a.title) ? 1 : 0;
-            const rb = recentCats.has(b.title) ? 1 : 0;
-            if (ra !== rb) return rb - ra;
-            return b.items.length - a.items.length;
-          })
+          // 出品の多いカテゴリーから見せる
+          .sort((a, b) => b.items.length - a.items.length)
       : [
           {
             title: SORTS.find((x) => x.key === sort)?.label ?? '',
@@ -212,11 +227,19 @@ export default function HomeScreen() {
 
       {/* 検索・通知・マイページは上部に固定する。
           スクロールで流れると、探したいときに毎回いちばん上まで戻る必要があった（2026-08-12 指摘） */}
-      <View style={[styles.topBarFixed, { paddingTop: insets.top + 8 }]}>
+      <View
+        style={[styles.topBarFixed, { paddingTop: insets.top + 8 }]}
+        onLayout={(e) => {
+          const h = e.nativeEvent.layout.height - (insets.top + 8);
+          if (h > 0 && Math.abs(h - topBarH) > 1) setTopBarH(h);
+        }}
+      >
         <View style={styles.topBar}>
           <PressableScale onPress={() => router.push('/search')} activeScale={0.98} style={[styles.search, shadows.soft]}>
             <Ionicons name="search" size={20} color={colors.textSecondary} />
-            <Text style={styles.searchPlaceholder}>欲しいものを探してみよう</Text>
+            <Text style={styles.searchPlaceholder} numberOfLines={1} maxFontSizeMultiplier={1.4}>
+              欲しいものを探してみよう
+            </Text>
           </PressableScale>
           <HeaderIcon name="notifications" count={unreadCount} onPress={() => router.push('/notifications')} />
           {/* 取引はボトムナビに移したので、ここはマイページへの導線にする（2026-08-13） */}
@@ -228,7 +251,7 @@ export default function HomeScreen() {
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingTop: insets.top + 8 + TOP_BAR_H, paddingBottom: 170 }}
+        contentContainerStyle={{ paddingTop: insets.top + 8 + topBarH, paddingBottom: 170 }}
         onScroll={onScroll}
         scrollEventThrottle={16}
         refreshControl={
@@ -237,7 +260,7 @@ export default function HomeScreen() {
             onRefresh={onRefresh}
             tintColor="transparent"
             colors={[colors.green]}
-            progressViewOffset={insets.top + 8 + TOP_BAR_H}
+            progressViewOffset={insets.top + 8 + topBarH}
           />
         }
       >
@@ -411,10 +434,14 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     backgroundColor: colors.card,
     borderRadius: radius.pill,
-    height: 46,
+    // height 固定だと、端末の文字サイズを大きくしたときに枠から文字がはみ出す。
+    // 伸びられるようにして、枠のほうを文字に合わせる（2026-08-21 指摘）
+    minHeight: 46,
+    paddingVertical: 6,
     paddingHorizontal: spacing.lg,
   },
-  searchPlaceholder: { fontFamily: fonts.regular, fontSize: 14.5, color: colors.textPlaceholder },
+  // flexShrink を効かせないと、長い文字が虫めがねアイコンを押し出してしまう
+  searchPlaceholder: { flexShrink: 1, fontFamily: fonts.regular, fontSize: 14.5, color: colors.textPlaceholder },
   badge: {
     position: 'absolute', top: 2, right: 0, minWidth: 17, height: 17, borderRadius: 8.5,
     backgroundColor: '#E4796F', justifyContent: 'center', alignItems: 'center',

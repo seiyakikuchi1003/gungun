@@ -112,7 +112,7 @@ const rawItems: RawItem[] = [
   { id: 'coffee', name: 'コーヒーメーカー', category: '家電', condition: '目立った傷や汚れなし', description: '全自動タイプ。動作確認済み。', image: img('coffee1'), images: [img('coffee1')], local: P.coffee, localImages: [P.coffee], ownerId: 'metan', waterCount: 3, likeCount: 15, treeCount: 3, status: 'growing' },
   { id: 'camera', name: 'ミラーレスカメラ', category: 'スマホ・家電', condition: '目立った傷や汚れなし', description: 'レンズキット付き。シャッター回数少なめ。', image: img('camera1'), images: [img('camera1')], local: P.camera, localImages: [P.camera], ownerId: 'yu', waterCount: 6, likeCount: 28, treeCount: 6, status: 'growing' },
   { id: 'speaker', name: 'ワイヤレススピーカー', category: '家電', condition: '未使用に近い', description: '防水対応。箱付き。', image: img('speaker1'), images: [img('speaker1')], local: P.speaker, localImages: [P.speaker], ownerId: 'haru', waterCount: 3, likeCount: 10, treeCount: 7, status: 'growing' },
-  { id: 'giftcard', name: 'ギフト券', category: 'チケット', condition: '新品・未使用', description: '5,000円分。有効期限まだあります。', image: img('gift1'), images: [img('gift1')], local: P.giftcard, localImages: [P.giftcard], ownerId: 'metan', waterCount: 4, likeCount: 19, treeCount: 4, status: 'growing' },
+  { id: 'giftcard', name: 'ギフト券', category: 'その他', condition: '新品・未使用', description: '5,000円分。有効期限まだあります。', image: img('gift1'), images: [img('gift1')], local: P.giftcard, localImages: [P.giftcard], ownerId: 'metan', waterCount: 4, likeCount: 19, treeCount: 4, status: 'growing' },
 
   // ── デモ用の「育った木」＝水やりの連鎖（わらしべの鎖）──────────────
   // ワイヤレススピーカー（はる）を起点に、水やり＝出品が連鎖してつながっている。
@@ -128,7 +128,7 @@ const rawItems: RawItem[] = [
   { id: 'w-mug', name: 'マグカップ', category: 'インテリア', condition: '未使用に近い', description: 'いただきもののマグカップ。使わないのでお譲りします。', image: img('mug1'), images: [img('mug1')], local: P.coffee, localImages: [P.coffee], ownerId: 'sakura', waterCount: 1, likeCount: 3, treeCount: 0, status: 'growing', parentId: 'speaker', rootId: 'speaker', depth: 1 },
   { id: 'w-cam', name: 'ミラーレスカメラ', category: 'スマホ・家電', condition: '目立った傷や汚れなし', description: 'マグカップと交換希望で水やりしました。レンズキット付き。', image: img('cam2'), images: [img('cam2')], local: P.camera, localImages: [P.camera], ownerId: 'yu', waterCount: 1, likeCount: 6, treeCount: 0, status: 'growing', parentId: 'w-mug', rootId: 'speaker', depth: 2 },
   { id: 'w-watch2', name: '腕時計', category: 'メンズ', condition: '未使用に近い', description: 'カメラが欲しくて水やり。電池交換済みです。', image: img('watch2'), images: [img('watch2')], local: P.watch, localImages: [P.watch], ownerId: 'takusan', waterCount: 0, likeCount: 5, treeCount: 0, status: 'growing', parentId: 'w-cam', rootId: 'speaker', depth: 3 },
-  { id: 'w-gift', name: 'ギフト券 5,000円分', category: 'チケット', condition: '新品・未使用', description: '有効期限まだあります。', image: img('gift2'), images: [img('gift2')], local: P.giftcard, localImages: [P.giftcard], ownerId: 'kenta', waterCount: 1, likeCount: 2, treeCount: 0, status: 'growing', parentId: 'speaker', rootId: 'speaker', depth: 1 },
+  { id: 'w-gift', name: 'ギフト券 5,000円分', category: 'その他', condition: '新品・未使用', description: '有効期限まだあります。', image: img('gift2'), images: [img('gift2')], local: P.giftcard, localImages: [P.giftcard], ownerId: 'kenta', waterCount: 1, likeCount: 2, treeCount: 0, status: 'growing', parentId: 'speaker', rootId: 'speaker', depth: 1 },
   { id: 'w-books2', name: '文庫本セット', category: '本・音楽', condition: '目立った傷や汚れなし', description: '人気作家の文庫本8冊セット。', image: img('books2'), images: [img('books2')], local: P.books, localImages: [P.books], ownerId: 'sakura', waterCount: 0, likeCount: 3, treeCount: 0, status: 'growing', parentId: 'w-gift', rootId: 'speaker', depth: 2 },
 
   // ── 自分（めたん）が植えたタネに集まった水やり ──────────────────
@@ -235,9 +235,16 @@ export const howToSteps = [
   { key: 'harvest', title: '収穫する', desc: '輪になって\n交換成立', icon: 'harvest' },
 ] as const;
 
+/**
+ * 出品カテゴリー。
+ *
+ * 「チケット（イベント・優待券）」は外した（2026-08-21 指摘）。
+ * ギフト券・優待券・ライブチケットは金券性があり、物々交換ではなく
+ * 金銭のやり取りになってしまうため、出品の選択肢から無くす。
+ */
 export const categories = [
   'レディース', 'メンズ', 'スマホ・家電', '家電', 'ゲーム・おもちゃ',
-  'コスメ・美容', 'インテリア', '本・音楽', 'チケット', 'その他',
+  'コスメ・美容', 'インテリア', '本・音楽', 'その他',
 ];
 
 export const conditions = [

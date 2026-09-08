@@ -66,3 +66,22 @@ export async function cropToFrame(uri: string, f: Frame): Promise<string> {
   const out = await image.saveAsync({ compress: 0.7, format: SaveFormat.JPEG });
   return out.uri;
 }
+
+/**
+ * 写真を右に90度まわす（2026-08-21 指摘）。
+ *
+ * 切り抜き画面には回転に見えるアイコンがあったのに、中身は位置のリセットで、
+ * 縦横を直す手段が無かった。ここで実ファイルを回して返す。
+ *
+ * 表示側で transform を掛けて見せる方法もあるが、そうすると
+ * 「枠に対して cover で収める」計算と回転が二重にかかり、
+ * 切り出し位置が画面の見た目とずれる。実体を回してしまえば、
+ * 表示も cropToFrame の計算もそのまま使える。
+ */
+export async function rotate90(uri: string): Promise<string> {
+  const ctx = ImageManipulator.manipulate(uri).rotate(90);
+  const image = await ctx.renderAsync();
+  // 回すたびに再エンコードされるので、劣化を抑えるため圧縮は緩めにする
+  const out = await image.saveAsync({ compress: 0.92, format: SaveFormat.JPEG });
+  return out.uri;
+}

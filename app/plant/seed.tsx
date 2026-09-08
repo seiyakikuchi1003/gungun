@@ -213,7 +213,17 @@ export default function PlantSeedScreen() {
       <PhotoSourceSheet
         visible={photoSheet}
         onClose={() => setPhotoSheet(false)}
-        onPicked={(uris) => setPhotos((p) => [...p, ...uris].slice(0, 10))}
+        onPicked={(uris, fromCamera) => {
+          const added = photos.length; // 追加した写真が入る位置（末尾に足すので現在の枚数）
+          setPhotos((p) => [...p, ...uris].slice(0, 10));
+          // 撮った直後は、そのまま切り抜き画面へ回す（2026-08-21 指摘）。
+          // OS 標準の正方形固定トリミングをやめたぶん、ここで比率と回転を選べるようにする。
+          if (fromCamera && uris[0] && added < 10) {
+            cropTarget.current = added;
+            // シートが閉じ切る前に push すると iOS で画面が出ない（PhotoSourceSheet と同じ理由）
+            setTimeout(() => router.push({ pathname: '/crop', params: { uri: uris[0] } }), 200);
+          }
+        }}
       />
 
       {/* ピッカー */}

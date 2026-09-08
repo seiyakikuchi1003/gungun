@@ -10,14 +10,15 @@ import { takePhoto, pickFromLibrary } from '@/lib/photo';
 type Props = {
   visible: boolean;
   onClose: () => void;
-  onPicked: (uris: string[]) => void; // 取得した写真URI（複数可）
+  /** 取得した写真URI（複数可）。fromCamera＝その場で撮った1枚（撮った直後に切り抜きへ回す） */
+  onPicked: (uris: string[], fromCamera: boolean) => void;
 };
 
 type Picker = () => Promise<string[] | null>;
 
 /**
  * 写真の追加方法を選ぶシート。
- * 「カメラで撮影」＝その場撮影（撮った直後に切り抜ける） ／
+ * 「カメラで撮影」＝その場撮影（撮った直後に自前の切り抜き画面へ：2026-08-21 指摘） ／
  * 「ライブラリから選択」＝まとめて選ぶ。
  *
  * 切り抜きはここには置かない。追加した写真をタップすると切り抜ける
@@ -35,6 +36,7 @@ export function PhotoSourceSheet({ visible, onClose, onPicked }: Props) {
   const flush = useCallback(async () => {
     const fn = pending.current;
     if (!fn) return;
+    const fromCamera = fn === takePhoto;
     pending.current = null; // 二重起動を防ぐ
     if (timer.current) {
       clearTimeout(timer.current);
@@ -42,7 +44,7 @@ export function PhotoSourceSheet({ visible, onClose, onPicked }: Props) {
     }
     try {
       const uris = await fn();
-      if (uris && uris.length) onPicked(uris);
+      if (uris && uris.length) onPicked(uris, fromCamera);
     } catch (e) {
       // 黙って何も起きないのが一番困るので、理由を出す
       Alert.alert(

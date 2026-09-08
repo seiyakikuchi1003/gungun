@@ -3,12 +3,13 @@ import { View, Text, StyleSheet, Image, ActivityIndicator } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, runOnJS } from 'react-native-reanimated';
 import { colors, spacing, fonts, radius } from '@/theme';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { FormError } from '@/components/ui/FormError';
-import { cropToFrame, type Ratio } from '@/lib/crop';
+import { cropToFrame, rotate90, type Ratio } from '@/lib/crop';
 import { errorMessage } from '@/lib/errorMessage';
 
 /**
@@ -24,6 +25,11 @@ import { errorMessage } from '@/lib/errorMessage';
  * 【なぜ枠を動かさないのか】
  * 枠を動かす方式だと「どこが残るのか」が枠の外まで見えてしまい分かりにくい。
  * 写真を動かす方式なら、見えているものがそのまま結果になる。
+ *
+ * 【回転】（2026-08-21 指摘）
+ * 以前はヘッダー右に回転に見える丸矢印があったが、中身は位置のリセットで、
+ * 横向きに撮れた写真を直す手段が無かった。回転を実装し、
+ * リセットは「元に戻す」という文字のボタンに分けた（見た目と動きを一致させる）。
  */
 
 const RATIOS: { key: Ratio; label: string }[] = [
@@ -38,6 +44,10 @@ export default function CropScreen() {
   const [ratio, setRatio] = useState<Ratio>((initial as Ratio) ?? 'square');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // 回転すると実ファイルが作り直されるので、表示・切り出しの対象はこちらを見る
+  const [workUri, setWorkUri] = useState<string | undefined>(uri);
+  const [rotating, setRotating] = useState(false);
+  React.useEffect(() => { setWorkUri(uri); }, [uri]);
 
   // 表示中の写真の位置と倍率
   const tx = useSharedValue(0);
@@ -72,12 +82,32 @@ export default function CropScreen() {
     setView({ x: 0, y: 0, s: 1 });
   };
 
+  /**
+   * 右に90度まわす。
+   * 回すと写真の縦横が入れ替わるので、それまでの位置・倍率は意味を失う。
+   * ずれたまま残ると「動かしていないのに切り出しがずれる」ので、あわせて戻す。
+   */
+  const rotate = async () => {
+    if (!workUri || rotating) return;
+    setRotating(true);
+    setError(null);
+    try {
+      const out = await rotate90(workUri);
+      setWorkUri(out);
+      reset();
+    } catch (e) {
+      setError(errorMessage(e, '回転できませんでした'));
+    } finally {
+      setRotating(false);
+    }
+  };
+
   const apply = async () => {
-    if (!uri) return;
+    if (!workUri) return;
     setBusy(true);
     setError(null);
     try {
-      const out = await cropToFrame(uri, { ratio, frame: FRAME, tx: view.x, ty: view.y, scale: view.s });
+      const out = await cropToFrame(workUri, { ratio, frame: FRAME, tx: view.x, ty: view.y, scale: view.s });
       // 呼び出し元（出品・編集フォーム）が受け取れるよう、結果をパラメータで返す
       router.back();
       setTimeout(() => router.setParams({ cropped: out }), 0);
@@ -97,8 +127,11 @@ export default function CropScreen() {
           <Ionicons name="close" size={26} color={colors.white} />
         </PressableScale>
         <Text style={styles.hTitle}>切り抜き</Text>
-        <PressableScale onPress={reset} activeScale={0.9} style={styles.hBtn}>
-          <Ionicons name="refresh" size={22} color={colors.white} />
+        {/* 回転（2026-08-21 指摘）。以前はここが見た目だけの丸矢印だった */}
+        <PressableScale onPress={rotate} disabled={rotating} activeScale={0.9} style={styles.hBtn}>
+          {rotating
+            ? <ActivityIndicator color={colors.white} size="small" />
+            : <MaterialIcons name="rotate-right" size={24} color={colors.white} />}
         </PressableScale>
       </View>
 
@@ -106,7 +139,7 @@ export default function CropScreen() {
         <GestureDetector gesture={gesture}>
           <View style={[styles.frame, { width: FRAME, height: h }]}>
             <Animated.View style={[StyleSheet.absoluteFill, animated]}>
-              <Image source={{ uri }} style={styles.img} resizeMode="cover" />
+              <Image source={{ uri: workUri }} style={styles.img} resizeMode="cover" />
             </Animated.View>
             {/* 三分割の目安線 */}
             <View pointerEvents="none" style={StyleSheet.absoluteFill}>
@@ -117,7 +150,7 @@ export default function CropScreen() {
             </View>
           </View>
         </GestureDetector>
-        <Text style={styles.hint}>ドラッグで移動・2本指で拡大</Text>
+        <Text style={styles.hint}>ドラッグで移動・2本指で拡大・右上で回転</Text>
       </View>
 
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
@@ -133,6 +166,9 @@ export default function CropScreen() {
             </PressableScale>
           ))}
         </View>
+        <PressableScale onPress={reset} activeScale={0.96} style={styles.resetBtn}>
+          <Text style={styles.resetText}>位置と大きさを元に戻す</Text>
+        </PressableScale>
         {error ? <FormError message={error} /> : null}
         <PressableScale onPress={apply} disabled={busy} activeScale={0.97} style={[styles.done, busy && { opacity: 0.6 }]}>
           {busy ? <ActivityIndicator color={colors.white} /> : <Text style={styles.doneText}>この範囲で切り抜く</Text>}
@@ -161,6 +197,8 @@ const styles = StyleSheet.create({
   ratioChipOn: { backgroundColor: colors.white },
   ratioText: { fontFamily: fonts.medium, fontSize: 13, color: 'rgba(255,255,255,0.85)' },
   ratioTextOn: { fontFamily: fonts.bold, color: colors.textPrimary },
+  resetBtn: { alignSelf: 'center', paddingVertical: 4, paddingHorizontal: spacing.md },
+  resetText: { fontFamily: fonts.medium, fontSize: 12.5, color: 'rgba(255,255,255,0.7)' },
   done: { height: 54, borderRadius: radius.pill, backgroundColor: colors.green, justifyContent: 'center', alignItems: 'center' },
   doneText: { fontFamily: fonts.bold, fontSize: 16, color: colors.white },
 });

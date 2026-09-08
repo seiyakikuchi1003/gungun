@@ -98,6 +98,7 @@ export default function SearchScreen() {
             placeholder="欲しいものを探してみよう"
             placeholderTextColor={colors.textPlaceholder}
             style={[styles.input, { outlineStyle: 'none' } as object]}
+            maxFontSizeMultiplier={1.4}
             returnKeyType="search"
             onSubmitEditing={(e) => commitSearch(e.nativeEvent.text)}
           />
@@ -253,11 +254,12 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: 12, paddingBottom: spacing.md },
   back: { width: 36, height: 44, justifyContent: 'center', alignItems: 'center' },
-  searchBar: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.card, borderRadius: radius.pill, height: 46, paddingHorizontal: spacing.lg },
+  // height 固定だと端末の文字サイズを大きくしたときに枠から文字がはみ出す（2026-08-21 指摘）
+  searchBar: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.card, borderRadius: radius.pill, minHeight: 46, paddingVertical: 6, paddingHorizontal: spacing.lg },
   input: { flex: 1, minWidth: 0, fontFamily: fonts.medium, fontSize: 15, color: colors.textPrimary },
-  chipsRow: { maxHeight: 64, flexGrow: 0 },
+  chipsRow: { flexGrow: 0 },
   chips: { paddingHorizontal: 20, gap: spacing.sm, paddingVertical: 12, alignItems: 'center' },
-  chip: { paddingHorizontal: 16, height: 34, borderRadius: radius.pill, backgroundColor: colors.card, justifyContent: 'center', ...shadows.soft },
+  chip: { paddingHorizontal: 16, minHeight: 34, paddingVertical: 6, borderRadius: radius.pill, backgroundColor: colors.card, justifyContent: 'center', ...shadows.soft },
   chipOn: { backgroundColor: colors.green },
   chipText: { fontFamily: fonts.medium, fontSize: 13, color: colors.textSecondary },
   chipTextOn: { color: colors.white, fontFamily: fonts.bold },

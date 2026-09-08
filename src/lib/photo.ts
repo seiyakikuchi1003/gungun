@@ -3,7 +3,7 @@ import * as ImagePicker from 'expo-image-picker';
 
 /**
  * 写真の取得ヘルパー。
- * - takePhoto(): その場でカメラを起動して1枚撮影（切り抜きあり）
+ * - takePhoto(): その場でカメラを起動して1枚撮影（撮ったまま返す。切り抜きは app/crop.tsx）
  * - pickFromLibrary(): 写真ライブラリから選択（複数可・切り抜きなし）
  * - cropPhoto(): 追加済みの写真を選び直して切り抜く（2026-08-13 指摘）
  *
@@ -37,7 +37,12 @@ export async function takePhoto(): Promise<string[] | null> {
   const res = await ImagePicker.launchCameraAsync({
     mediaTypes: ['images'],
     quality: 0.6,
-    allowsEditing: true,   // 撮った直後に切り抜ける
+    // allowsEditing は使わない（2026-08-21 指摘）。
+    // iOS の標準トリミングは正方形固定なので、撮った直後に問答無用で
+    // 正方形に切られてしまい「サムネが設定しづらい」状態になっていた。
+    // ここでは撮ったままを受け取り、呼び出し側で自前の切り抜き画面
+    // （正方形／3:4／4:3・回転あり）に渡す。
+    allowsEditing: false,
   });
   if (res.canceled || !res.assets?.length) return null;
   return res.assets.map((a) => a.uri);
