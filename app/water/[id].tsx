@@ -37,7 +37,10 @@ export default function WaterScreen() {
   const [photos, setPhotos] = useState<string[]>([]);
   const [name, setName] = useState('');
   const [desc, setDesc] = useState('');
-  const [category, setCategory] = useState('バッグ・小物');
+  // 初期値に旧カテゴリーが残っていて、水やりで出した商品だけ Click の区分から
+  // 外れていた（2026-09-09 に本番で1件発見）。タネを植えるときと同じく未選択から始め、
+  // 選ばないと出せないようにする
+  const [category, setCategory] = useState('');
   const [condition, setCondition] = useState('');
   const [picker, setPicker] = useState<PickerKey>(null);
   const me = useMe();
@@ -66,7 +69,7 @@ export default function WaterScreen() {
   const gate = canWater(target.id);
   // 水やり単価は DB（app_settings）から。未接続時はモックの既定値
   const cost = live ? appSettings.waterCost : settings.waterCost;
-  const formOk = name.trim().length > 0 && condition.length > 0 && photos.length > 0;
+  const formOk = name.trim().length > 0 && category.length > 0 && condition.length > 0 && photos.length > 0;
   const canSubmit = gate.ok && formOk && !busy;
 
   const submit = async () => {
@@ -161,7 +164,7 @@ export default function WaterScreen() {
         </View>
 
         {/* カテゴリ */}
-        <SelectRow label="カテゴリ" value={category} placeholder="バッグ・小物" onPress={() => setPicker('category')} />
+        <SelectRow label="カテゴリー" value={category} placeholder="選択してください" onPress={() => setPicker('category')} />
         {/* 商品の状態 */}
         <SelectRow label="商品の状態" value={condition} placeholder="選択してください" onPress={() => setPicker('condition')} />
 
@@ -245,7 +248,7 @@ export default function WaterScreen() {
       {/* ピッカー */}
       <OptionPicker
         visible={picker !== null}
-        title={picker === 'category' ? 'カテゴリ' : '商品の状態'}
+        title={picker === 'category' ? 'カテゴリー' : '商品の状態'}
         options={picker === 'category' ? categories : conditions}
         selected={picker === 'category' ? category : condition}
         searchable={picker === 'category'}
