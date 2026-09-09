@@ -23,7 +23,7 @@ import { Mikan } from '@/components/art/Mikan';
 import { GiftBox } from '@/components/art/GiftBox';
 import { WateringCan } from '@/components/art/WateringCan';
 import { LeafDecor } from '@/components/art/LeafDecor';
-import { howToSteps, categories } from '@/data/mock';
+import { howToSteps } from '@/data/mock';
 import { useTree } from '@/store/tree';
 import { useBlocks } from '@/store/blocks';
 import { useNotifications } from '@/store/notifications';
@@ -76,12 +76,22 @@ const STEP_ART: Record<string, React.ReactNode> = {
  */
 const TOP_BAR_H = 62;
 
-/** ホームの並び替え */
+/**
+ * ホームの並び替え（2026-09-09 に基準を確定）。
+ *
+ * 「おすすめと人気順の違いが分からない」「人気順の基準が分からない」という
+ * 指摘を受けて、4つとも一言で言い切れる基準に揃えた。note は画面にも出す。
+ *
+ *   おすすめ … プレミアム会員の出品を先に。その中では水やりが多い順
+ *   新着順   … 出品が新しい順
+ *   水やり順 … その商品に付いた水やりの数が多い順
+ *   人気順   … いいねの数が多い順
+ */
 const SORTS = [
-  { key: 'recommend', label: 'おすすめ', note: 'プレミアム会員の出品を優先' },
-  { key: 'new', label: '新着順', note: '出品が新しい順' },
-  { key: 'water', label: '水やりが多い順', note: '多くの人が交換を希望している順' },
-  { key: 'like', label: '人気順', note: 'いいねが多い順' },
+  { key: 'recommend', label: 'おすすめ', note: 'プレミアム会員の出品を先に表示します' },
+  { key: 'new', label: '新着順', note: '出品された日が新しい順です' },
+  { key: 'water', label: '水やりが多い順', note: 'その商品に付いた水やりの数が多い順です' },
+  { key: 'like', label: '人気順', note: 'いいねの数が多い順です' },
 ] as const;
 type SortKey = (typeof SORTS)[number]['key'];
 
@@ -98,7 +108,15 @@ export default function HomeScreen() {
   // 取引アイコンのバッジ。以前は常時点灯（badge 固定）だったので、
   // 「まだ発送・受け取りが終わっていない取引」の件数に変えた
   const { list: trades } = useExchanges();
-  const activeTrades = trades.filter((t) => t.status !== 'received').length;
+  // ヘッダーの取引アイコンに出す件数。ボトムナビに出していたものと同じ基準で、
+  // 「自分がいま動くべき取引」だけを数える（見ているだけの取引で赤くしない）
+  // 受け取り済みでも評価がまだなら「やることが残っている」（2026-09-09 指摘）
+  const waitingTrades = trades.filter(
+    (t) =>
+      (t.dir === 'send' && t.status === 'pending') ||
+      (t.dir === 'receive' && t.status === 'shipped') ||
+      (t.status === 'received' && !t.iRated)
+  ).length;
   const { claimed, busy: bonusBusy, amount: bonusAmount, claim } = useLoginBonus();
   const [showBonus, setShowBonus] = useState(false);
   React.useEffect(() => { preloadSfx(); }, []); // 初回再生の遅延を減らす
@@ -151,87 +169,38 @@ export default function HomeScreen() {
     .reverse();
   const shift = refreshTick % Math.max(seedsBase.length, 1);
   const seeds = seedsBase.slice(shift).concat(seedsBase.slice(0, shift));
-  // 出品したカテゴリーのまま並べる。
-  // 以前は「ファッション・小物」などの独自のくくりに寄せていたため、
-  // 「メンズで出したのにファッション・小物に入る」と食い違って見えた（2026-08-13 指摘）。
-  // 出品時に選べる区分（categories）とホームの見出しを一致させる。
-  const SUBTITLE: Record<string, string> = {
-    '本・漫画・CD・DVD': '読みもの・音楽・映像',
-    'ファッション・アクセサリー': '服・バッグ・小物',
-    '趣味・サブカル': 'ゲーム・ホビー・コレクション',
-    'コスメ・美容': 'メイク・スキンケア',
-    'ベビー・キッズ用品': 'こども服・おもちゃ・育児用品',
-    '家電・デジタルガジェット': 'スマホ・PC・生活家電',
-    '日用品・雑貨・文具': 'キッチン・インテリア・文房具',
-    '食品（常温のみ）': '常温で送れるもの',
-    'スポーツ用品': '道具・ウェア・トレーニング',
-    'アウトドア・旅行品': 'キャンプ・登山・旅の道具',
-  };
   /**
-   * 並び替え（2026-08-21 指摘）。
+   * 並びは4つとも「1本の並び」に揃える（2026-09-09 指摘）。
    *
-   * 「おすすめ」はカテゴリー別に並べたうえで、
-   * 各カテゴリーの中で**プレミアム会員の出品を先に**出す。
-   * 以前は「最近見た区分に近い順」だったが、何を基準にしているのか
-   * 伝わらないという指摘があったため、説明できる基準に変えた。
-   * それ以外を選んだときは、カテゴリーの区切りをやめて1本の並びで見せる。
-   * 「水やりが多い順」と「新着順」は区切ったままだと比べにくいため。
+   * 以前は「おすすめ」のときだけカテゴリー別の見出しに割っていた。
+   * そのせいで並び替えを選ぶと画面の構造ごと変わり、さらに区分に当てはまらない
+   * 商品を拾う受け皿として「その他／どれにも当てはまらないもの」という
+   * 意味の伝わらない見出しが出ていた。見出しは選んでいる並び順の名前だけにする。
    */
-  const premiumFirst = (list: typeof seeds) =>
-    [...list].sort((a, b) => {
-      const pa = premiumOwners.has(a.ownerId) ? 1 : 0;
-      const pb = premiumOwners.has(b.ownerId) ? 1 : 0;
-      return pb - pa; // それ以外の並びは元のまま保つ（sort は安定）
+  const sortedItems = (() => {
+    const byWater = (a: (typeof seeds)[number], b: (typeof seeds)[number]) => b.waterCount - a.waterCount;
+    if (sort === 'recommend') {
+      // プレミアム会員の出品を先に。同じ立場どうしは水やりが多い順
+      return [...seeds].sort((a, b) => {
+        const pa = premiumOwners.has(a.ownerId) ? 1 : 0;
+        const pb = premiumOwners.has(b.ownerId) ? 1 : 0;
+        if (pa !== pb) return pb - pa;
+        return byWater(a, b);
+      });
+    }
+    if (sort === 'water') return [...seeds].sort(byWater);
+    if (sort === 'like') return [...seeds].sort((a, b) => b.likeCount - a.likeCount);
+    // 新着順。createdAt が無いモックでは並びを変えない
+    return [...seeds].sort((a, b) => {
+      const ta = a.createdAt ? Date.parse(a.createdAt) : 0;
+      const tb = b.createdAt ? Date.parse(b.createdAt) : 0;
+      return tb - ta;
     });
-  /**
-   * カテゴリー分け。
-   *
-   * 一覧に無いカテゴリーの商品は、どのグループにも入らずホームから消えていた。
-   * Click の区分に合わせたことで旧カテゴリーの商品が出るうえ、
-   * 表記ゆれ（例：コスメ／コスメ・美容）も起こりうる。
-   *
-   * Click には「その他」が無いので、出品時に選べる区分としては持たない。
-   * ただし取りこぼした商品が黙って消えるのは困るので、
-   * **表示のときだけ**末尾に受け皿のグループを足す（該当が無ければ出ない）。
-   */
-  const known = new Set(categories);
-  const OTHER_GROUP = 'その他';
-  const leftovers = seeds.filter((s) => !known.has(s.category));
-  const visibleGroups =
-    sort === 'recommend'
-      ? [
-          ...categories.map((c) => ({
-            title: c,
-            subtitle: SUBTITLE[c] ?? '',
-            items: premiumFirst(seeds.filter((s) => s.category === c)),
-          })),
-          {
-            title: OTHER_GROUP,
-            subtitle: 'どれにも当てはまらないもの',
-            items: premiumFirst(leftovers),
-          },
-        ]
-          .filter((g) => g.items.length > 0)
-          // 出品の多いカテゴリーから見せる。受け皿は必ず最後に回す
-          .sort((a, b) => {
-            if (a.title === OTHER_GROUP) return 1;
-            if (b.title === OTHER_GROUP) return -1;
-            return b.items.length - a.items.length;
-          })
-      : [
-          {
-            title: SORTS.find((x) => x.key === sort)?.label ?? '',
-            subtitle: SORTS.find((x) => x.key === sort)?.note ?? '',
-            items: [...seeds].sort((a, b) => {
-              if (sort === 'water') return b.waterCount - a.waterCount;
-              if (sort === 'like') return b.likeCount - a.likeCount;
-              // 新着順。createdAt が無いモックでは並びを変えない
-              const ta = a.createdAt ? Date.parse(a.createdAt) : 0;
-              const tb = b.createdAt ? Date.parse(b.createdAt) : 0;
-              return tb - ta;
-            }),
-          },
-        ].filter((g) => g.items.length > 0);
+  })();
+  const current = SORTS.find((x) => x.key === sort);
+  const visibleGroups = [
+    { title: current?.label ?? '', subtitle: current?.note ?? '', items: sortedItems },
+  ].filter((g) => g.items.length > 0);
 
   return (
     <View style={styles.root}>
@@ -251,13 +220,20 @@ export default function HomeScreen() {
         <View style={styles.topBar}>
           <PressableScale onPress={() => router.push('/search')} activeScale={0.98} style={[styles.search, shadows.soft]}>
             <Ionicons name="search" size={20} color={colors.textSecondary} />
-            <Text style={styles.searchPlaceholder} numberOfLines={1} maxFontSizeMultiplier={1.4}>
+            <Text
+              style={styles.searchPlaceholder}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.75}
+              maxFontSizeMultiplier={1.4}
+            >
               欲しいものを探してみよう
             </Text>
           </PressableScale>
           <HeaderIcon name="notifications" count={unreadCount} onPress={() => router.push('/notifications')} />
-          {/* 取引はボトムナビに移したので、ここはマイページへの導線にする（2026-08-13） */}
-          <HeaderIcon name="person-circle-outline" count={0} onPress={() => router.navigate('/mypage')} />
+          {/* マイページを下のタブに戻したので、ここは取引への導線にする（2026-09-09）。
+              対応待ち（発送すべき／受け取れる）の件数を数字で出す */}
+          <HeaderIcon name="swap-horizontal" count={waitingTrades} onPress={() => router.navigate('/exchange')} />
         </View>
       </View>
 
@@ -350,7 +326,10 @@ export default function HomeScreen() {
               <Sprout size={20} />
               {/* 文字サイズを大きくすると「すべて見る」と重なっていた（2026-08-21）。
                   見出し側を縮められるようにして、収まらなければ省略する */}
-              <Text style={styles.sectionTitle} numberOfLines={1}>みんなの出品</Text>
+              {/* 「み…」まで縮んでいた（2026-09-09）。切らずに縮めて収める */}
+              <Text style={styles.sectionTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
+                みんなの出品
+              </Text>
             </View>
             <PressableScale onPress={() => router.push('/search')} style={styles.seeAllBtn}>
               <Text style={styles.seeAll} numberOfLines={1}>すべて見る ›</Text>
@@ -374,6 +353,21 @@ export default function HomeScreen() {
               </PressableScale>
             ))}
           </ScrollView>
+
+          {/* 写真の左下に出る2つの数字の意味（2026-09-09 指摘）。
+              「水滴は分かるが葉っぱが何なのか分からない」と言われたので、
+              一覧の入口に短い凡例を置く。 */}
+          <View style={styles.legendRow}>
+            <View style={styles.legendItem}>
+              <Ionicons name="water" size={12} color={colors.waterBlue} />
+              <Text style={styles.legendText} numberOfLines={1}>この商品への水やり</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <Ionicons name="leaf" size={12} color={colors.green} />
+              <Text style={styles.legendText} numberOfLines={1}>この木に集まった商品</Text>
+            </View>
+          </View>
+
           {/* 更新のたびに key が変わり、新しい並びがふわっと入れ替わる */}
           <Animated.View key={refreshTick} entering={FadeIn.duration(420)}>
             {visibleGroups.map((g) => (
@@ -395,10 +389,16 @@ export default function HomeScreen() {
           <View style={[styles.howCard, shadows.card]}>
             {howToSteps.map((step, i) => (
               <React.Fragment key={step.key}>
+                {/* 3つ並ぶので1つあたり 84px しかない。文字を大きくすると
+                    はみ出していた（2026-09-09 指摘）。幅は固定のまま文字を縮める */}
                 <View style={styles.step}>
                   <View style={styles.stepArt}>{STEP_ART[step.icon]}</View>
-                  <Text style={styles.stepTitle}>{step.title}</Text>
-                  <Text style={styles.stepDesc}>{step.desc}</Text>
+                  <Text style={styles.stepTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
+                    {step.title}
+                  </Text>
+                  <Text style={styles.stepDesc} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.65}>
+                    {step.desc}
+                  </Text>
                 </View>
                 {i < howToSteps.length - 1 && (
                   <Ionicons name="chevron-forward" size={18} color={colors.greenSoftBorder} />
@@ -431,6 +431,12 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   sortRow: { gap: spacing.sm, paddingHorizontal: 20, paddingBottom: spacing.md },
+  legendRow: {
+    flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center',
+    gap: spacing.md, paddingHorizontal: 20, paddingBottom: spacing.sm,
+  },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 1 },
+  legendText: { fontFamily: fonts.medium, fontSize: 11, color: colors.textSecondary, flexShrink: 1 },
   sortChip: {
     paddingHorizontal: spacing.lg, paddingVertical: 7, borderRadius: 999,
     backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border,
@@ -528,7 +534,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  step: { alignItems: 'center', gap: 4, width: 84 },
+  step: { alignItems: 'center', gap: 4, width: 84, flexShrink: 1 },
   stepArt: { height: 40, justifyContent: 'center', alignItems: 'center' },
   stepTitle: { fontFamily: fonts.bold, fontSize: 13, color: colors.textPrimary, marginTop: 2 },
   stepDesc: { fontFamily: fonts.regular, fontSize: 11, lineHeight: lh(16), color: colors.textSecondary, textAlign: 'center' },

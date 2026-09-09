@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useMe } from '@/store/me';
 import { PremiumNudge } from '@/components/feature/PremiumNudge';
 import { View, Text, StyleSheet, ScrollView, TextInput, ActivityIndicator } from 'react-native';
@@ -28,7 +28,8 @@ type PickerKey = 'category' | 'condition' | null;
 
 export default function WaterScreen() {
   const users = useUsers();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  // 切り抜き画面は cropped パラメータで結果を返してくるので、id と一緒に受ける
+  const { id, cropped } = useLocalSearchParams<{ id: string; cropped?: string }>();
   const insets = useSafeAreaInsets();
   const { getItem, canWater, water, fertilizer, settings: appSettings, live } = useTree();
   const target = getItem(id ?? '');
@@ -44,6 +45,16 @@ export default function WaterScreen() {
   // 出品・水やりのタイミングでだけプレミアムを案内する（2026-08-13 指摘）
   const [nudge, setNudge] = useState(true);
   const [busy, setBusy] = useState(false);
+  // 水やりで出す商品の写真も、タネを植えるときと同じように回転・トリミングできるようにする
+  // （2026-09-09 指摘）。切り抜き画面から戻ってきたとき、どの写真を差し替えるか
+  const cropTarget = useRef<number | null>(null);
+  useEffect(() => {
+    if (!cropped) return;
+    const i = cropTarget.current;
+    if (i !== null) setPhotos((p) => p.map((v, idx) => (idx === i ? cropped : v)));
+    cropTarget.current = null;
+    router.setParams({ cropped: undefined });
+  }, [cropped]);
 
   if (!target) {
     return (
@@ -112,7 +123,17 @@ export default function WaterScreen() {
         keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photoRow}>
           {photos.map((uri, i) => (
             <View key={uri + i} style={styles.photo}>
-              <Thumb uri={uri} style={styles.photoImg} radius={radius.md} markSize={30} />
+              {/* 写真を押すと切り抜き画面へ（回転・比率の変更）。タネを植えるときと同じ操作にする */}
+              <PressableScale
+                activeScale={0.97}
+                onPress={() => { cropTarget.current = i; router.push({ pathname: '/crop', params: { uri } }); }}
+              >
+                <Thumb uri={uri} style={styles.photoImg} radius={radius.md} markSize={30} />
+                <View style={styles.cropHint}>
+                  <Ionicons name="crop" size={11} color={colors.white} />
+                  <Text style={styles.cropHintText}>切り抜く</Text>
+                </View>
+              </PressableScale>
               <PressableScale onPress={() => setPhotos((p) => p.filter((_, idx) => idx !== i))} style={styles.removeBadge} activeScale={0.85}>
                 <Ionicons name="close" size={13} color={colors.white} />
               </PressableScale>
@@ -209,7 +230,16 @@ export default function WaterScreen() {
       <PhotoSourceSheet
         visible={photoSheet}
         onClose={() => setPhotoSheet(false)}
-        onPicked={(uris) => setPhotos((p) => [...p, ...uris].slice(0, 10))}
+        onPicked={(uris, fromCamera) => {
+          const added = photos.length; // 追加した写真が入る位置（末尾に足すので現在の枚数）
+          setPhotos((p) => [...p, ...uris].slice(0, 10));
+          // 撮った直後はそのまま切り抜き画面へ回す（タネを植えるときと同じ）
+          if (fromCamera && uris[0] && added < 10) {
+            cropTarget.current = added;
+            // シートが閉じ切る前に push すると iOS で画面が出ない
+            setTimeout(() => router.push({ pathname: '/crop', params: { uri: uris[0] } }), 200);
+          }
+        }}
       />
 
       {/* ピッカー */}
@@ -256,6 +286,11 @@ const styles = StyleSheet.create({
   photoRow: { gap: spacing.md, paddingVertical: spacing.xs },
   photo: { width: 92, height: 92 },
   photoImg: { width: 92, height: 92 },
+  cropHint: {
+    position: 'absolute', left: 4, bottom: 4, flexDirection: 'row', alignItems: 'center', gap: 3,
+    backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 999, paddingHorizontal: 6, paddingVertical: 2,
+  },
+  cropHintText: { fontFamily: fonts.bold, fontSize: 9.5, color: colors.white },
   removeBadge: { position: 'absolute', top: 5, right: 5, width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
   addPhoto: { width: 92, height: 92, borderRadius: radius.md, borderWidth: 2, borderColor: colors.waterBlueSoft, borderStyle: 'dashed', backgroundColor: colors.waterBlueBg, justifyContent: 'center', alignItems: 'center', gap: 2 },
   addPhotoText: { fontFamily: fonts.bold, fontSize: 11, color: colors.waterBlue },

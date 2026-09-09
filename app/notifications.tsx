@@ -33,6 +33,8 @@ const TONE: Record<NotificationType, string> = {
   board_comment: colors.premium,
   item_comment: colors.orange,
   ring_completed: colors.orangeDeep,
+  rate_request: colors.green,
+  item_like: colors.heart,
 };
 
 /** 知らない種別が来ても既定の色・アイコンで出す（DB が先行しても画面を壊さない） */

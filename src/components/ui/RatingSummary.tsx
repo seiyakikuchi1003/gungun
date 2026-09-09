@@ -26,7 +26,9 @@ export function RatingSummary({ avg, count, suffix, size = 13, gap = 2 }: Props)
   if (count <= 0) {
     return (
       <View style={styles.row}>
-        <Text style={styles.muted}>評価なし{suffix ? `・${suffix}` : ''}</Text>
+        <Text style={styles.muted} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>
+          評価なし{suffix ? `・${suffix}` : ''}
+        </Text>
       </View>
     );
   }
@@ -34,7 +36,7 @@ export function RatingSummary({ avg, count, suffix, size = 13, gap = 2 }: Props)
     <View style={[styles.row, { gap: 6 }]}>
       <StarRating value={avg ?? 0} size={size} gap={gap} />
       <Text style={styles.value}>{(avg ?? 0).toFixed(1)}</Text>
-      <Text style={styles.muted}>
+      <Text style={styles.muted} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>
         ({count}){suffix ? `・${suffix}` : ''}
       </Text>
     </View>

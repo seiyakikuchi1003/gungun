@@ -57,7 +57,9 @@ export type NotificationType =
   | 'sapling'         // 収穫の輪から外れて、自分の商品が新しいタネ（苗木）になった
   | 'board_comment'   // 掲示板の投稿へのコメント
   | 'item_comment'    // 自分の出品へのコメント（2026-08-12 に掲示板から分離）
-  | 'ring_completed'; // 玉突きの輪が一周した（お祝い）
+  | 'ring_completed'  // 玉突きの輪が一周した（お祝い）
+  | 'rate_request'    // 受け取ったので、相手の評価をお願いする（2026-09-09）
+  | 'item_like';      // 自分の出品にいいねが付いた（2026-09-09）
 export type Notif = {
   id: string;
   type: NotificationType;
@@ -101,6 +103,8 @@ export const NOTIF_ICON: Record<NotificationType, string> = {
   board_comment: 'chatbox',
   item_comment: 'pricetag',
   ring_completed: 'trophy',
+  rate_request: 'star',
+  item_like: 'heart',
 };
 
 /** 取引（玉突きの1ペア）。dir=receive:受け取る（緑） / send:送る（オレンジ） */

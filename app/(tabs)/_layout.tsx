@@ -18,9 +18,11 @@ export default function TabsLayout() {
       <Tabs.Screen name="board" />
       <Tabs.Screen name="harvest" />
       <Tabs.Screen name="premium" />
-      {/* 取引は頻繁に使うのでタブに出す。マイページはホーム右上から開く（2026-08-13） */}
-      <Tabs.Screen name="exchange" />
-      <Tabs.Screen name="mypage" options={{ href: null }} />
+      {/* 下のタブの右端はマイページ、取引はホーム右上のアイコンから開く。
+          2026-08-13 に逆の並びにしていたが、2026-09-09 の会議で
+          「取引が右上・マイページが右下」で結論と確認が取れた */}
+      <Tabs.Screen name="mypage" />
+      <Tabs.Screen name="exchange" options={{ href: null }} />
     </Tabs>
   );
 }

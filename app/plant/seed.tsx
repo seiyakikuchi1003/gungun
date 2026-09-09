@@ -257,12 +257,21 @@ function SelectRow({
 }) {
   return (
     <PressableScale onPress={onPress} activeScale={0.98} style={[styles.selectRow, shadows.soft]}>
-      <View style={styles.labelRow}>
-        <Text style={styles.fieldLabel}>{label}</Text>
+      {/* 文字サイズを上げると、左のラベルと右の値が押し合って行が画面の外へ
+          はみ出していた（2026-09-09 指摘）。両側とも縮められるようにする */}
+      <View style={[styles.labelRow, { flexShrink: 1, minWidth: 0 }]}>
+        <Text style={styles.fieldLabel} numberOfLines={1}>{label}</Text>
         {required && <Text style={styles.required}>必須</Text>}
       </View>
-      <View style={styles.selectRight}>
-        <Text style={[styles.selectValue, !value && styles.selectPlaceholder]}>{value || placeholder}</Text>
+      <View style={[styles.selectRight, { flexShrink: 1, minWidth: 0 }]}>
+        <Text
+          style={[styles.selectValue, !value && styles.selectPlaceholder]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.75}
+        >
+          {value || placeholder}
+        </Text>
         <Ionicons name="chevron-forward" size={18} color={colors.green} />
       </View>
     </PressableScale>
@@ -323,7 +332,7 @@ const styles = StyleSheet.create({
   textarea: { minHeight: 110, textAlignVertical: 'top', paddingTop: 12 },
   selectRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.cardMuted, borderRadius: radius.card, paddingHorizontal: spacing.lg, paddingVertical: spacing.lg },
   selectRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  selectValue: { fontFamily: fonts.bold, fontSize: 15, color: colors.green },
+  selectValue: { fontFamily: fonts.bold, fontSize: 15, color: colors.green, flexShrink: 1 },
   footer: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 20, paddingTop: spacing.md, backgroundColor: colors.bg, borderTopWidth: 1, borderTopColor: colors.divider },
   pickerTitle: { fontFamily: fonts.bold, fontSize: 17, color: colors.textPrimary, marginBottom: spacing.md, textAlign: 'center' },
   pickerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.divider },

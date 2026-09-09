@@ -79,8 +79,11 @@ export default function BoardScreen() {
     <View style={styles.root}>
       {/* ヘッダー */}
       <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-        <View>
-          <Text style={styles.title}>掲示板</Text>
+        {/* 幅の狭い端末で文字を大きくすると、見出しが検索ボタンを押しのけて
+            画面の外へはみ出していた（2026-09-09 指摘）。
+            見出し側を縮められるようにして、説明文は折り返して全部読めるようにする */}
+        <View style={{ flex: 1, flexShrink: 1 }}>
+          <Text style={styles.title} adjustsFontSizeToFit numberOfLines={1} minimumFontScale={0.7}>掲示板</Text>
           <Text style={styles.subtitle}>交換の様子や質問をシェアしよう</Text>
         </View>
         <PressableScale

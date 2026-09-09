@@ -3,10 +3,8 @@ import { View, Text, StyleSheet, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, fonts, shadows } from '@/theme';
-import { useExchanges, type UITrade } from '@/hooks/useExchanges';
 import { PressableScale } from './PressableScale';
 import { Mikan } from '@/components/art/Mikan';
-import { lh } from '@/lib/fontScale';
 
 type TabMeta = { label: string; icon: keyof typeof Ionicons.glyphMap };
 
@@ -33,17 +31,14 @@ type TabBarProps = {
  */
 /**
  * ナビには出さない画面。ルート自体は残す（ホーム右上などから開く）。
- * マイページは使用頻度が低く、取引を常時見える位置に置くため外した（2026-08-13）。
+ * 取引はホーム右上のアイコンから開く。下のタブの右端はマイページ。
+ * 2026-08-13 は逆にしていたが、2026-09-09 の会議で
+ * 「取引が右上・マイページが右下」で結論と確認が取れた。
  */
-const HIDDEN = new Set(['mypage']);
+const HIDDEN = new Set(['exchange']);
 
 export function BottomNav({ state, navigation }: TabBarProps) {
   const insets = useSafeAreaInsets();
-  const { list } = useExchanges();
-  // 自分の対応待ち（発送すべき／受け取れる）があるか
-  const activeTrades = list.filter(
-    (t: UITrade) => (t.dir === 'send' && t.status === 'pending') || (t.dir === 'receive' && t.status === 'shipped')
-  ).length;
   const shown = state.routes.filter((r) => !HIDDEN.has(r.name));
   return (
     <View style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, 10) }, shadows.sheet]}>
@@ -64,7 +59,13 @@ export function BottomNav({ state, navigation }: TabBarProps) {
               <View style={[styles.centerCircle, shadows.button]}>
                 <Mikan size={44} />
               </View>
-              <Text style={[styles.label, styles.centerLabel, focused && styles.labelActiveOrange]} numberOfLines={1} maxFontSizeMultiplier={1.3}>
+              <Text
+                style={[styles.label, styles.centerLabel, focused && styles.labelActiveOrange]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.6}
+                maxFontSizeMultiplier={1.3}
+              >
                 {meta.label}
               </Text>
             </PressableScale>
@@ -79,18 +80,18 @@ export function BottomNav({ state, navigation }: TabBarProps) {
                 size={24}
                 color={focused ? colors.green : colors.textSecondary}
               />
-              {/* 進行中の取引があれば赤いバッジ。見ていないタブの用事に気づけるように（2026-08-12 指摘）。
-                  9px の点では小さすぎて気づかない、もっと大きくしてほしいという指摘を受け、
-                  件数入りの大きめのバッジにした（2026-08-21） */}
-              {route.name === 'exchange' && activeTrades > 0 && (
-                <View style={styles.dot}>
-                  <Text style={styles.dotText} maxFontSizeMultiplier={1.2}>
-                    {activeTrades > 99 ? '99+' : activeTrades}
-                  </Text>
-                </View>
-              )}
             </View>
-            <Text style={[styles.label, focused && styles.labelActive]} numberOfLines={1} maxFontSizeMultiplier={1.3}>{meta.label}</Text>
+            {/* 幅の狭い端末で文字サイズを上げると「ホ…」「プ…」と切れていた
+                （2026-09-09 指摘）。切らずに縮めて1行に収める */}
+            <Text
+              style={[styles.label, focused && styles.labelActive]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.6}
+              maxFontSizeMultiplier={1.3}
+            >
+              {meta.label}
+            </Text>
           </PressableScale>
         );
       })}
@@ -107,14 +108,7 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingHorizontal: 6,
   },
-  tab: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3, paddingTop: 4 },
-  dot: {
-    position: 'absolute', top: -6, right: -12, minWidth: 20, minHeight: 20, borderRadius: 10,
-    paddingHorizontal: 5,
-    justifyContent: 'center', alignItems: 'center',
-    backgroundColor: '#E5484D', borderWidth: 2, borderColor: colors.card,
-  },
-  dotText: { fontFamily: fonts.black, fontSize: 11, color: colors.white, lineHeight: lh(14) },
+  tab: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3, paddingTop: 4, paddingHorizontal: 2 },
   label: { fontFamily: fonts.medium, fontSize: 10.5, color: colors.textSecondary },
   labelActive: { color: colors.green, fontFamily: fonts.bold },
   labelActiveOrange: { color: colors.orangeDeep, fontFamily: fonts.bold },

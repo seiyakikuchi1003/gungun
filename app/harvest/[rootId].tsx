@@ -74,14 +74,22 @@ export default function HarvestDetail() {
       <ScrollView
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
-        <View style={[styles.seedCard, shadows.soft]}>
+        {/* 自分のタネも押せば商品詳細へ（2026-09-08 指摘）。
+            集まった商品からは詳細に行けるのに、肝心の自分のタネだけ見に行けず、
+            何を出したのか確かめてから収穫を決める、ができなかった。 */}
+        <PressableScale
+          onPress={() => router.push(`/item/${seed.id}`)}
+          activeScale={0.98}
+          style={[styles.seedCard, shadows.soft]}
+        >
           <Thumb source={seed.local} uri={seed.image} style={styles.seedThumb} radius={radius.md} markSize={30} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.seedName}>{seed.name}</Text>
+            <Text style={styles.seedName} numberOfLines={1}>{seed.name}</Text>
             {/* 件数は下の「集まった商品（N）」で出すので、ここでは重ねて言わない */}
             <Text style={styles.seedSub}>あなたのタネ</Text>
           </View>
-        </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.textPlaceholder} />
+        </PressableScale>
 
         <View style={styles.gatherHead}>
           <Sprout size={18} />

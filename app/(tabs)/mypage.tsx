@@ -43,8 +43,12 @@ function Stat({ n, label, onPress }: { n: number; label: string; onPress?: () =>
   return (
     <PressableScale activeScale={onPress ? 0.94 : 1} onPress={onPress} disabled={!onPress} style={styles.stat}>
       <Text style={styles.statNum}>{n}</Text>
-      <View style={styles.statLabelRow}>
-        <Text style={styles.statLabel}>{label}</Text>
+      {/* 文字を大きくすると「植 え た タ ネ」と1文字ずつ折り返していた
+          （2026-09-09 指摘）。1行に収める・入らないぶんは縮める */}
+      <View style={[styles.statLabelRow, { flexShrink: 1, minWidth: 0 }]}>
+        <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
+          {label}
+        </Text>
         {onPress && <Ionicons name="chevron-forward" size={10} color={colors.textSecondary} />}
       </View>
     </PressableScale>
@@ -109,16 +113,11 @@ export default function MyPage() {
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: 170 }}>
         <View style={styles.header}>
-          {/* マイページはホームから開くので、戻る導線が無いと
-              ボトムナビを経由するしかなかった（2026-08-13 再掲） */}
-          <PressableScale
-            activeScale={0.9}
-            onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
-            style={styles.backBtn}
-          >
-            <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
-          </PressableScale>
-          <Text style={styles.title}>マイページ</Text>
+          {/* マイページは下のタブそのものなので、戻るは出さない（2026-09-09）。
+              タブの画面に戻るが付いていると、どこへ戻るのか分からない。
+              左右の釣り合いだけ取るために、右の歯車と同じ幅の余白を置く */}
+          <View style={styles.backBtn} />
+          <Text style={styles.title} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>マイページ</Text>
           {/* 歯車＝設定（本人確認の情報）、名前の横の「編集」＝公開プロフィール。
               どちらもプロフィール編集に飛んでいて役割が重複していた（2026-08-05 指摘） */}
           <PressableScale activeScale={0.9} onPress={() => router.push('/mypage/account')} style={styles.settingsBtn}>
@@ -130,8 +129,12 @@ export default function MyPage() {
         <View style={[styles.profile, shadows.card]}>
           <View style={styles.profileTop}>
             <Avatar uri={profile?.avatarUrl ?? me.avatar} name={displayName} size={64} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.name}>{displayName}さん</Text>
+            {/* 文字サイズを上げると、名前の列が細くなって1文字ずつ改行されていた
+                （2026-09-09 指摘）。1行に収める・入らないぶんは縮める */}
+            <View style={{ flex: 1, flexShrink: 1, minWidth: 0 }}>
+              <Text style={styles.name} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
+                {displayName}さん
+              </Text>
               <PressableScale
                 onPress={() => router.push(`/ratings/${me.id}` as never)}
                 activeScale={0.97}
@@ -163,15 +166,20 @@ export default function MyPage() {
         </View>
 
         {/* 肥料 */}
+        {/* 文字を大きくすると右側（残高・肥料・チャージ）が画面の外へ出ていた
+            （2026-09-09 指摘）。左右とも縮められるようにして、
+            数字は読めれば足りるので伸びしろに上限をつける */}
         <PressableScale onPress={() => router.push('/fertilizer')} activeScale={0.98} style={[styles.fertRow, shadows.soft]}>
-          <View style={styles.fertLeft}>
+          <View style={[styles.fertLeft, { flexShrink: 1, minWidth: 0 }]}>
             <View style={styles.fertIcon}><Ionicons name="leaf" size={18} color={colors.green} /></View>
-            <Text style={styles.fertLabel}>肥料残高</Text>
+            <Text style={styles.fertLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>肥料残高</Text>
           </View>
-          <View style={styles.fertRight}>
-            <Text style={styles.fertNum}>{fertilizer.toLocaleString()}</Text>
-            <Text style={styles.fertUnit}>肥料</Text>
-            <Text style={styles.charge}>チャージ ›</Text>
+          <View style={[styles.fertRight, { flexShrink: 1, minWidth: 0 }]}>
+            <Text style={styles.fertNum} numberOfLines={1} maxFontSizeMultiplier={1.4} adjustsFontSizeToFit minimumFontScale={0.6}>
+              {fertilizer.toLocaleString()}
+            </Text>
+            <Text style={styles.fertUnit} numberOfLines={1} maxFontSizeMultiplier={1.4}>肥料</Text>
+            <Text style={styles.charge} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>チャージ ›</Text>
           </View>
         </PressableScale>
 
@@ -395,14 +403,14 @@ const styles = StyleSheet.create({
   name: { fontFamily: fonts.bold, fontSize: 18, color: colors.textPrimary },
   ratingRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: 4 },
   ratingText: { fontFamily: fonts.medium, fontSize: 12.5, color: colors.textSecondary },
-  editBtn: { borderWidth: 1.5, borderColor: colors.green, borderRadius: radius.pill, paddingHorizontal: 16, paddingVertical: 6 },
+  editBtn: { flexShrink: 0, borderWidth: 1.5, borderColor: colors.green, borderRadius: radius.pill, paddingHorizontal: 16, paddingVertical: 6 },
   editText: { fontFamily: fonts.bold, fontSize: 13, color: colors.green },
   bio: { fontFamily: fonts.regular, fontSize: 13.5, lineHeight: lh(21), color: colors.textSecondary },
   bioEmpty: { color: colors.textPlaceholder },
   stats: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.bgWarm, borderRadius: radius.md, paddingVertical: spacing.md },
   stat: { flex: 1, alignItems: 'center', gap: 2 },
   statNum: { fontFamily: fonts.black, fontSize: 22, color: colors.green },
-  statLabel: { fontFamily: fonts.medium, fontSize: 11.5, color: colors.textSecondary },
+  statLabel: { fontFamily: fonts.medium, fontSize: 11.5, color: colors.textSecondary, flexShrink: 1 },
   statLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 1 },
   statDivider: { width: 1, height: 28, backgroundColor: colors.border },
   fertRow: { marginHorizontal: 20, marginTop: spacing.lg, backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.lg, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
@@ -410,9 +418,9 @@ const styles = StyleSheet.create({
   fertIcon: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.greenSoft, justifyContent: 'center', alignItems: 'center' },
   fertLabel: { fontFamily: fonts.bold, fontSize: 15, color: colors.textPrimary },
   fertRight: { flexDirection: 'row', alignItems: 'baseline', gap: 4 },
-  fertNum: { fontFamily: fonts.black, fontSize: 22, color: colors.textPrimary },
+  fertNum: { fontFamily: fonts.black, fontSize: 22, color: colors.textPrimary, flexShrink: 1 },
   fertUnit: { fontFamily: fonts.bold, fontSize: 13, color: colors.textSecondary },
-  charge: { fontFamily: fonts.bold, fontSize: 12.5, color: colors.green, marginLeft: spacing.sm },
+  charge: { fontFamily: fonts.bold, fontSize: 12.5, color: colors.green, marginLeft: spacing.sm, flexShrink: 1 },
   menu: { marginHorizontal: 20, marginTop: spacing.lg, backgroundColor: colors.card, borderRadius: radius.card, overflow: 'hidden' },
   menuRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.lg, paddingVertical: spacing.lg },
   menuBorder: { borderBottomWidth: 1, borderBottomColor: colors.divider },

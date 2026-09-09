@@ -79,18 +79,35 @@ export default function ExchangeScreen() {
   const doneList = inTab.filter((t) => t.finished);
   const list = showDone ? inTab : inTab.filter((t) => !t.finished);
   const accent = tab === 'receive' ? colors.green : colors.orange;
-  const actionCount = list.filter((t) => (tab === 'receive' ? t.status === 'shipped' : t.status === 'pending')).length;
+  /**
+   * 「自分がいま動くべき取引」か（2026-09-09 指摘）。
+   *
+   * 受け取っただけで対応完了のように見えていた。評価は取引の最後の手順なので、
+   * 受け取り済みでもまだ評価を出していないものは対応待ちとして数える。
+   * 一覧の文言（取引相手を評価しましょう）と件数を同じ基準に揃える。
+   */
+  const needsMe = (t: UITrade) =>
+    (t.dir === 'send' && t.status === 'pending') ||
+    (t.dir === 'receive' && t.status === 'shipped') ||
+    (t.status === 'received' && !t.iRated);
+  const actionCount = list.filter(needsMe).length;
   // 「送る商品3件」と「1件が対応待ち」が並ぶと、数が食い違って見えた（2026-08-13 指摘）。
   // 見出しは進行中の件数にして、対応待ちはその内訳として書く
-  const ongoing = inTab.filter((t) => t.status !== 'received').length;
+  const ongoing = inTab.filter((t) => !t.finished).length;
   // タブごとの「あなたの対応待ち」件数（表示中でない側も数える）
-  const needReceive = all.filter((t) => t.dir === 'receive' && t.status === 'shipped').length;
-  const needSend = all.filter((t) => t.dir === 'send' && t.status === 'pending').length;
+  const needReceive = all.filter((t) => t.dir === 'receive' && needsMe(t)).length;
+  const needSend = all.filter((t) => t.dir === 'send' && needsMe(t)).length;
 
   return (
     <View style={styles.root}>
       <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
-        <PressableScale onPress={() => router.back()} activeScale={0.9} style={styles.hBtn}>
+        {/* 取引はホーム右上のアイコンから開く画面になったので、戻るはそのまま残す。
+            通知から直接来ることもあるため、戻り先が無いときはホームへ逃がす */}
+        <PressableScale
+          onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))}
+          activeScale={0.9}
+          style={styles.hBtn}
+        >
           <Ionicons name="chevron-back" size={26} color={colors.textPrimary} />
         </PressableScale>
         <Text style={styles.hTitle}>取引</Text>

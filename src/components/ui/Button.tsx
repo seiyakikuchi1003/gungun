@@ -47,9 +47,16 @@ export function Button({
       ) : (
         <>
           {leftIcon ? <View style={styles.icon}>{leftIcon}</View> : null}
+          {/* 端末の文字サイズを上げても「受…」「タネ…」と切れないようにする
+              （2026-09-09 指摘：小さい画面で文字を大きくすると点々になる）。
+              1行に収まらないぶんは文字を縮めて入れる。読めなくなる手前で止める */}
           <Text
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.7}
             style={[
-              { fontFamily: fonts.bold, fontSize: s.fs },
+              styles.label,
+              { fontSize: s.fs },
               variant === 'primary' && { color: colors.white },
               variant === 'accent' && { color: colors.white },
               variant === 'outline' && { color: colors.green },
@@ -111,6 +118,7 @@ export function Button({
 
 const styles = StyleSheet.create({
   base: { justifyContent: 'center', alignItems: 'center' },
+  label: { fontFamily: fonts.bold, flexShrink: 1, textAlign: 'center' },
   inner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm },
   icon: { justifyContent: 'center', alignItems: 'center' },
   outline: { borderWidth: 1.5, borderColor: colors.green, backgroundColor: 'transparent' },

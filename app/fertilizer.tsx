@@ -125,6 +125,9 @@ export default function Fertilizer() {
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+        {/* モックでは Stripe も Apple Pay も通らない（その場で肥料を足すだけ）。
+            「Apple Pay で購入する」と書いてあると、実際の支払い手段を誤って伝えてしまう
+            （2026-09-08 指摘）。表記は実際に通る経路だけにする。 */}
         {done ? (
           <View style={styles.doneRow}>
             <Ionicons name="checkmark-circle" size={20} color={colors.green} />
@@ -132,8 +135,8 @@ export default function Fertilizer() {
           </View>
         ) : (
           <Button
-            title={live ? `${formatPrice(plan.price)} の購入手続きへ` : 'Apple Pay で購入する'}
-            leftIcon={<Ionicons name={live ? 'card' : 'logo-apple'} size={20} color={colors.white} />}
+            title={`${formatPrice(plan.price)} の購入手続きへ`}
+            leftIcon={<Ionicons name="card" size={20} color={colors.white} />}
             loading={busy}
             onPress={() => { setConfirm(true); setAgreed(false); }}
           />

@@ -47,7 +47,7 @@ const SHIP_CHECKS: { title: string; detail: string }[] = [
 export default function ExchangeDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
-  const { detail, loading, busy, reload, markShipped, markReceived, cancel, saveTracking } = useExchangeDetail(id ?? '');
+  const { detail, loading, busy, reload, markShipped, markReceived, saveTracking } = useExchangeDetail(id ?? '');
   useAutoRefresh(reload, { intervalMs: 15000 });
 
   const [shipSheet, setShipSheet] = useState(false);
@@ -58,9 +58,6 @@ export default function ExchangeDetail() {
   // 配送情報（2026-08-14 指摘：配送後のフローを細かく）
   const [carrier, setCarrier] = useState<string>('yamato');
   const [tracking, setTracking] = useState('');
-  // 取引の取り消し（2026-08-14 指摘）
-  const [cancelSheet, setCancelSheet] = useState(false);
-  const [cancelReason, setCancelReason] = useState('');
   // 発送後の追跡番号の訂正（2026-08-17）
   const [trackSheet, setTrackSheet] = useState(false);
   const allChecked = checked.every(Boolean);
@@ -293,13 +290,11 @@ export default function ExchangeDetail() {
           )}
         </View>
 
-        {/* まだ誰も発送していないうちは取り消せる（2026-08-14 指摘）。
-            発送後は物が動いているので、ここには出さず運営対応にする */}
-        {detail.status === 'pending' && (
-          <PressableScale onPress={() => setCancelSheet(true)} activeScale={0.98} style={styles.cancelLink}>
-            <Text style={styles.cancelLinkText}>この取引を取り消す</Text>
-          </PressableScale>
-        )}
+        {/* 取引の取り消しは一旦なくす（2026-09-09 指摘）。
+            1人が取り消すと輪の全員の取引が巻き戻るため、利用者から見て
+            何が起きたのか分からなくなる。仕様を決め直すまで、
+            取り消しが必要な場合は運営対応にする。
+            サーバ側の cancel は残してあるので、管理画面からは操作できる。 */}
 
         {/* 輪の全体 */}
         {!!detail.harvestId && (
@@ -510,44 +505,6 @@ export default function ExchangeDetail() {
         </PressableScale>
       </BottomSheetModal>
 
-      {/* 取引の取り消し */}
-      <BottomSheetModal visible={cancelSheet} onClose={() => setCancelSheet(false)}>
-        <View style={styles.sheetCenter}>
-          <View style={[styles.sheetIcon, { backgroundColor: colors.cardMuted }]}>
-            <Ionicons name="close-circle-outline" size={34} color={colors.textSecondary} />
-          </View>
-          <Text style={styles.sheetTitle}>この取引を取り消しますか？</Text>
-          <Text style={styles.sheetSub}>
-            この輪に入っている全員の取引が取り消され、商品は出品中に戻ります。参加者にはその旨が通知されます。取り消しは元に戻せません。
-          </Text>
-        </View>
-        <TextInput
-          value={cancelReason}
-          onChangeText={setCancelReason}
-          placeholder="理由（任意・相手に伝わります）"
-          placeholderTextColor={colors.textPlaceholder}
-          style={[styles.trackInput, { outlineStyle: 'none' } as object]}
-        />
-        {actionError ? <FormError message={actionError} /> : null}
-        <PressableScale
-          activeScale={0.97}
-          disabled={busy}
-          onPress={async () => {
-            setActionError(null);
-            const res = await cancel(detail.harvestId, cancelReason);
-            if (res.error) { setActionError(res.error); return; }
-            setCancelSheet(false);
-            router.dismissTo('/exchange');
-          }}
-          style={[styles.dangerBtn, busy && { opacity: 0.6 }]}
-        >
-          <Text style={styles.dangerText}>取り消す</Text>
-        </PressableScale>
-        <PressableScale onPress={() => setCancelSheet(false)} style={styles.cancel}>
-          <Text style={styles.cancelText}>やめる</Text>
-        </PressableScale>
-      </BottomSheetModal>
-
       {/* 受け取り完了 → 評価へ促す */}
       <BottomSheetModal visible={donePopup} onClose={() => setDonePopup(false)}>
         <View style={styles.sheetCenter}>
@@ -654,13 +611,6 @@ const styles = StyleSheet.create({
     height: 46, borderRadius: radius.pill, backgroundColor: colors.green, marginTop: spacing.sm,
   },
   trackLinkText: { fontFamily: fonts.bold, fontSize: 14, color: colors.white },
-  cancelLink: { alignItems: 'center', paddingVertical: spacing.md },
-  cancelLinkText: { fontFamily: fonts.medium, fontSize: 13, color: colors.textSecondary, textDecorationLine: 'underline' },
-  dangerBtn: {
-    height: 52, borderRadius: radius.pill, backgroundColor: '#E5484D',
-    justifyContent: 'center', alignItems: 'center', marginTop: spacing.md,
-  },
-  dangerText: { fontFamily: fonts.bold, fontSize: 16, color: colors.white },
   cancel: { alignItems: 'center', paddingVertical: spacing.lg },
   cancelText: { fontFamily: fonts.bold, fontSize: 15, color: colors.textSecondary },
 });
