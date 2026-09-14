@@ -27,7 +27,9 @@ export default function EditItemScreen() {
   // 切り抜き画面から戻ってきたときに差し替える写真
   const cropTarget = useRef<number | null>(null);
   const insets = useSafeAreaInsets();
-  const { getItem, updateItem } = useTree();
+  const { getItem, updateItem, settings: appSettings, live } = useTree();
+  // 写真の上限は管理画面の値に従う（2026-09-14、D-3）
+  const maxPhotos = live ? appSettings.maxImagesPerItem : 10;
   const me = useMe();
   const item = getItem(id ?? '');
 
@@ -98,10 +100,12 @@ export default function EditItemScreen() {
         <Text style={styles.label}>商品の写真</Text>
         {/* 追加ボタンは左に固定し、写真だけを横に流す（出品フォームと揃える／2026-08-13 指摘） */}
         <View style={styles.photoRowWrap}>
-        <PressableScale onPress={() => setPhotoSheet(true)} activeScale={0.96} style={styles.addPhoto}>
-          <Ionicons name="camera" size={26} color={colors.green} />
-          <Text style={styles.addPhotoText}>写真を追加</Text>
-        </PressableScale>
+        {photos.length < maxPhotos && (
+          <PressableScale onPress={() => setPhotoSheet(true)} activeScale={0.96} style={styles.addPhoto}>
+            <Ionicons name="camera" size={26} color={colors.green} />
+            <Text style={styles.addPhotoText}>写真を追加</Text>
+          </PressableScale>
+        )}
         <ScrollView
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photoRow}>

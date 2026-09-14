@@ -27,7 +27,10 @@ type PickerKey = 'category' | 'condition' | null;
 
 export default function PlantSeedScreen() {
   const insets = useSafeAreaInsets();
-  const { plantSeed } = useTree();
+  const { plantSeed, settings: appSettings, live } = useTree();
+  // 上限は管理画面から変えられる値（app_settings.max_images_per_item）。
+  // ここは 10 と直書きしていて、設定を変えても効かなかった（2026-09-14、D-3・M-4）
+  const maxPhotos = live ? appSettings.maxImagesPerItem : 10;
   const [photos, setPhotos] = useState<string[]>([]);
   const [name, setName] = useState('');
   const [desc, setDesc] = useState('');
@@ -117,7 +120,7 @@ export default function PlantSeedScreen() {
             {/* 追加ボタンは左に固定し、写真だけを横に流す。
                 ボタンごとスクロールすると、写真が増えたときに押せなくなる（2026-08-13 指摘） */}
             <View style={styles.photoRowWrap}>
-            {photos.length < 10 && (
+            {photos.length < maxPhotos && (
               <PressableScale onPress={() => setPhotoSheet(true)} activeScale={0.96} style={styles.addPhoto}>
                 <Ionicons name="camera" size={30} color={colors.green} />
                 <Text style={styles.addPhotoText}>＋写真を追加</Text>
@@ -157,7 +160,7 @@ export default function PlantSeedScreen() {
               ))}
             </ScrollView>
             </View>
-            <Text style={styles.photoHint}>最大10枚・1枚目がサムネイルになります</Text>
+            <Text style={styles.photoHint}>最大{maxPhotos}枚・1枚目がサムネイルになります</Text>
           </View>
 
           {/* 商品名 */}

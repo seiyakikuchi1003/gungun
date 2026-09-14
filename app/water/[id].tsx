@@ -70,6 +70,8 @@ export default function WaterScreen() {
   const gate = canWater(target.id);
   // 水やり単価は DB（app_settings）から。未接続時はモックの既定値
   const cost = live ? appSettings.waterCost : settings.waterCost;
+  // 写真の上限も管理画面の値に従う（2026-09-14、D-3）
+  const maxPhotos = live ? appSettings.maxImagesPerItem : 10;
   const formOk = name.trim().length > 0 && category.length > 0 && condition.length > 0 && photos.length > 0;
   const canSubmit = gate.ok && formOk && !busy;
 
@@ -145,10 +147,12 @@ export default function WaterScreen() {
               </PressableScale>
             </View>
           ))}
+          {photos.length < maxPhotos && (
           <PressableScale onPress={() => setPhotoSheet(true)} activeScale={0.96} style={styles.addPhoto}>
             <Ionicons name="camera" size={26} color={colors.waterBlue} />
             <Text style={styles.addPhotoText}>写真を追加</Text>
           </PressableScale>
+          )}
         </ScrollView>
 
         {/* 商品名 */}
