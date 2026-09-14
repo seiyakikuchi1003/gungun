@@ -13,6 +13,11 @@ Web 版は実機と同じコードなので、画面操作で確かめる項目�
 | `edge.mjs` | 通信断・アップロード失敗・連打（S-1〜S-3） |
 | `layout.mjs` | 実データで 320/375/430px の横溢れ（R-2） |
 | `withdraw.mjs` | 退会（Q-1・Q-2）。**実際に消すので後で db:apply:seed** |
+| `photo-edit.mjs` | 写真の切り抜きと商品写真の拡大（D-2・G-3・E-1） |
+| `photo-limit.mjs` | 写真の上限が設定に従うか（D-3）。設定を変えて戻す |
+| `settings-live.mjs` | 設定がアプリを作り直さずに反映されるか（M-4）。設定を変えて戻す |
+| `recommend.mjs` | おすすめでプレミアムが先に出るか（B-2）。is_premium を立てて戻す |
+| `block-water.mjs` | ブロックした相手に水やりできないか（G-9） |
 | `admin.mjs` | 管理画面5画面。**読むだけ**（接続先が本番のため） |
 | `reset-dev.mjs` | dev の肥料補充と QA データの掃除 |
 | `lib.mjs` | ブラウザ・ログイン・記録・押下の共通部品 |
@@ -30,6 +35,20 @@ Web 版は実機と同じコードなので、画面操作で確かめる項目�
 
 **まだ自動で見ていないもの**：管理画面の書き込み操作（肥料増減・利用停止・非表示・
 通報の対応・設定変更）。接続先が本番のため押していない。dev の service_role キーが要る。
+
+## 一式を回す
+
+```bash
+node scripts/qa/reset-dev.mjs --apply       # 肥料の補充と QA データの掃除
+for t in flow features notify edge; do node scripts/qa/$t.mjs http://localhost:<port>; done
+npm run db:apply:seed                        # check:harvest はきれいなDBが前提
+GUNGUN_ENV_FILE=.env.dev npm run check:harvest
+GUNGUN_ENV_FILE=.env.dev npm run check:auth
+```
+
+設定を書き換える台本（settings-live / photo-limit / recommend）は、
+終わりに必ず元の値へ戻す。途中で止めたときは dev の app_settings と
+profiles.is_premium を確認する。
 
 **Web では見られないもの**：プッシュ通知・カメラ撮影・Apple Pay・
 `adjustsFontSizeToFit`（iOS/Android だけの機能）・郵便番号からの住所自動入力（CORS）。
