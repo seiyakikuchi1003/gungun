@@ -17,7 +17,8 @@ const { chromium } = pw;
 import { browserPath } from './lib/browser.mjs';
 
 const R = new URL('../', import.meta.url).pathname;
-const env = fs.readFileSync(R + '.env', 'utf8');
+// 既定は .env（本番）。GUNGUN_ENV_FILE を渡すと別の接続先で回せる（例：.env.dev）
+const env = fs.readFileSync(R + (process.env.GUNGUN_ENV_FILE ?? '.env'), 'utf8');
 const U = env.match(/^EXPO_PUBLIC_SUPABASE_URL=(.*)$/m)[1].trim();
 const K = env.match(/^EXPO_PUBLIC_SUPABASE_ANON_KEY=(.*)$/m)[1].trim();
 

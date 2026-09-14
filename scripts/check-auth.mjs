@@ -16,7 +16,8 @@ const ok = (m) => console.log(`  \x1b[32m✓\x1b[0m ${m}`);
 const ng = (m) => console.log(`  \x1b[31m✗\x1b[0m ${m}`);
 const head = (m) => console.log(`\n\x1b[1m${m}\x1b[0m`);
 
-function loadEnv(path = '.env') {
+// 既定は .env（本番）。GUNGUN_ENV_FILE を渡すと別の接続先で回せる（例：.env.dev）
+function loadEnv(path = process.env.GUNGUN_ENV_FILE ?? '.env') {
   try {
     for (const line of readFileSync(path, 'utf8').split('\n')) {
       const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);

@@ -13,10 +13,12 @@ import { createClient } from '@supabase/supabase-js';
 
 const ok = (m) => console.log(`  \x1b[32m✓\x1b[0m ${m}`);
 const ng = (m) => console.log(`  \x1b[31m✗\x1b[0m ${m}`);
+const skip = (m) => console.log(`  \x1b[90m・\x1b[0m ${m}`);
 const head = (m) => console.log(`\n\x1b[1m${m}\x1b[0m`);
 
 // ── .env を読む（dotenv を入れずに済ませる）───────────────
-function loadEnv(path = '.env') {
+// 既定は .env（本番）。GUNGUN_ENV_FILE を渡すと別の接続先で回せる（例：.env.dev）
+function loadEnv(path = process.env.GUNGUN_ENV_FILE ?? '.env') {
   try {
     for (const line of readFileSync(path, 'utf8').split('\n')) {
       const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
@@ -244,13 +246,19 @@ if (!root) {
     .from('items').select('id, name, depth').eq('root_id', root.id)
     .order('depth', { ascending: false }).limit(1).single();
 
-  // 引数名は 0002_functions.sql の定義どおり target_id（他の RPC は p_ 始まりなので注意）
-  const { data: path, error: rErr } = await db.rpc('get_ancestors', { target_id: leaf?.id });
-  if (rErr) {
-    ng(`get_ancestors を呼べません: ${rErr.message}`);
-    failed++;
+  // 水やりされた商品が1件も無いと leaf が取れない。そのまま呼ぶと
+  // 引数なしで呼ぶことになり、「RPC が無い」ように見えて紛らわしい（2026-09-14）
+  if (!leaf?.id) {
+    skip('get_ancestors は試していません（水やりされた商品がまだ無いため）');
   } else {
-    ok(`get_ancestors が動作（「${leaf?.name}」までの一本道に ${path?.length ?? 0} 件）`);
+    // 引数名は 0002_functions.sql の定義どおり target_id（他の RPC は p_ 始まりなので注意）
+    const { data: path, error: rErr } = await db.rpc('get_ancestors', { target_id: leaf.id });
+    if (rErr) {
+      ng(`get_ancestors を呼べません: ${rErr.message}`);
+      failed++;
+    } else {
+      ok(`get_ancestors が動作（「${leaf.name}」までの一本道に ${path?.length ?? 0} 件）`);
+    }
   }
 }
 

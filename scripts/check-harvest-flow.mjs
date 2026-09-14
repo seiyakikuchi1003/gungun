@@ -11,7 +11,9 @@
  * 2026-08-05 作成。デモアカウントがログインできない不具合を検出した。
  */
 import fs from 'node:fs';
-const env = fs.readFileSync(new URL('../.env', import.meta.url), 'utf8');
+// 既定は .env（本番）。GUNGUN_ENV_FILE を渡すと別の接続先で回せる（例：.env.dev）
+const ENV_FILE = process.env.GUNGUN_ENV_FILE ?? '.env';
+const env = fs.readFileSync(new URL('../' + ENV_FILE, import.meta.url), 'utf8');
 const U = env.match(/^EXPO_PUBLIC_SUPABASE_URL=(.*)$/m)[1].trim();
 const K = env.match(/^EXPO_PUBLIC_SUPABASE_ANON_KEY=(.*)$/m)[1].trim();
 
