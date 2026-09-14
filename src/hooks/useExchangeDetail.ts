@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { isSupabaseEnabled } from '@/lib/supabase';
 import { useMe } from '@/store/me';
 import { fetchExchangeDetail, type ExchangeDetail } from '@/lib/api/exchangeDetail';
@@ -18,6 +18,7 @@ export function useExchangeDetail(exchangeId: string) {
   const [detail, setDetail] = useState<ExchangeDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const running = useRef(false);
 
   const load = useCallback(async () => {
     if (!live || !me.live) {
@@ -68,6 +69,9 @@ export function useExchangeDetail(exchangeId: string) {
   const run = useCallback(
     async (fn: () => Promise<void>, fallback: string): Promise<{ error: string | null }> => {
       if (!live) return { error: null };
+      // 二度押しは ref で止める。state だけだと描き直しの前に2回目が通る（2026-09-14）
+      if (running.current) return { error: null };
+      running.current = true;
       setBusy(true);
       try {
         await fn();
@@ -76,6 +80,7 @@ export function useExchangeDetail(exchangeId: string) {
       } catch (e) {
         return { error: errorMessage(e, fallback) };
       } finally {
+        running.current = false;
         setBusy(false);
       }
     },

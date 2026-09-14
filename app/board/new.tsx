@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useSubmitGuard } from '@/lib/submitGuard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Svg, { Circle } from 'react-native-svg';
@@ -57,15 +58,19 @@ export default function NewPost() {
   const [photos, setPhotos] = useState<string[]>([]);
   const [photoSheet, setPhotoSheet] = useState(false);
   const [emojiOpen, setEmojiOpen] = useState(false);
-  const [busy, setBusy] = useState(false);
+  // 二度押しは ref で止める。state だけだと描き直しの前に2回目が通る（2026-09-14）
+  const { busy, run } = useSubmitGuard();
   const [error, setError] = useState<string | null>(null);
   const { create } = useBoard();
   const can = text.trim().length > 0 && !busy;
 
-  const submit = async () => {
-    if (!can) return;
+  // 送信できた後、画面が切り替わるまでの隙間にもう一度押せてしまう。
+  // 一度出せたらそれ以上は受け付けない（2026-09-14、S-2）
+  const posted = useRef(false);
+
+  const submit = () => run(async () => {
+    if (text.trim().length === 0 || posted.current) return;
     setError(null);
-    setBusy(true);
     // 写真は1枚目だけ投稿に添える（DBの board_posts.image_url は1枚）
     let imageUrl: string | null = null;
     if (photos.length > 0 && me.live) {
@@ -73,16 +78,15 @@ export default function NewPost() {
         const { uploadImage } = await import('@/lib/api/storage');
         imageUrl = await uploadImage(me.id, photos[0]);
       } catch {
-        setBusy(false);
         setError('写真をアップロードできませんでした');
         return;
       }
     }
     const res = await create(text, tag, imageUrl);
-    setBusy(false);
     if (res.error) { setError(res.error); return; }
+    posted.current = true;
     router.back();
-  };
+  });
 
   return (
     <View style={styles.root}>

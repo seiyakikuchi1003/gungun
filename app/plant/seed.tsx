@@ -56,6 +56,8 @@ export default function PlantSeedScreen() {
     router.setParams({ cropped: undefined });
   }, [cropped]);
   const [busy, setBusy] = useState(false);
+  // 二度押しは ref で止める。state だけだと描き直しの前に2回目が通る（2026-09-14）
+  const sending = useRef(false);
   const [error, setError] = useState<string | null>(null);
 
   // 画面に「必須」と出している4つは、すべて揃うまで出品できないようにする。
@@ -64,7 +66,8 @@ export default function PlantSeedScreen() {
     name.trim().length > 0 && photos.length > 0 && category !== '' && condition !== '';
 
   const submit = async () => {
-    if (busy) return;
+    if (busy || sending.current) return;
+    sending.current = true;
     if (!formOk) {
       setError(
         photos.length === 0 ? '写真を1枚以上追加してください'
@@ -72,12 +75,14 @@ export default function PlantSeedScreen() {
         : category === '' ? 'カテゴリーを選んでください'
         : '商品の状態を選んでください'
       );
+      sending.current = false;
       return;
     }
     setError(null);
     setBusy(true);
     const res = await plantSeed({ name, category, condition, description: desc, photos });
     setBusy(false);
+    sending.current = false;
     if (res.error) { setError(res.error); return; }
     success();
     playSfx('pop');

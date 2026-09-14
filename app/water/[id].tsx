@@ -48,6 +48,7 @@ export default function WaterScreen() {
   // プレミアムの案内は画面を開いた瞬間には出さない。まだ何も入力していない人の
   // 手が止まる。水やりが成立すると木の画面へ進むので、そこが見どころになる（2026-09-14）
   const [busy, setBusy] = useState(false);
+  const sending = useRef(false);
   // 水やりで出す商品の写真も、タネを植えるときと同じように回転・トリミングできるようにする
   // （2026-09-09 指摘）。切り抜き画面から戻ってきたとき、どの写真を差し替えるか
   const cropTarget = useRef<number | null>(null);
@@ -73,11 +74,14 @@ export default function WaterScreen() {
   const canSubmit = gate.ok && formOk && !busy;
 
   const submit = async () => {
-    if (!canSubmit) return;
+    // 二度押しは ref で止める。state だけだと描き直しの前に2回目が通る（2026-09-14）
+    if (!canSubmit || sending.current) return;
+    sending.current = true;
     setBusy(true);
     // 実DB接続時は写真のアップロードとRPCが走るため少し待つ
     const created = await water(target.id, { name, category, condition, description: desc, photos });
     setBusy(false);
+    sending.current = false;
     if (created) {
       success(); // 水やり成立の「タタン♪」
       playSfx('chime'); // ピロン↑
