@@ -43,7 +43,12 @@ export default function ItemDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-  const { getItem, canWater, childrenOf, treeItems } = useTree();
+  const { getItem, canWater, childrenOf, treeItems, settings: appSettings, live } = useTree();
+  // 実データに繋がっているときは管理画面の値を使う。
+  // ここだけコードに直書きした値を出しており、管理画面で単価を変えても
+  // 表示が変わらなかった（サーバは DB の値で引くので、表示と実額がずれる）。
+  // 水やり画面と同じ形に揃える（2026-09-14、M-4）
+  const waterCost = live ? appSettings.waterCost : settings.waterCost;
   const item = getItem(id ?? '');
   const [page, setPage] = useState(0);
   const [menu, setMenu] = useState(false);
@@ -255,7 +260,7 @@ export default function ItemDetailScreen() {
           <PressableScale onPress={() => router.push(`/water/${item.id}`)} style={[styles.waterBtn, shadows.button]}>
             <Ionicons name="water" size={20} color={colors.white} />
             <Text style={styles.waterText}>この商品に水やりする</Text>
-            <View style={styles.waterCost}><Text style={styles.waterCostText}>{settings.waterCost}肥料</Text></View>
+            <View style={styles.waterCost}><Text style={styles.waterCostText}>{waterCost}肥料</Text></View>
           </PressableScale>
         ) : (
           // 肥料切れだけは本人が解消できる。理由を出して終わりにせず、
@@ -267,7 +272,7 @@ export default function ItemDetailScreen() {
             >
               <Ionicons name="water" size={20} color={colors.white} />
               <Text style={styles.waterText}>肥料が足りません — 増やす</Text>
-              <View style={styles.waterCost}><Text style={styles.waterCostText}>{settings.waterCost}肥料</Text></View>
+              <View style={styles.waterCost}><Text style={styles.waterCostText}>{waterCost}肥料</Text></View>
             </PressableScale>
           ) : (
             <View style={styles.disabledBox}>
