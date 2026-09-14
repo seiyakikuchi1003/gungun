@@ -98,6 +98,9 @@ function Row({ n, onPress, onSave, onDelete, onBlockedDelete }: { n: Notif; onPr
 export default function Notifications() {
   const insets = useSafeAreaInsets();
   const [confirmClear, setConfirmClear] = useState(false);
+  // 1件ずつの削除にも確認を挟む。ゴミ箱が本文のすぐ横にあり、
+  // 押し間違えると元に戻せないため（2026-09-14）
+  const [confirmOne, setConfirmOne] = useState<Notif | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const { list, markRead, markAllRead, remove, clearAll, toggleSaved, refresh } = useNotifications();
   // 画面に戻ったとき・アプリを前面に戻したときに最新を取り直す
@@ -161,6 +164,22 @@ export default function Notifications() {
         </PressableScale>
       </BottomSheetModal>
 
+      <BottomSheetModal visible={confirmOne !== null} onClose={() => setConfirmOne(null)}>
+        <Text style={styles.clearTitle}>この通知を消しますか？</Text>
+        <Text style={styles.clearBody} numberOfLines={3}>{confirmOne?.body}</Text>
+        <Text style={styles.clearBody}>消した通知は元に戻せません。</Text>
+        <PressableScale
+          onPress={() => { if (confirmOne) remove(confirmOne.id); setConfirmOne(null); }}
+          activeScale={0.97}
+          style={styles.clearBtn}
+        >
+          <Text style={styles.clearBtnText}>消す</Text>
+        </PressableScale>
+        <PressableScale onPress={() => setConfirmOne(null)} activeScale={0.98} style={styles.clearCancel}>
+          <Text style={styles.clearCancelText}>やめる</Text>
+        </PressableScale>
+      </BottomSheetModal>
+
       <ScrollView
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.green]} tintColor={colors.green} />}
         keyboardDismissMode="on-drag"
@@ -169,7 +188,7 @@ export default function Notifications() {
           <>
             <Text style={styles.groupTitle}>保存した通知</Text>
             {saved.map((n) => (
-              <Row key={n.id} n={n} onPress={() => open(n)} onSave={() => toggleSaved(n.id)} onDelete={() => remove(n.id)} onBlockedDelete={() => setToast('未読の通知は消せません。開いて確認すると消せます')} />
+              <Row key={n.id} n={n} onPress={() => open(n)} onSave={() => toggleSaved(n.id)} onDelete={() => setConfirmOne(n)} onBlockedDelete={() => setToast('未読の通知は消せません。開いて確認すると消せます')} />
             ))}
           </>
         )}
@@ -178,7 +197,7 @@ export default function Notifications() {
           <>
             <Text style={styles.groupTitle}>今日</Text>
             {today.map((n) => (
-              <Row key={n.id} n={n} onPress={() => open(n)} onSave={() => toggleSaved(n.id)} onDelete={() => remove(n.id)} onBlockedDelete={() => setToast('未読の通知は消せません。開いて確認すると消せます')} />
+              <Row key={n.id} n={n} onPress={() => open(n)} onSave={() => toggleSaved(n.id)} onDelete={() => setConfirmOne(n)} onBlockedDelete={() => setToast('未読の通知は消せません。開いて確認すると消せます')} />
             ))}
           </>
         )}
@@ -186,7 +205,7 @@ export default function Notifications() {
           <>
             <Text style={styles.groupTitle}>これまで</Text>
             {earlier.map((n) => (
-              <Row key={n.id} n={n} onPress={() => open(n)} onSave={() => toggleSaved(n.id)} onDelete={() => remove(n.id)} onBlockedDelete={() => setToast('未読の通知は消せません。開いて確認すると消せます')} />
+              <Row key={n.id} n={n} onPress={() => open(n)} onSave={() => toggleSaved(n.id)} onDelete={() => setConfirmOne(n)} onBlockedDelete={() => setToast('未読の通知は消せません。開いて確認すると消せます')} />
             ))}
           </>
         )}

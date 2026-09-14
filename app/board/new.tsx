@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Svg, { Circle } from 'react-native-svg';
@@ -48,7 +48,12 @@ export default function NewPost() {
   const me = useMe();
   const insets = useSafeAreaInsets();
   const [text, setText] = useState('');
-  const [tag, setTag] = useState<BoardTag>('chat');
+  // 掲示板で選んでいたタブがあれば、その区分から書き始める（2026-09-14）
+  const { tag: fromTab } = useLocalSearchParams<{ tag?: string }>();
+  const initialTag = (['harvest', 'question', 'chat', 'notice'] as const).includes(fromTab as BoardTag)
+    ? (fromTab as BoardTag)
+    : 'chat';
+  const [tag, setTag] = useState<BoardTag>(initialTag);
   const [photos, setPhotos] = useState<string[]>([]);
   const [photoSheet, setPhotoSheet] = useState(false);
   const [emojiOpen, setEmojiOpen] = useState(false);

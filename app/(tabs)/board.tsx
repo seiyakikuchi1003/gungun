@@ -180,7 +180,9 @@ export default function BoardScreen() {
       {/* 投稿FAB（ホームと同じ位置・同じ挙動に統一） */}
       <ExpandableFab
         scrollY={scrollY}
-        onPress={() => router.push('/board/new')}
+        // 見ているタブのカテゴリーで書き始められるようにする。
+        // 初期値が固定だと、選び直さないと全部「雑談」になっていた（2026-09-14）
+        onPress={() => router.push(filter === 'all' ? '/board/new' : `/board/new?tag=${filter}`)}
         label="投稿する"
         icon={<Ionicons name="create" size={22} color={colors.white} />}
         labelWidth={86}
