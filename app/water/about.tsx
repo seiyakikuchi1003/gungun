@@ -9,9 +9,9 @@ import { WateringCan } from '@/components/art/WateringCan';
 import { lh } from '@/lib/fontScale';
 
 const POINTS = [
-  '対象商品の子として、あなたの商品が出品されます',
+  'その商品につながる形で、あなたの商品が出品されます',
   '他のユーザーから水やりされることがあります',
-  '収穫が成立すると、玉突き交換の一員になります',
+  '収穫が成立すると、順ぐりに渡していく交換の一員になります',
 ];
 
 export default function WaterAbout() {
@@ -37,13 +37,13 @@ export default function WaterAbout() {
           「この商品と交換したい」意思表示であり、{'\n'}<Text style={styles.leadStrong}>自分の商品を出品する行為</Text>です。
         </Text>
 
-        {/* 子 → 親 の図 */}
+        {/* 「親」「子」は作り手の言葉なので画面には出さない（2026-09-14） */}
         <View style={styles.diagram}>
           <View style={styles.diagItem}>
             <View style={[styles.diagCircle, { borderColor: colors.waterBlue }]}>
               <Ionicons name="cube" size={26} color={colors.waterBlue} />
             </View>
-            <Text style={styles.diagLabel}>あなた（子）</Text>
+            <Text style={styles.diagLabel}>あなたが出す商品</Text>
           </View>
           <View style={styles.diagArrow}>
             <Text style={styles.diagArrowLabel}>水やり</Text>
@@ -53,7 +53,7 @@ export default function WaterAbout() {
             <View style={[styles.diagCircle, { borderColor: colors.green }]}>
               <Ionicons name="cube" size={26} color={colors.green} />
             </View>
-            <Text style={styles.diagLabel}>相手の商品（親）</Text>
+            <Text style={styles.diagLabel}>水やりする相手の商品</Text>
           </View>
         </View>
 

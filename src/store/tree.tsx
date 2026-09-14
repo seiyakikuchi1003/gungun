@@ -36,7 +36,7 @@ export type WaterInput = {
   photos: string[]; // 1枚目がサムネイル。端末のローカルURIでもよい（自動でアップロード）
 };
 
-export type CanWater = { ok: true } | { ok: false; reason: string };
+export type CanWater = { ok: true } | { ok: false; reason: string; needFertilizer?: true };
 
 /** 出品編集の入力（種植え・水やり共通のフォーム項目） */
 export type EditInput = WaterInput;
@@ -208,7 +208,11 @@ export function TreeProvider({ children }: { children: React.ReactNode }) {
             : 'この木にはすでに水やり済みです。1つの木につき1回までです',
         };
       }
-      if (fertilizer < waterCost) return { ok: false, reason: '肥料が不足しています' };
+      // 肥料切れは、本人が肥料を増やせば解消できる唯一の理由。
+      // 画面側でチャージへの導線を出せるよう、他の理由と区別できるようにする（2026-09-14）
+      if (fertilizer < waterCost) {
+        return { ok: false, reason: '肥料が足りません', needFertilizer: true as const };
+      }
       return { ok: true };
     },
     [pool, myId, fertilizer, waterCost]

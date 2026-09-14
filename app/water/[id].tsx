@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useMe } from '@/store/me';
-import { PremiumNudge } from '@/components/feature/PremiumNudge';
 import { View, Text, StyleSheet, ScrollView, TextInput, ActivityIndicator } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -46,7 +45,8 @@ export default function WaterScreen() {
   const me = useMe();
   const [photoSheet, setPhotoSheet] = useState(false);
   // 出品・水やりのタイミングでだけプレミアムを案内する（2026-08-13 指摘）
-  const [nudge, setNudge] = useState(true);
+  // プレミアムの案内は画面を開いた瞬間には出さない。まだ何も入力していない人の
+  // 手が止まる。水やりが成立すると木の画面へ進むので、そこが見どころになる（2026-09-14）
   const [busy, setBusy] = useState(false);
   // 水やりで出す商品の写真も、タネを植えるときと同じように回転・トリミングできるようにする
   // （2026-09-09 指摘）。切り抜き画面から戻ってきたとき、どの写真を差し替えるか
@@ -92,7 +92,7 @@ export default function WaterScreen() {
         <PressableScale onPress={() => router.back()} activeScale={0.9} style={styles.hBtn}>
           <Ionicons name="chevron-back" size={26} color={colors.textPrimary} />
         </PressableScale>
-        <Text style={styles.hTitle}>水やり（自分の商品を出品）</Text>
+        <Text style={styles.hTitle}>水やり（自分の商品を出す）</Text>
         <PressableScale onPress={() => router.push('/water/about')} activeScale={0.9} style={styles.hBtn}>
           <Ionicons name="help-circle-outline" size={24} color={colors.textSecondary} />
         </PressableScale>
@@ -102,8 +102,8 @@ export default function WaterScreen() {
         keyboardDismissMode="on-drag"
         automaticallyAdjustKeyboardInsets
         keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
-        {/* 水やり先（親商品） */}
-        <Text style={styles.label}>水やり先（親商品）</Text>
+        {/* 「親」「子」は作り手の言葉なので画面には出さない（2026-09-14） */}
+        <Text style={styles.label}>水やりする相手の商品</Text>
         <View style={[styles.parentCard, shadows.soft]}>
           <Thumb source={target.local} uri={target.image} style={styles.parentThumb} radius={radius.md} markSize={26} />
           <View style={{ flex: 1 }}>
@@ -119,8 +119,7 @@ export default function WaterScreen() {
           </View>
         </View>
 
-        {/* あなたが出す商品（子） */}
-        <Text style={[styles.label, { marginTop: spacing.xl, color: colors.waterBlue }]}>あなたが出す商品（子）</Text>
+        <Text style={[styles.label, { marginTop: spacing.xl, color: colors.waterBlue }]}>あなたが交換に出す商品</Text>
         <ScrollView
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photoRow}>
@@ -224,11 +223,10 @@ export default function WaterScreen() {
             </>
           )}
         </PressableScale>
-        <Text style={styles.footerHint}>水やりすると、あなたの商品がこの木の子として出品されます</Text>
+        <Text style={styles.footerHint}>水やりすると、あなたの商品がこの木につながって出品されます</Text>
       </View>
 
       {/* 写真の追加方法（カメラ / ライブラリ） */}
-      <PremiumNudge trigger={nudge} isPremium={me.isPremium} onClose={() => setNudge(false)} />
 
       <PhotoSourceSheet
         visible={photoSheet}

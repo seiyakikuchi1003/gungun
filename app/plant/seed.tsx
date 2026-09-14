@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { playSfx } from '@/lib/sound';
 import { useMe } from '@/store/me';
-import { PremiumNudge } from '@/components/feature/PremiumNudge';
 import { View, Text, StyleSheet, ScrollView, TextInput } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -39,8 +38,10 @@ export default function PlantSeedScreen() {
   const [picker, setPicker] = useState<PickerKey>(null);
   const me = useMe();
   const [photoSheet, setPhotoSheet] = useState(false);
-  // 出品・水やりのタイミングでだけプレミアムを案内する（2026-08-13 指摘）
-  const [nudge, setNudge] = useState(true);
+  // プレミアムの案内は、画面を開いた瞬間ではなく出品できた後に出す。
+  // 開いた瞬間に全画面で被せると、まだ何も入力していない人の手が止まる。
+  // 案内そのものは出品完了のシートの中に置いた（2026-09-14）。
+
   // 出品できたことを見せるポップアップ（2026-08-13 指摘）
   const [done, setDone] = useState(false);
   // 切り抜き画面から戻ってきたとき、どの写真を差し替えるか
@@ -57,12 +58,20 @@ export default function PlantSeedScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const formOk = name.trim().length > 0 && photos.length > 0;
+  // 画面に「必須」と出している4つは、すべて揃うまで出品できないようにする。
+  // カテゴリーと商品の状態が判定に入っておらず、未選択のまま送れていた（2026-09-14）
+  const formOk =
+    name.trim().length > 0 && photos.length > 0 && category !== '' && condition !== '';
 
   const submit = async () => {
     if (busy) return;
     if (!formOk) {
-      setError(photos.length === 0 ? '写真を1枚以上追加してください' : '商品名を入力してください');
+      setError(
+        photos.length === 0 ? '写真を1枚以上追加してください'
+        : name.trim().length === 0 ? '商品名を入力してください'
+        : category === '' ? 'カテゴリーを選んでください'
+        : '商品の状態を選んでください'
+      );
       return;
     }
     setError(null);
@@ -207,9 +216,22 @@ export default function PlantSeedScreen() {
         >
           <Text style={styles.doneGhostText}>出品履歴を見る</Text>
         </PressableScale>
-      </BottomSheetModal>
 
-      <PremiumNudge trigger={nudge} isPremium={me.isPremium} onClose={() => setNudge(false)} />
+        {/* プレミアムの案内はここに置く。出品できた後なら手を止めない */}
+        {!me.isPremium && (
+          <PressableScale
+            onPress={() => { setDone(false); router.dismissTo('/premium'); }}
+            activeScale={0.98}
+            style={styles.donePremium}
+          >
+            <Ionicons name="diamond-outline" size={18} color={colors.orange} />
+            <Text style={styles.donePremiumText}>
+              プレミアムなら、毎月の肥料がもらえます
+            </Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.orange} />
+          </PressableScale>
+        )}
+      </BottomSheetModal>
 
       <PhotoSourceSheet
         visible={photoSheet}
@@ -301,6 +323,17 @@ const styles = StyleSheet.create({
   doneSub: { fontFamily: fonts.medium, fontSize: 13, lineHeight: lh(20), color: colors.textSecondary, textAlign: 'center' },
   doneGhost: { alignItems: 'center', paddingVertical: spacing.lg },
   doneGhostText: { fontFamily: fonts.bold, fontSize: 15, color: colors.textSecondary },
+  donePremium: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.lg,
+    backgroundColor: colors.orangeSoft,
+  },
+  donePremiumText: { flex: 1, fontFamily: fonts.bold, fontSize: 13, color: colors.orange },
   cropHint: {
     position: 'absolute', left: 4, bottom: 4, flexDirection: 'row', alignItems: 'center', gap: 3,
     backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 999, paddingHorizontal: 6, paddingVertical: 2,

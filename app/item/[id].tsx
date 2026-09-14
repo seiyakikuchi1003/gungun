@@ -258,10 +258,23 @@ export default function ItemDetailScreen() {
             <View style={styles.waterCost}><Text style={styles.waterCostText}>{settings.waterCost}肥料</Text></View>
           </PressableScale>
         ) : (
-          <View style={styles.disabledBox}>
-            <Ionicons name="information-circle" size={18} color={colors.textSecondary} />
-            <Text style={styles.disabledText}>{gate.reason}</Text>
-          </View>
+          // 肥料切れだけは本人が解消できる。理由を出して終わりにせず、
+          // その場からチャージへ行けるようにする（2026-09-14）
+          gate.needFertilizer ? (
+            <PressableScale
+              onPress={() => router.push('/fertilizer')}
+              style={[styles.waterBtn, styles.waterBtnNeed, shadows.button]}
+            >
+              <Ionicons name="water" size={20} color={colors.white} />
+              <Text style={styles.waterText}>肥料が足りません — 増やす</Text>
+              <View style={styles.waterCost}><Text style={styles.waterCostText}>{settings.waterCost}肥料</Text></View>
+            </PressableScale>
+          ) : (
+            <View style={styles.disabledBox}>
+              <Ionicons name="information-circle" size={18} color={colors.textSecondary} />
+              <Text style={styles.disabledText}>{gate.reason}</Text>
+            </View>
+          )
         )}
       </View>
 
@@ -337,6 +350,7 @@ const styles = StyleSheet.create({
   commentSendOff: { backgroundColor: colors.textPlaceholder, opacity: 0.5 },
   cDelete: { marginLeft: 'auto', padding: 2 },
   footer: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 20, paddingTop: spacing.md, backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.divider, ...shadows.sheet },
+  waterBtnNeed: { backgroundColor: colors.orange },
   waterBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, minHeight: 56, borderRadius: radius.pill, backgroundColor: colors.waterBlue, paddingVertical: 8, paddingHorizontal: 14 },
   ownerRow: { flexDirection: 'row', gap: spacing.md },
   editBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, minHeight: 56, borderRadius: radius.pill, backgroundColor: colors.green, paddingVertical: 8, paddingHorizontal: 14 },

@@ -111,7 +111,7 @@ export function MosaicGroup({ title, subtitle, items, width, onPressItem }: Prop
     <View style={styles.group}>
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.title} numberOfLines={1}>{title}</Text>
+          {title ? <Text style={styles.title} numberOfLines={1}>{title}</Text> : null}
           {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
         </View>
       </View>

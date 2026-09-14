@@ -47,29 +47,44 @@ export default function Address() {
   //   （2026-08-21 指摘）。引けたら上書きする。
   //   ただし読み込み直後に上書きしないよう、最初の値は済み扱いにしておく。
   const [lookedUp, setLookedUp] = useState('');
+  // 引けたか・引けなかったかを画面に出す。以前は失敗しても何も出さなかったため、
+  // 入力した人からは「打ったのに何も起きない」としか見えなかった（2026-09-14）
+  const [zipState, setZipState] = useState<'idle' | 'looking' | 'done' | 'notfound' | 'failed'>('idle');
   useEffect(() => {
     const zip = f.postal.replace(/[^0-9]/g, '');
     if (zip.length !== 7 || zip === lookedUp) return;
     setLookedUp(zip);
+    setZipState('looking');
     let alive = true;
     (async () => {
       try {
         const res = await fetch(`https://zipcloud.ibsnet.co.jp/api/search?zipcode=${zip}`);
         const j = await res.json();
         const r = j?.results?.[0];
-        if (!alive || !r) return;
+        if (!alive) return;
+        if (!r) { setZipState('notfound'); return; }
         setF((prev) => ({
           ...prev,
           pref: r.address1,
           // 市区町村と町名までを埋める。番地から先は手入力
           city: `${r.address2}${r.address3}`,
         }));
+        setZipState('done');
       } catch {
-        // 通信できなくても手入力で進められるので何も出さない
+        // 手入力で進められるので止めはしないが、黙ってはいない
+        if (alive) setZipState('failed');
       }
     })();
     return () => { alive = false; };
   }, [f.postal, lookedUp]);
+
+  const zipHint = {
+    idle: '',
+    looking: '住所を調べています…',
+    done: '住所を入れました。番地から先を入力してください',
+    notfound: 'この郵便番号の住所が見つかりませんでした。手で入力してください',
+    failed: '住所を自動で入れられませんでした。手で入力してください',
+  }[zipState];
 
   const submit = async () => {
     if (busy) return;
@@ -114,6 +129,9 @@ export default function Address() {
             </View>
             <TextField label="電話番号" placeholder="09012345678" keyboardType="phone-pad" value={f.phone} onChangeText={set('phone')} />
             <TextField label="郵便番号" placeholder="1234567" keyboardType="number-pad" value={f.postal} onChangeText={set('postal')} />
+            {!!zipHint && (
+              <Text style={zipState === 'done' || zipState === 'looking' ? styles.zipOk : styles.zipNg}>{zipHint}</Text>
+            )}
             <TextField label="都道府県" placeholder="東京都" value={f.pref} onChangeText={set('pref')} />
             <TextField label="市区町村" placeholder="渋谷区〇〇" value={f.city} onChangeText={set('city')} />
             <TextField label="番地" placeholder="1-2-3" value={f.street} onChangeText={set('street')} />
@@ -136,6 +154,8 @@ const styles = StyleSheet.create({
   hBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
   hTitle: { fontFamily: fonts.bold, fontSize: 17, color: colors.textPrimary },
   form: { gap: spacing.lg, marginTop: spacing.lg },
+  zipOk: { fontFamily: fonts.medium, fontSize: 12.5, color: colors.green, marginTop: -spacing.sm },
+  zipNg: { fontFamily: fonts.medium, fontSize: 12.5, color: colors.textSecondary, marginTop: -spacing.sm },
   rowFields: { flexDirection: 'row', gap: spacing.md },
   footer: { paddingHorizontal: 20, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: colors.divider, backgroundColor: colors.bg },
 });

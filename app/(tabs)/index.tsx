@@ -199,7 +199,9 @@ export default function HomeScreen() {
   })();
   const current = SORTS.find((x) => x.key === sort);
   const visibleGroups = [
-    { title: current?.label ?? '', subtitle: current?.note ?? '', items: sortedItems },
+    // 見出しは並び替えのチップと同じ文字になるので出さない。
+    // 基準の説明（note）だけを残す（2026-09-14）
+    { title: '', subtitle: current?.note ?? '', items: sortedItems },
   ].filter((g) => g.items.length > 0);
 
   return (

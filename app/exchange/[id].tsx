@@ -34,15 +34,24 @@ import { lh } from '@/lib/fontScale';
  * メッセージは別画面（/exchange/[id]/messages）に分けた。
  */
 
-/** 発送前チェックリスト（2026-08-12 確定・6項目）。全部チェックで発送報告できる */
+/**
+ * 発送前チェックリスト（2026-08-12 確定）。全部チェックで発送報告できる。
+ *
+ * 食品の条件は、以前はこのチェックの1つだった（6項目）。ただし食品以外を送る人にも
+ * 「満たしています」と答えさせる形になり、意味が通らないまま同意させていた。
+ * 読んでほしい内容ではあるので、チェックからは外してリストの下に注記として残す
+ * （2026-09-14）。
+ */
 const SHIP_CHECKS: { title: string; detail: string }[] = [
   { title: 'しっかり梱包しましたか？', detail: '配送中に傷や破損が起こらないように、適切な梱包をしましょう。' },
   { title: '出品時の状態と変わっていませんか？', detail: '汚れや破損がないか、もう一度確認してください。' },
   { title: '送料は発払いになっていますか？', detail: '着払いは受け取り側の負担になってしまうので、必ず発払いでお願いします。' },
-  { title: '食品の場合、以下の条件を満たしていますか？', detail: '未開封であること／常温保存が可能なものに限る／賞味期限または消費期限が明記されているもの' },
   { title: '宛先の記載ミスはありませんか？', detail: '配送先の住所や氏名を間違えないよう、念のためもう一度確認しましょう。' },
   { title: '発送通知を忘れずに！', detail: '発送が完了したら、必ず発送完了ボタンを押してください。' },
 ];
+
+const FOOD_NOTE =
+  '食品を送る場合は、未開封・常温保存できるもの・賞味期限または消費期限が明記されているものに限ります。';
 
 export default function ExchangeDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -339,6 +348,7 @@ export default function ExchangeDetail() {
               </View>
             </PressableScale>
           ))}
+          <Text style={styles.foodNote}>{FOOD_NOTE}</Text>
           <Text style={styles.checkOutro}>丁寧な発送で、気持ちの良い取引をお願いします！✨</Text>
         </View>
 
@@ -405,7 +415,9 @@ export default function ExchangeDetail() {
         />
         {(!allChecked || !trackingReady) && (
           <Text style={styles.checkHint}>
-            {!allChecked ? 'すべて確認するとボタンを押せます' : '追跡番号を入力すると押せます'}
+            {!allChecked
+              ? 'すべて確認するとボタンを押せます'
+              : '上の「配送業者と追跡番号」を入力すると押せます。番号が出ない発送方法なら「その他・追跡なし」を選んでください'}
           </Text>
         )}
         <PressableScale onPress={() => setShipSheet(false)} style={styles.cancel}>
@@ -581,6 +593,17 @@ const styles = StyleSheet.create({
   checkTitle: { fontFamily: fonts.bold, fontSize: 14, color: colors.textPrimary, lineHeight: lh(20) },
   checkDetail: { fontFamily: fonts.medium, fontSize: 12, lineHeight: lh(18), color: colors.textSecondary, marginTop: 2 },
   checkOutro: { fontFamily: fonts.medium, fontSize: 12.5, color: colors.textSecondary, textAlign: 'center', marginTop: spacing.md },
+  foodNote: {
+    fontFamily: fonts.medium,
+    fontSize: 12.5,
+    lineHeight: lh(19),
+    color: colors.textSecondary,
+    backgroundColor: colors.cardMuted,
+    borderRadius: radius.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    marginTop: spacing.md,
+  },
   checkHint: { fontFamily: fonts.medium, fontSize: 12, color: colors.textSecondary, textAlign: 'center', marginTop: spacing.sm },
   trackBox: { gap: spacing.sm, marginTop: spacing.md },
   trackLabel: { fontFamily: fonts.bold, fontSize: 12.5, color: colors.textSecondary },
