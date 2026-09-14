@@ -15,6 +15,7 @@ import { ReportSheet } from '@/components/feature/ReportSheet';
 import { itemImageSources } from '@/data/mock';
 import { settings } from '@/config/settings';
 import { useTree } from '@/store/tree';
+import { useBlocks } from '@/store/blocks';
 import { useMe } from '@/store/me';
 /*
  * 共有ボタンは外した（2026-08-14 指摘）。
@@ -44,6 +45,7 @@ export default function ItemDetailScreen() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const { getItem, canWater, childrenOf, treeItems, settings: appSettings, live } = useTree();
+  const { isBlocked } = useBlocks();
   // 実データに繋がっているときは管理画面の値を使う。
   // ここだけコードに直書きした値を出しており、管理画面で単価を変えても
   // 表示が変わらなかった（サーバは DB の値で引くので、表示と実額がずれる）。
@@ -73,7 +75,14 @@ export default function ItemDetailScreen() {
   const imgs = itemImageSources(item);
   const connected = childrenOf(item.id); // この商品に水やりした商品（＝子ノード）
   const treeThumbs = treeItems(item.rootId).filter((i) => i.id !== item.id);
-  const gate = canWater(item.id);
+  const rawGate = canWater(item.id);
+  // ブロックした相手の商品には水やりさせない（G-9）。
+  // 一覧からは消えるが、通知やURLから商品画面には入れてしまうため、ここでも閉じる。
+  // 「自分をブロックした相手」はアプリからは分からないので、サーバの can_water が見る。
+  const blockedOwner = isBlocked(item.ownerId);
+  const gate: typeof rawGate = blockedOwner
+    ? { ok: false, reason: 'ブロックした相手の商品には水やりできません' }
+    : rawGate;
   // すでにこの商品へ水やり済みか（自分の商品が子にいる）
   const alreadyWatered = connected.some((c) => c.ownerId === me.id);
   const isOwner = item.ownerId === me.id;
