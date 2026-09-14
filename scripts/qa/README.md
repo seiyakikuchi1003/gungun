@@ -8,7 +8,24 @@ Web 版は実機と同じコードなので、画面操作で確かめる項目�
 |---|---|
 | `walk.mjs` | 全画面を一周して記録する（27画面） |
 | `flow.mjs` | **2アカウントで交換の輪をひと回りする**（出品→水やり→収穫→発送→受け取り→評価） |
+| `features.mjs` | 輪に入らない機能（編集削除・通報ブロック・掲示板・肥料・マイページ） |
+| `admin.mjs` | 管理画面5画面。**読むだけ**（接続先が本番のため） |
+| `reset-dev.mjs` | dev の肥料補充と QA データの掃除 |
 | `lib.mjs` | ブラウザ・ログイン・記録・押下の共通部品 |
+
+## どこまで自動で見ているか
+
+| 範囲 | 手段 |
+|---|---|
+| 交換の一周（出品〜評価） | `flow.mjs`。DB で裏を取る |
+| 編集削除・通報ブロック・掲示板・肥料・マイページ | `features.mjs` |
+| 交換フローのサーバ側（U-1〜U-13） | `GUNGUN_ENV_FILE=.env.dev npm run check:harvest` |
+| ログイン・登録・退会（A系） | `GUNGUN_ENV_FILE=.env.dev npm run check:auth` |
+| 管理画面（T-1〜T-7） | `admin.mjs`。表示のみ |
+| 決済の安全性（V系） | `npm run check:payment`。**本番でしか通らない**（署名鍵が本番のもの） |
+
+**まだ自動で見ていないもの**：退会のUI（`check:auth` ではDB側を確認済み）、
+コメント・いいねの通知、例外・通信（S系）、管理画面の書き込み操作。
 
 ## 使い方
 
@@ -50,6 +67,20 @@ node scripts/qa/flow.mjs http://localhost:<実際のポート>
   （2026-09-09 に実際に起きた）。`EXPO_NO_DOTENV=1` で足りる。
 - **`--clear` は必須。** Metro のキャッシュに前回の `EXPO_PUBLIC_*` が残る。ビルド後に
   `grep -rl 'vrgpbtyflrtsmxonmuwg' <out>/_expo/static/js/web/*.js` が 0 件かを必ず見る。
+
+## 既存の自動テストを dev で回す
+
+`.env`（本番）を読む作りだったので、`GUNGUN_ENV_FILE` で差し替えられるようにしてある。
+
+```bash
+npm run db:apply:seed                                   # ★ check:harvest はきれいなDBが前提
+GUNGUN_ENV_FILE=.env.dev npm run check:harvest          # 22項目
+GUNGUN_ENV_FILE=.env.dev npm run check:auth
+GUNGUN_ENV_FILE=.env.dev npm run check:supabase
+```
+
+前回の実行ぶんが残っていると「全件 received になる」などが落ちる。
+アプリの不具合ではないので、落ちたらまず入れ直す。
 
 ## 結果の確かめ方（DB）
 
