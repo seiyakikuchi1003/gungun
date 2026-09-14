@@ -348,8 +348,13 @@ const styles = StyleSheet.create({
   },
   cropHintText: { fontFamily: fonts.bold, fontSize: 9.5, color: colors.white },
   photo: { width: 128, height: 128, borderRadius: radius.md, backgroundColor: colors.cardMuted },
-  photoImg: { width: '100%', height: '100%', borderRadius: radius.md },
-  thumbBadge: { position: 'absolute', left: 6, bottom: 6, backgroundColor: 'rgba(46,158,91,0.92)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: radius.pill },
+  // ★ 100% にしない。あいだに PressableScale が入るため、高さを持たない親に対する
+  //   100% が 0 になり、追加した写真が出ずに灰色の枠だけになっていた（2026-09-14、D-2）。
+  //   水やり・編集画面と同じく実寸で指定する
+  photoImg: { width: 128, height: 128, borderRadius: radius.md },
+  // 「サムネイル」は左上に置く。左下は「切り抜く」の場所で、重ねると
+  // 1枚目だけ切り抜きが押せなくなっていた（2026-09-14、D-2）。右上は削除ボタン
+  thumbBadge: { position: 'absolute', left: 6, top: 6, backgroundColor: 'rgba(46,158,91,0.92)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: radius.pill },
   thumbBadgeText: { fontFamily: fonts.bold, fontSize: 10, color: colors.white },
   removeBadge: { position: 'absolute', top: 6, right: 6, width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
   addPhoto: {
