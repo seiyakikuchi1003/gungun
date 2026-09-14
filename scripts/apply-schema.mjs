@@ -163,7 +163,8 @@ try {
     try {
       await db.query('begin');
       await db.query(sql);
-      await db.query('insert into public._gungun_migrations (name) values ($1)', [f]);
+      // 0045 のように、ファイル自身が台帳へ書くものがある。二重挿入で落ちないように逃がす
+      await db.query('insert into public._gungun_migrations (name) values ($1) on conflict do nothing', [f]);
       await db.query('commit');
       ok(`${f} を適用しました`);
       ran++;
