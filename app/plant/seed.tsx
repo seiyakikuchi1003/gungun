@@ -1,8 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { playSfx } from '@/lib/sound';
 import { useMe } from '@/store/me';
 import { View, Text, StyleSheet, ScrollView, TextInput } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { fetchAddress } from '@/lib/api/profile';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -47,6 +48,23 @@ export default function PlantSeedScreen() {
 
   // 出品できたことを見せるポップアップ（2026-08-13 指摘）
   const [done, setDone] = useState(false);
+
+  // 出品した商品が交換に進むと発送が要る。お届け先が無い人には先に登録してもらう
+  // （テスト仕様 D-8。求められていなかった：2026-09-15 指摘）
+  const [needAddress, setNeedAddress] = useState(false);
+  const [askAddress, setAskAddress] = useState(false);
+  const checkAddress = useCallback(async () => {
+    if (!me.live) return;
+    try {
+      const a = await fetchAddress(me.id);
+      const missing = !a;
+      setNeedAddress(missing);
+      if (missing) setAskAddress(true);
+    } catch {
+      // 取れないときは止めない（発送の段階でまた聞かれる）
+    }
+  }, [me.live, me.id]);
+  useFocusEffect(useCallback(() => { checkAddress(); }, [checkAddress]));
   // 切り抜き画面から戻ってきたとき、どの写真を差し替えるか
   const cropTarget = useRef<number | null>(null);
   // 切り抜き画面は結果を cropped パラメータで返してくる
@@ -80,6 +98,11 @@ export default function PlantSeedScreen() {
   const submit = async () => {
     if (busy || sending.current) return;
     sending.current = true;
+    if (needAddress) {
+      sending.current = false;
+      setAskAddress(true);
+      return;
+    }
     if (!formOk) {
       setError(
         photos.length === 0 ? '写真を1枚以上追加してください'
@@ -254,6 +277,21 @@ export default function PlantSeedScreen() {
             <Ionicons name="chevron-forward" size={16} color={colors.orange} />
           </PressableScale>
         )}
+      </BottomSheetModal>
+
+      {/* お届け先の登録をお願いする（D-8） */}
+      <BottomSheetModal visible={askAddress} onClose={() => setAskAddress(false)}>
+        <View style={styles.doneHead}>
+          <Ionicons name="location-outline" size={44} color={colors.green} />
+          <Text style={styles.doneTitle}>お届け先の登録をお願いします</Text>
+          <Text style={styles.doneSub}>
+            出品した商品が交換に進むと、相手へ発送することになります。先にお届け先を登録してください。
+          </Text>
+        </View>
+        <Button title="お届け先を登録する" onPress={() => { setAskAddress(false); router.push('/address'); }} />
+        <PressableScale onPress={() => setAskAddress(false)} activeScale={0.98} style={styles.doneGhost}>
+          <Text style={styles.doneGhostText}>あとで</Text>
+        </PressableScale>
       </BottomSheetModal>
 
       <PhotoSourceSheet

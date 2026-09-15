@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Image, ActivityIndicator } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { View, Text, StyleSheet, Image, Image as RNImage, ActivityIndicator } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -42,12 +42,37 @@ export default function CropScreen() {
   const { uri, ratio: initial } = useLocalSearchParams<{ uri: string; ratio?: string }>();
   const insets = useSafeAreaInsets();
   const [ratio, setRatio] = useState<Ratio>((initial as Ratio) ?? 'square');
+  // 枠を指定せずに開いたときは、写真の形に近い枠から始める。
+  // 3:4 で切り抜いた写真を開き直すと正方形に戻っていた（2026-09-15 指摘）
+  const ratioPicked = useRef(Boolean(initial));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // 回転すると実ファイルが作り直されるので、表示・切り出しの対象はこちらを見る
   const [workUri, setWorkUri] = useState<string | undefined>(uri);
   const [rotating, setRotating] = useState(false);
   React.useEffect(() => { setWorkUri(uri); }, [uri]);
+
+  // 写真そのものの大きさ。表示と切り出しの計算をここに合わせる。
+  // これまで表示は枠いっぱいに潰しており（絶対配置＋cover）、動かすと
+  // 写真の外＝余白が枠に入ってしまい、OK を押しても計算側が写真の中へ
+  // 寄せ直すため「押しても戻る」ように見えていた（2026-09-15 指摘）
+  const [nat, setNat] = useState<{ w: number; h: number } | null>(null);
+  React.useEffect(() => {
+    if (!workUri) return;
+    let alive = true;
+    RNImage.getSize(
+      workUri,
+      (w, h) => { if (alive) setNat({ w, h }); },
+      () => { if (alive) setNat(null); }
+    );
+    return () => { alive = false; };
+  }, [workUri]);
+
+  React.useEffect(() => {
+    if (!nat || ratioPicked.current) return;
+    const r = nat.w / nat.h;
+    setRatio(r > 1.15 ? 'landscape' : r < 0.87 ? 'portrait' : 'square');
+  }, [nat]);
 
   // 表示中の写真の位置と倍率
   const tx = useSharedValue(0);
@@ -61,14 +86,33 @@ export default function CropScreen() {
   const [view, setView] = useState({ x: 0, y: 0, s: 1 });
   const sync = (x: number, y: number, s: number) => setView({ x, y, s });
 
+  // 表示している写真の大きさ（枠を覆う倍率をかけたもの）
+  const dispW = useSharedValue(0);
+  const dispH = useSharedValue(0);
+  const frameW = useSharedValue(0);
+  const frameH = useSharedValue(0);
+
   const pan = Gesture.Pan()
     .onStart(() => { startX.value = tx.value; startY.value = ty.value; })
-    .onUpdate((e) => { tx.value = startX.value + e.translationX; ty.value = startY.value + e.translationY; })
+    .onUpdate((e) => {
+      // 枠が写真からはみ出さない範囲までしか動かせないようにする
+      const maxX = Math.max(0, (dispW.value * scale.value - frameW.value) / 2);
+      const maxY = Math.max(0, (dispH.value * scale.value - frameH.value) / 2);
+      tx.value = Math.min(maxX, Math.max(-maxX, startX.value + e.translationX));
+      ty.value = Math.min(maxY, Math.max(-maxY, startY.value + e.translationY));
+    })
     .onEnd(() => { runOnJS(sync)(tx.value, ty.value, scale.value); });
 
   const pinch = Gesture.Pinch()
     .onStart(() => { startScale.value = scale.value; })
-    .onUpdate((e) => { scale.value = Math.min(4, Math.max(1, startScale.value * e.scale)); })
+    .onUpdate((e) => {
+      scale.value = Math.min(4, Math.max(1, startScale.value * e.scale));
+      // 縮めたときに、それまでの位置が範囲の外に出ることがある
+      const maxX = Math.max(0, (dispW.value * scale.value - frameW.value) / 2);
+      const maxY = Math.max(0, (dispH.value * scale.value - frameH.value) / 2);
+      tx.value = Math.min(maxX, Math.max(-maxX, tx.value));
+      ty.value = Math.min(maxY, Math.max(-maxY, ty.value));
+    })
     .onEnd(() => { runOnJS(sync)(tx.value, ty.value, scale.value); });
 
   const gesture = Gesture.Simultaneous(pan, pinch);
@@ -120,6 +164,22 @@ export default function CropScreen() {
 
   const h = ratio === 'square' ? FRAME : ratio === 'portrait' ? (FRAME * 4) / 3 : (FRAME * 3) / 4;
 
+  // 枠を覆う倍率（src/lib/crop.ts の base と同じ計算）。
+  // この大きさで写真を置くと、画面の見た目と切り出しの計算が一致する。
+  const base = nat ? Math.max(FRAME / nat.w, h / nat.h) : 1;
+  const shownW = nat ? nat.w * base : FRAME;
+  const shownH = nat ? nat.h * base : h;
+  React.useEffect(() => {
+    dispW.value = shownW; dispH.value = shownH;
+    frameW.value = FRAME; frameH.value = h;
+    // 枠の形が変わると、それまでの位置が範囲の外に出ることがある
+    const maxX = Math.max(0, (shownW - FRAME) / 2);
+    const maxY = Math.max(0, (shownH - h) / 2);
+    tx.value = Math.min(maxX, Math.max(-maxX, tx.value));
+    ty.value = Math.min(maxY, Math.max(-maxY, ty.value));
+    setView((v) => ({ ...v, x: tx.value, y: ty.value }));
+  }, [shownW, shownH, h]);
+
   return (
     <View style={styles.root}>
       <View style={[styles.header, { paddingTop: insets.top + 6 }]}>
@@ -138,7 +198,18 @@ export default function CropScreen() {
       <View style={styles.stage}>
         <GestureDetector gesture={gesture}>
           <View style={[styles.frame, { width: FRAME, height: h }]}>
-            <Animated.View style={[StyleSheet.absoluteFill, animated]}>
+            <Animated.View
+              style={[
+                {
+                  position: 'absolute',
+                  width: shownW,
+                  height: shownH,
+                  left: (FRAME - shownW) / 2,
+                  top: (h - shownH) / 2,
+                },
+                animated,
+              ]}
+            >
               <Image source={{ uri: workUri }} style={styles.img} resizeMode="cover" />
             </Animated.View>
             {/* 三分割の目安線 */}

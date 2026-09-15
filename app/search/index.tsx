@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import { matchesName } from '@/lib/searchText';
 import {
   View,
   Text,
@@ -50,7 +51,7 @@ export default function SearchScreen() {
 
   const results = useMemo(() => {
     let r = items.filter((i) => i.status === 'growing' && !isHidden(i.ownerId));
-    if (q) r = r.filter((i) => (i.name + i.description).toLowerCase().includes(q.toLowerCase()));
+    if (q) r = r.filter((i) => matchesName(i.name, q));
     if (cat) r = r.filter((i) => i.category === cat);
     if (cond) r = r.filter((i) => i.condition === cond);
     r = [...r].sort((a, b) => (sort === 'water' ? b.waterCount - a.waterCount : 0));

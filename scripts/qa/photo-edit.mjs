@@ -75,11 +75,20 @@ await phase('E-1 商品写真をカルーセルで見て拡大できる', async 
   await s.page.mouse.click(195, 190);
   await s.page.waitForTimeout(2000);
   const after = await s.step('写真をタップした後', 'E-1');
-  const grew = await s.page.evaluate(() => {
-    const imgs = [...document.querySelectorAll('img')].map((i) => i.getBoundingClientRect().width);
-    return Math.max(0, ...imgs);
+  // ★ 画像の幅で見てはいけない。カルーセルはもともと画面幅いっぱいなので、
+  //   拡大の実装が無くても通ってしまっていた（2026-09-15 に実機で発覚）。
+  //   拡大の覆い（黒地）が出たかどうかで見る
+  const overlay = await s.page.evaluate(() => {
+    for (const el of document.querySelectorAll('div')) {
+      const st = getComputedStyle(el);
+      const r = el.getBoundingClientRect();
+      const dark = /rgba?\(0, 0, 0, 0\.9/.test(st.backgroundColor);
+      if (dark && r.width >= window.innerWidth - 2 && r.height >= window.innerHeight - 2) return true;
+    }
+    return false;
   });
-  if (grew < 300) throw new Error(`拡大されていない（最大の写真幅 ${grew}px）`);
+  if (!overlay) throw new Error('拡大の表示が出ていない（黒地の覆いが見つからない）');
+  if (!after.text.length) throw new Error('拡大後に画面が空');
 });
 
 await s.finish();

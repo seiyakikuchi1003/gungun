@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, useWindowDimensions, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, useWindowDimensions, NativeSyntheticEvent, NativeScrollEvent, Modal } from 'react-native';
+import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -75,6 +76,9 @@ export default function ItemDetailScreen() {
   const imgs = itemImageSources(item);
   const connected = childrenOf(item.id); // この商品に水やりした商品（＝子ノード）
   const treeThumbs = treeItems(item.rootId).filter((i) => i.id !== item.id);
+  // 写真をタップして拡大する（テスト仕様 E-1）。
+  // これまでカルーセルの写真には押す処理が無く、拡大できなかった（2026-09-15 指摘）
+  const [zoom, setZoom] = useState<number | null>(null);
   const rawGate = canWater(item.id);
   // ブロックした相手の商品には水やりさせない（G-9）。
   // 一覧からは消えるが、通知やURLから商品画面には入れてしまうため、ここでも閉じる。
@@ -103,7 +107,9 @@ export default function ItemDetailScreen() {
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled" horizontal pagingEnabled showsHorizontalScrollIndicator={false} onScroll={onScroll} scrollEventThrottle={16}>
             {imgs.map((src, i) => (
-              <Thumb key={i} source={src} style={{ width, height: imgH }} markSize={100} />
+              <PressableScale key={i} activeScale={0.99} onPress={() => setZoom(i)}>
+                <Thumb source={src} style={{ width, height: imgH }} markSize={100} />
+              </PressableScale>
             ))}
           </ScrollView>
 
@@ -292,6 +298,36 @@ export default function ItemDetailScreen() {
         )}
       </View>
 
+      {/* 写真の拡大（E-1）。黒地に全体が収まるように出す */}
+      <Modal visible={zoom !== null} transparent animationType="fade" onRequestClose={() => setZoom(null)}>
+        <View style={styles.zoomRoot}>
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            contentOffset={{ x: (zoom ?? 0) * width, y: 0 }}
+          >
+            {imgs.map((src, i) => (
+              <View key={i} style={{ width, height: '100%', justifyContent: 'center' }}>
+                <Image
+                  source={src as never}
+                  style={{ width, height: '100%' }}
+                  contentFit="contain"
+                  transition={150}
+                />
+              </View>
+            ))}
+          </ScrollView>
+          <PressableScale
+            onPress={() => setZoom(null)}
+            activeScale={0.9}
+            style={[styles.zoomClose, { top: insets.top + 8 }]}
+          >
+            <Ionicons name="close" size={24} color={colors.white} />
+          </PressableScale>
+        </View>
+      </Modal>
+
       {/* …メニュー（編集/削除 または 通報/ブロック） */}
       <ItemActionSheet
         visible={menu}
@@ -364,6 +400,11 @@ const styles = StyleSheet.create({
   commentSendOff: { backgroundColor: colors.textPlaceholder, opacity: 0.5 },
   cDelete: { marginLeft: 'auto', padding: 2 },
   footer: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 20, paddingTop: spacing.md, backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.divider, ...shadows.sheet },
+  zoomRoot: { flex: 1, backgroundColor: 'rgba(0,0,0,0.94)' },
+  zoomClose: {
+    position: 'absolute', right: 16, width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.18)', justifyContent: 'center', alignItems: 'center',
+  },
   waterBtnNeed: { backgroundColor: colors.orange },
   waterBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, minHeight: 56, borderRadius: radius.pill, backgroundColor: colors.waterBlue, paddingVertical: 8, paddingHorizontal: 14 },
   ownerRow: { flexDirection: 'row', gap: spacing.md },
