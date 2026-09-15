@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 実DB（Supabase gungun-dev）に接続する版をビルドして Cloudflare Pages に出す。
+# 実DB（Supabase 本番 vrgpbtyflrtsmxonmuwg）に接続する版をビルドして Cloudflare Pages に出す。
 #
 #   ・接続先は .env の EXPO_PUBLIC_SUPABASE_URL / EXPO_PUBLIC_SUPABASE_ANON_KEY
 #   ・先方デモ用のモック版（gungun-preview）とは別URLに出すので、
@@ -28,4 +28,6 @@ if grep -rqE 'sb_secret_[A-Za-z0-9_-]{10,}' dist-live/_expo 2>/dev/null; then
   exit 1
 fi
 
-npx wrangler pages deploy dist-live --project-name=gungun-dev-app --branch=main --commit-dirty=true
+# 宛先は gungun-web。以前は gungun-dev-app と書いてあったが、その名前の
+# プロジェクトはアカウントに存在せず Project not found で落ちていた（2026-09-14）
+npx wrangler pages deploy dist-live --project-name=gungun-web --branch=main --commit-dirty=true
