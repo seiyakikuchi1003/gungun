@@ -16,6 +16,8 @@ type BlocksState = {
   /** ブロックした相手の表示情報（マイページのブロックリスト用） */
   blockedUsers: BlockedUser[];
   isBlocked: (userId: string) => boolean;
+  /** 一覧から見せない相手（自分がブロック＋自分をブロック）。表示の除外はこちらを使う */
+  isHidden: (userId: string) => boolean;
   block: (userId: string) => void;
   unblock: (userId: string) => void;
   refresh: () => Promise<void>;
@@ -31,6 +33,7 @@ export function BlocksProvider({ children }: { children: React.ReactNode }) {
   const me = useMe();
   const [blocked, setBlocked] = useState<string[]>(live ? [] : MOCK_INITIAL);
   const [blockedUsers, setBlockedUsers] = useState<BlockedUser[]>([]);
+  const [hidden, setHidden] = useState<string[]>([]);
 
   const refresh = useCallback(async () => {
     if (!live || !me.live) return;
@@ -38,6 +41,8 @@ export function BlocksProvider({ children }: { children: React.ReactNode }) {
       const list = await api.fetchBlocks(me.id);
       setBlockedUsers(list);
       setBlocked(list.map((u) => u.id));
+      // 自分をブロックした相手も含めて隠す（2026-09-15 指摘）
+      setHidden(await api.fetchHiddenUserIds().catch(() => list.map((u) => u.id)));
     } catch {
       // 取れなくても画面は動かす（何も隠さないだけ）
     }
@@ -69,11 +74,12 @@ export function BlocksProvider({ children }: { children: React.ReactNode }) {
       blocked,
       blockedUsers,
       isBlocked: (id) => blocked.includes(id),
+      isHidden: (id) => blocked.includes(id) || hidden.includes(id),
       block,
       unblock,
       refresh,
     }),
-    [blocked, blockedUsers, block, unblock, refresh]
+    [blocked, blockedUsers, hidden, block, unblock, refresh]
   );
   return <BlocksContext.Provider value={value}>{children}</BlocksContext.Provider>;
 }

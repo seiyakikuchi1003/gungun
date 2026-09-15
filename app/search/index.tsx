@@ -38,7 +38,7 @@ export default function SearchScreen() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const { items } = useTree();
-  const { isBlocked } = useBlocks();
+  const { isHidden } = useBlocks();
   const [q, setQ] = useState('');
   const [cat, setCat] = useState<string | null>(null);
   const [sort, setSort] = useState<Sort>('new');
@@ -49,13 +49,13 @@ export default function SearchScreen() {
   const cardW = (width - 20 * 2 - 12) / 2;
 
   const results = useMemo(() => {
-    let r = items.filter((i) => i.status === 'growing' && !isBlocked(i.ownerId));
+    let r = items.filter((i) => i.status === 'growing' && !isHidden(i.ownerId));
     if (q) r = r.filter((i) => (i.name + i.description).toLowerCase().includes(q.toLowerCase()));
     if (cat) r = r.filter((i) => i.category === cat);
     if (cond) r = r.filter((i) => i.condition === cond);
     r = [...r].sort((a, b) => (sort === 'water' ? b.waterCount - a.waterCount : 0));
     return r;
-  }, [q, cat, cond, sort, items, isBlocked]);
+  }, [q, cat, cond, sort, items, isHidden]);
 
   const searching = q.length > 0 || cat !== null || cond !== null;
 
@@ -73,8 +73,8 @@ export default function SearchScreen() {
 
   // 注目の種：引っ張って更新で並びが入れ替わる（X/インスタ風）
   const hot = useMemo(
-    () => [...items].filter((i) => i.status === 'growing' && !isBlocked(i.ownerId)).sort((a, b) => b.waterCount - a.waterCount),
-    [items, isBlocked]
+    () => [...items].filter((i) => i.status === 'growing' && !isHidden(i.ownerId)).sort((a, b) => b.waterCount - a.waterCount),
+    [items, isHidden]
   );
   const [refreshing, setRefreshing] = useState(false);
   const [refreshTick, setRefreshTick] = useState(0);

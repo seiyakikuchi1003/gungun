@@ -121,9 +121,8 @@ export default function HarvestDetail() {
                   </View>
                   <View style={styles.gMeta}>
                     <Text style={styles.gOwner}>{u.nickname}さん</Text>
-                    <View style={styles.depthChip}>
-                      <Text style={styles.depthChipText}>{g.depth}段目</Text>
-                    </View>
+                    {/* 「2段目」「3段目」は作り手の言葉で、読む人には意味が無い
+                        （2026-09-14 指摘）。何人の輪になるかは下のチップで分かる */}
                   </View>
                   <View style={styles.ringChip}>
                     <Ionicons name="sync" size={11} color={colors.green} />

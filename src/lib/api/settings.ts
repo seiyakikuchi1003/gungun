@@ -34,7 +34,8 @@ export const defaultSettings: AppSettings = {
   firstSeedFree: fallback.firstSeedFree,
   premiumMonthly: fallback.premiumMonthly,
   seedPriceYen: null,
-  maxImagesPerItem: 4,
+  // 既定は10枚。管理画面（app_settings.max_images_per_item）で変えられる
+  maxImagesPerItem: 10,
   termsOfService: '',
   privacyPolicy: '',
   chargePlans: fallback.chargePlans.map((p) => ({

@@ -45,7 +45,7 @@ export default function ItemDetailScreen() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const { getItem, canWater, childrenOf, treeItems, settings: appSettings, live } = useTree();
-  const { isBlocked } = useBlocks();
+  const { isHidden } = useBlocks();
   // 実データに繋がっているときは管理画面の値を使う。
   // ここだけコードに直書きした値を出しており、管理画面で単価を変えても
   // 表示が変わらなかった（サーバは DB の値で引くので、表示と実額がずれる）。
@@ -79,9 +79,9 @@ export default function ItemDetailScreen() {
   // ブロックした相手の商品には水やりさせない（G-9）。
   // 一覧からは消えるが、通知やURLから商品画面には入れてしまうため、ここでも閉じる。
   // 「自分をブロックした相手」はアプリからは分からないので、サーバの can_water が見る。
-  const blockedOwner = isBlocked(item.ownerId);
+  const blockedOwner = isHidden(item.ownerId);
   const gate: typeof rawGate = blockedOwner
-    ? { ok: false, reason: 'ブロックした相手の商品には水やりできません' }
+    ? { ok: false, reason: 'この出品には水やりできません' }
     : rawGate;
   // すでにこの商品へ水やり済みか（自分の商品が子にいる）
   const alreadyWatered = connected.some((c) => c.ownerId === me.id);

@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { View, Text, TextInput, ScrollView, StyleSheet } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, Text, TextInput, ScrollView, StyleSheet, Keyboard, useWindowDimensions } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, fonts, spacing, radius } from '@/theme';
 import { BottomSheetModal } from './BottomSheetModal';
@@ -37,6 +37,18 @@ export function OptionPicker({
     setTimeout(() => setQ(''), 250);
   };
 
+  // 絞り込みでキーボードが上がると、一覧（高さ固定360）の大半が隠れて
+  // 1件しか見えなくなっていた（2026-09-14 指摘）。出ているあいだは一覧を縮める。
+  const { height: winH } = useWindowDimensions();
+  const [kb, setKb] = useState(0);
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardDidShow', (e) => setKb(e.endCoordinates.height));
+    const hide = Keyboard.addListener('keyboardDidHide', () => setKb(0));
+    return () => { show.remove(); hide.remove(); };
+  }, []);
+  // 260 は見出し・絞り込み欄・上下の余白のぶん。足りなくても 160 は残す
+  const listHeight = kb > 0 ? Math.max(160, winH - kb - 260) : 360;
+
   return (
     <BottomSheetModal visible={visible} onClose={close}>
       <Text style={styles.title}>{title}</Text>
@@ -54,7 +66,7 @@ export function OptionPicker({
         </View>
       )}
 
-      <ScrollView style={styles.list} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <ScrollView style={[styles.list, { height: listHeight }]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         {list.map((opt) => {
           const on = selected === opt;
           return (

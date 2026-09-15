@@ -237,6 +237,7 @@ export default function WaterScreen() {
       {/* 写真の追加方法（カメラ / ライブラリ） */}
 
       <PhotoSourceSheet
+        remaining={maxPhotos - photos.length}
         visible={photoSheet}
         onClose={() => setPhotoSheet(false)}
         onPicked={(uris, fromCamera) => {

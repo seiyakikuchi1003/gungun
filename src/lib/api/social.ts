@@ -35,6 +35,18 @@ export async function toggleItemLike(itemId: string, userId: string, on: boolean
 
 export type BlockedUser = { id: string; nickname: string; avatarUrl: string | null };
 
+/**
+ * 一覧から見せない相手の id（自分がブロックした人＋自分をブロックした人）。
+ *
+ * 「誰が自分をブロックしたか」は blocks から直接は読めない（RLS）。
+ * サーバの hidden_user_ids() が両方向をまとめて返す。向きは返らない。
+ */
+export async function fetchHiddenUserIds(): Promise<string[]> {
+  const { data, error } = await requireSupabase().rpc('hidden_user_ids');
+  if (error) throw error;
+  return (data ?? []) as string[];
+}
+
 export async function fetchBlocks(userId: string): Promise<BlockedUser[]> {
   const { data, error } = await requireSupabase()
     .from('blocks')

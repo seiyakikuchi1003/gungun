@@ -63,6 +63,15 @@ export default function PlantSeedScreen() {
   const sending = useRef(false);
   const [error, setError] = useState<string | null>(null);
 
+  // エラーは下の固定ボタンの上に出るため、出たままだと「商品の状態」の行に
+  // かぶって押しづらい（2026-09-15 指摘）。直したら消し、放っておいても数秒で消す。
+  useEffect(() => { setError(null); }, [name, category, condition, photos.length]);
+  useEffect(() => {
+    if (!error) return;
+    const t = setTimeout(() => setError(null), 4000);
+    return () => clearTimeout(t);
+  }, [error]);
+
   // 画面に「必須」と出している4つは、すべて揃うまで出品できないようにする。
   // カテゴリーと商品の状態が判定に入っておらず、未選択のまま送れていた（2026-09-14）
   const formOk =
@@ -111,7 +120,7 @@ export default function PlantSeedScreen() {
       <ScrollView
         keyboardDismissMode="on-drag"
         automaticallyAdjustKeyboardInsets
-        keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
+        keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 190 }}>
         <View style={styles.body}>
           <NoticeBox text="いらないものを植えると、交換の輪がはじまります" />
 
@@ -160,7 +169,13 @@ export default function PlantSeedScreen() {
               ))}
             </ScrollView>
             </View>
-            <Text style={styles.photoHint}>最大{maxPhotos}枚・1枚目がサムネイルになります</Text>
+            {/* 「最大◯枚」だけだと、すでに入れたぶんが引かれず、選んだのに
+                入らない枚数が出て戸惑う（2026-09-14 指摘）。残りを出す */}
+            <Text style={styles.photoHint}>
+              {photos.length > 0
+                ? `あと${maxPhotos - photos.length}枚追加できます・1枚目がサムネイルになります`
+                : `最大${maxPhotos}枚・1枚目がサムネイルになります`}
+            </Text>
           </View>
 
           {/* 商品名 */}
@@ -242,6 +257,7 @@ export default function PlantSeedScreen() {
       </BottomSheetModal>
 
       <PhotoSourceSheet
+        remaining={maxPhotos - photos.length}
         visible={photoSheet}
         onClose={() => setPhotoSheet(false)}
         onPicked={(uris, fromCamera) => {

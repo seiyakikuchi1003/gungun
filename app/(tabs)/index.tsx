@@ -88,10 +88,12 @@ const TOP_BAR_H = 62;
  *   人気順   … いいねの数が多い順
  */
 const SORTS = [
-  { key: 'recommend', label: 'おすすめ', note: 'プレミアム会員の出品を先に表示します' },
-  { key: 'new', label: '新着順', note: '出品された日が新しい順です' },
-  { key: 'water', label: '水やりが多い順', note: 'その商品に付いた水やりの数が多い順です' },
-  { key: 'like', label: '人気順', note: 'いいねの数が多い順です' },
+  // 説明文（note）は出さない。チップの名前で伝わるうえ、1行増えるぶん
+  // 商品が下に押し出される（2026-09-14 指摘：「マジでいらない」）
+  { key: 'recommend', label: 'おすすめ', note: '' },
+  { key: 'new', label: '新着順', note: '' },
+  { key: 'water', label: '水やりが多い順', note: '' },
+  { key: 'like', label: '人気順', note: '' },
 ] as const;
 type SortKey = (typeof SORTS)[number]['key'];
 
@@ -103,7 +105,7 @@ export default function HomeScreen() {
   const { items, fertilizer, refresh } = useTree();
   // 画面に戻ったとき・アプリを前面に戻したときに最新を取り直す
   useAutoRefresh(refresh);
-  const { isBlocked } = useBlocks();
+  const { isHidden } = useBlocks();
   const { unreadCount } = useNotifications();
   // 取引アイコンのバッジ。以前は常時点灯（badge 固定）だったので、
   // 「まだ発送・受け取りが終わっていない取引」の件数に変えた
@@ -165,7 +167,7 @@ export default function HomeScreen() {
   // 出しておくと押せそうに見えるので、ホームからは外す（2026-08-13 指摘）
   const myRoots = new Set(items.filter((i) => i.ownerId === me.id).map((i) => i.rootId));
   const seedsBase = items
-    .filter((i) => i.status === 'growing' && !isBlocked(i.ownerId) && !myRoots.has(i.rootId))
+    .filter((i) => i.status === 'growing' && !isHidden(i.ownerId) && !myRoots.has(i.rootId))
     .reverse();
   const shift = refreshTick % Math.max(seedsBase.length, 1);
   const seeds = seedsBase.slice(shift).concat(seedsBase.slice(0, shift));
@@ -366,7 +368,9 @@ export default function HomeScreen() {
             </View>
             <View style={styles.legendItem}>
               <Ionicons name="leaf" size={12} color={colors.green} />
-              <Text style={styles.legendText} numberOfLines={1}>この木に集まった商品</Text>
+              {/* 「木」が何を指すのか伝わらなかった（2026-09-14 指摘）。
+                  つながっている商品の数、という言い方にする */}
+              <Text style={styles.legendText} numberOfLines={1}>つながった商品の数</Text>
             </View>
           </View>
 

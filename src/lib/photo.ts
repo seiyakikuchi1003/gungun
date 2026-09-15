@@ -14,6 +14,9 @@ import * as ImagePicker from 'expo-image-picker';
  *   iOS では画面が出ない。閉じ切ってから呼ぶこと（PhotoSourceSheet 参照）。
  */
 
+/** 1商品に入れられる写真の枚数。管理画面から変えられるが、既定はこれ */
+export const MAX_PHOTOS = 10;
+
 function denied(kind: 'カメラ' | '写真') {
   Alert.alert(
     `${kind}へのアクセスが許可されていません`,
@@ -25,9 +28,9 @@ function denied(kind: 'カメラ' | '写真') {
   );
 }
 
-export async function takePhoto(): Promise<string[] | null> {
+export async function takePhoto(remaining = MAX_PHOTOS): Promise<string[] | null> {
   // Web にはカメラ起動 API がないためライブラリにフォールバック
-  if (Platform.OS === 'web') return pickFromLibrary();
+  if (Platform.OS === 'web') return pickFromLibrary(remaining);
 
   const perm = await ImagePicker.requestCameraPermissionsAsync();
   if (!perm.granted) {
@@ -48,7 +51,12 @@ export async function takePhoto(): Promise<string[] | null> {
   return res.assets.map((a) => a.uri);
 }
 
-export async function pickFromLibrary(): Promise<string[] | null> {
+/**
+ * @param remaining あと何枚入るか。ピッカー側の選択上限に渡す。
+ *   これを渡さないと、すでに写真が入っていても10枚選べてしまい、
+ *   選んだのに入らない枚数が出る（2026-09-14 指摘）。
+ */
+export async function pickFromLibrary(remaining = MAX_PHOTOS): Promise<string[] | null> {
   // iOS の「選択した写真のみ」設定でも選べるよう、granted だけで判断せず
   // limited（一部のみ許可）でもピッカーを開く
   const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -62,7 +70,7 @@ export async function pickFromLibrary(): Promise<string[] | null> {
     // 商品写真は画面で見る用途なので、0.6 まで落としても見た目は変わらない。
     quality: 0.6,
     allowsMultipleSelection: true,
-    selectionLimit: 10,
+    selectionLimit: Math.max(1, remaining),
   });
   if (res.canceled || !res.assets?.length) return null;
   return res.assets.map((a) => a.uri);

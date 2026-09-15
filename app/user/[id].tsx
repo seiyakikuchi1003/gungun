@@ -38,7 +38,9 @@ export default function UserProfile() {
   const u = users.user(userId);
   const blocked = isBlocked(userId);
   const isMe = userId === me.id;
-  const listed = items.filter((i) => i.ownerId === userId);
+  // 「出品中の商品」に取引中のものを混ぜない。見えても水やりできず、
+  // プロフィールから辿っても何もできない（2026-09-14 指摘）
+  const listed = items.filter((i) => i.ownerId === userId && i.status === 'growing');
 
   // 評価は profile_stats（実データ）から。以前は星 4.5 固定だった
   const [stats, setStats] = useState<ProfileStats | null>(null);
@@ -110,7 +112,7 @@ export default function UserProfile() {
               <Text style={styles.itemName} numberOfLines={1}>{it.name}</Text>
               <Text style={styles.category}>{it.category}</Text>
               <View style={styles.metaRow}>
-                <Badge label={it.status === 'growing' ? '出品中' : '取引中'} tone={it.status === 'growing' ? 'green' : 'orange'} />
+                <Badge label="出品中" tone="green" />
                 <Text style={styles.meta}>♡ {it.likeCount}・水やり {it.waterCount}</Text>
               </View>
             </View>

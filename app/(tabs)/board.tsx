@@ -22,7 +22,7 @@ import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 export default function BoardScreen() {
   const me = useMe();
   const insets = useSafeAreaInsets();
-  const { isBlocked } = useBlocks();
+  const { isHidden } = useBlocks();
   const [filter, setFilter] = useState<string>('all');
   const [hidden, setHidden] = useState<string[]>([]); // 自分で削除した投稿ID
   const [sheetPost, setSheetPost] = useState<UIPost | null>(null);
@@ -51,7 +51,7 @@ export default function BoardScreen() {
     (p) =>
       (filter === 'all' || p.tag === filter) &&
       (q === '' || p.body.toLowerCase().includes(q)) &&
-      !isBlocked(p.userId) &&
+      !isHidden(p.userId) &&
       !hidden.includes(p.id)
   );
 

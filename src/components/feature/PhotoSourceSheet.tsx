@@ -12,9 +12,11 @@ type Props = {
   onClose: () => void;
   /** 取得した写真URI（複数可）。fromCamera＝その場で撮った1枚（撮った直後に切り抜きへ回す） */
   onPicked: (uris: string[], fromCamera: boolean) => void;
+  /** あと何枚入るか。ピッカーの選択上限に渡す（2026-09-14 指摘） */
+  remaining?: number;
 };
 
-type Picker = () => Promise<string[] | null>;
+type Picker = (remaining?: number) => Promise<string[] | null>;
 
 /**
  * 写真の追加方法を選ぶシート。
@@ -29,7 +31,7 @@ type Picker = () => Promise<string[] | null>;
  * 「押しても何も起きない」状態になる（実機で発生）。
  * そのため実行したい処理を保留しておき、閉じ終わってから動かす。
  */
-export function PhotoSourceSheet({ visible, onClose, onPicked }: Props) {
+export function PhotoSourceSheet({ visible, onClose, onPicked, remaining }: Props) {
   const pending = useRef<Picker | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -43,7 +45,7 @@ export function PhotoSourceSheet({ visible, onClose, onPicked }: Props) {
       timer.current = null;
     }
     try {
-      const uris = await fn();
+      const uris = await fn(remaining);
       if (uris && uris.length) onPicked(uris, fromCamera);
     } catch (e) {
       // 黙って何も起きないのが一番困るので、理由を出す
@@ -52,7 +54,7 @@ export function PhotoSourceSheet({ visible, onClose, onPicked }: Props) {
         errorMessage(e, 'もう一度お試しください。')
       );
     }
-  }, [onPicked]);
+  }, [onPicked, remaining]);
 
   const run = (fn: Picker) => {
     pending.current = fn;

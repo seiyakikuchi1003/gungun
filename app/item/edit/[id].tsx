@@ -183,6 +183,7 @@ export default function EditItemScreen() {
       </View>
 
       <PhotoSourceSheet
+        remaining={maxPhotos - photos.length}
         visible={photoSheet}
         onClose={() => setPhotoSheet(false)}
         onPicked={(uris, fromCamera) => {

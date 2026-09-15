@@ -100,7 +100,13 @@ export default function TreeScreen() {
 
         {/* 元の種 */}
         <Text style={styles.blockLabel}>元の種（{mine ? 'あなたの出品' : `${owner.nickname}さんの出品`}）</Text>
-        <View style={[styles.rootCard, shadows.soft]}>
+        {/* ぶら下がっている商品はタップで詳細に行けるのに、元の種だけ行けず
+            違和感があった（2026-09-14 指摘） */}
+        <PressableScale
+          activeScale={0.98}
+          onPress={() => router.push(`/item/${root.id}`)}
+          style={[styles.rootCard, shadows.soft]}
+        >
           <Thumb source={root.local} uri={root.image} style={styles.rootThumb} radius={radius.md} markSize={22} />
           <View style={{ flex: 1 }}>
             <View style={styles.rootTop}>
@@ -114,7 +120,8 @@ export default function TreeScreen() {
             </View>
             <Text style={styles.rootSub}>この種への直接の水やり：{branches}件</Text>
           </View>
-        </View>
+          <Ionicons name="chevron-forward" size={18} color={colors.textPlaceholder} />
+        </PressableScale>
 
         {/* 木のイラスト */}
         <View style={[styles.canvasCard, shadows.card]}>
@@ -163,14 +170,9 @@ export default function TreeScreen() {
                 <Text style={styles.shareText}>収穫する（{waterings}件から選ぶ）</Text>
               </PressableScale>
             )}
-            {/* 自分のタネの木には水やりできない（1つの木につき1人1回まで）。
-                押せてしまうと必ず断られるので、そもそも出さない（2026-08-12 指摘） */}
-            {!mine && (
-              <PressableScale onPress={() => setPickWater(true)} activeScale={0.97} style={[styles.waterBtn, shadows.button]}>
-                <Ionicons name="water" size={18} color={colors.white} />
-                <Text style={styles.shareText}>この木に水やりする</Text>
-              </PressableScale>
-            )}
+            {/* 「この木に水やりする」は外した。水やりは商品ごとに行うもので、
+                木に対してするものではない。一覧の商品をタップして詳細から行う
+                （2026-09-14 指摘）。空の木から始めるときの導線だけ残してある */}
             {mine && !canHarvest && (
               <View style={styles.mineNote}>
                 <Ionicons name="information-circle" size={16} color={colors.textSecondary} />
