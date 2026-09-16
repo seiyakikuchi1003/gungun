@@ -35,6 +35,7 @@ const TONE: Record<NotificationType, string> = {
   ring_completed: colors.orangeDeep,
   rate_request: colors.green,
   item_like: colors.heart,
+  board_like: colors.premium,
 };
 
 /** 知らない種別が来ても既定の色・アイコンで出す（DB が先行しても画面を壊さない） */
@@ -42,11 +43,41 @@ const tone = (t: NotificationType): string => TONE[t] ?? colors.green;
 const icon = (t: NotificationType): keyof typeof Ionicons.glyphMap =>
   (NOTIF_ICON[t] ?? 'notifications') as keyof typeof Ionicons.glyphMap;
 
-function Row({ n, onPress, onSave, onDelete, onBlockedDelete }: { n: Notif; onPress: () => void; onSave: () => void; onDelete: () => void; onBlockedDelete: () => void }) {
+function Row({
+  n,
+  onPress,
+  onSave,
+  onDelete,
+  onBlockedDelete,
+  /** 選択して消す最中か（2026-09-16 要望。メールの削除と同じ操作） */
+  selecting = false,
+  selected = false,
+  onToggleSelect,
+}: {
+  n: Notif;
+  onPress: () => void;
+  onSave: () => void;
+  onDelete: () => void;
+  onBlockedDelete: () => void;
+  selecting?: boolean;
+  selected?: boolean;
+  onToggleSelect?: () => void;
+}) {
   const users = useUsers();
   const actor = n.actorId ? users.user(n.actorId) : null;
+  // 選択中は行をタップ＝選ぶ。未読は消せない決まりなので選ばせない
+  const handlePress = selecting ? (n.read ? onToggleSelect : onBlockedDelete) : onPress;
   return (
-    <PressableScale onPress={onPress} activeScale={0.99} style={[styles.row, !n.read && styles.unread]}>
+    <PressableScale
+      onPress={handlePress}
+      activeScale={0.99}
+      style={[styles.row, !n.read && styles.unread, selecting && !n.read && styles.rowDimmed]}
+    >
+      {selecting && (
+        <View style={[styles.check, selected && styles.checkOn, !n.read && styles.checkOff]}>
+          {selected && <Ionicons name="checkmark" size={14} color={colors.white} />}
+        </View>
+      )}
       <View style={styles.avatarWrap}>
         {/* 主役は「何についての通知か」＝関係する商品の写真。
             写真が無ければ相手のアイコン、それも無ければ種類の絵にする。
@@ -70,8 +101,9 @@ function Row({ n, onPress, onSave, onDelete, onBlockedDelete }: { n: Notif; onPr
         </Text>
         <Text style={styles.time}>{n.createdAt}</Text>
       </View>
-      {/* 保存と削除。押し間違えないよう本文とは離して置く（2026-08-21 指摘） */}
-      <View style={styles.rowActions}>
+      {/* 保存と削除。押し間違えないよう本文とは離して置く（2026-08-21 指摘）。
+          選択中はまとめて消すので、1件ずつのボタンは出さない */}
+      <View style={[styles.rowActions, selecting && { display: 'none' }]}>
         {!n.read && <View style={styles.dot} />}
         <PressableScale onPress={onSave} activeScale={0.85} hitSlop={8} style={styles.rowBtn}>
           <Ionicons
@@ -102,6 +134,11 @@ export default function Notifications() {
   // 押し間違えると元に戻せないため（2026-09-14）
   const [confirmOne, setConfirmOne] = useState<Notif | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  // 選んだものだけまとめて消す（2026-09-16 要望。メールの削除と同じ操作）。
+  // 「1件ずつ」と「読み終わったものを全部」しか無く、2件目から5件目だけ、ができなかった
+  const [selecting, setSelecting] = useState(false);
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [confirmPicked, setConfirmPicked] = useState(false);
   const { list, markRead, markAllRead, remove, clearAll, toggleSaved, refresh } = useNotifications();
   // 画面に戻ったとき・アプリを前面に戻したときに最新を取り直す
   useAutoRefresh(refresh, { intervalMs: 20000 });
@@ -122,6 +159,22 @@ export default function Notifications() {
   const today = rest.filter((n) => n.today);
   const earlier = rest.filter((n) => !n.today);
 
+  // 消せるのは読み終わったものだけ（未読を消せないのは 2026-08-21 の決まり）
+  const deletable = list.filter((n) => n.read);
+  const togglePick = (id: string) =>
+    setPicked((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  const endSelecting = () => { setSelecting(false); setPicked(new Set()); };
+  const removePicked = () => {
+    picked.forEach((id) => remove(id));
+    setToast(`${picked.size}件の通知を消しました`);
+    setConfirmPicked(false);
+    endSelecting();
+  };
+
   // タップしたら既読にして、その通知が指す画面へ飛ぶ
   const open = (n: Notif) => {
     if (!n.read) markRead(n.id);
@@ -134,15 +187,29 @@ export default function Notifications() {
         <PressableScale onPress={() => router.back()} activeScale={0.9} style={styles.hBtn}>
           <Ionicons name="chevron-back" size={26} color={colors.textPrimary} />
         </PressableScale>
-        <Text style={styles.hTitle}>通知</Text>
+        <Text style={styles.hTitle}>{selecting ? `${picked.size}件を選択中` : '通知'}</Text>
         <View style={styles.hRight}>
-          <PressableScale onPress={markAllRead} activeScale={0.94} style={styles.hBtn}>
-            <Ionicons name="checkmark-done" size={22} color={colors.green} />
-          </PressableScale>
-          {/* 保存したものは残す。うっかり大事なものまで消さないため */}
-          <PressableScale onPress={() => setConfirmClear(true)} activeScale={0.94} style={styles.hBtn}>
-            <Ionicons name="trash-outline" size={20} color={colors.textSecondary} />
-          </PressableScale>
+          {selecting ? (
+            <PressableScale onPress={endSelecting} activeScale={0.94} style={styles.hTextBtn}>
+              <Text style={styles.hTextBtnLabel}>やめる</Text>
+            </PressableScale>
+          ) : (
+            <>
+              <PressableScale onPress={markAllRead} activeScale={0.94} style={styles.hBtn}>
+                <Ionicons name="checkmark-done" size={22} color={colors.green} />
+              </PressableScale>
+              {/* 選んで消す（2026-09-16 要望）。読み終わった通知が無いときは出さない */}
+              {deletable.length > 0 && (
+                <PressableScale onPress={() => setSelecting(true)} activeScale={0.94} style={styles.hTextBtn}>
+                  <Text style={styles.hTextBtnLabel}>選択</Text>
+                </PressableScale>
+              )}
+              {/* 保存したものは残す。うっかり大事なものまで消さないため */}
+              <PressableScale onPress={() => setConfirmClear(true)} activeScale={0.94} style={styles.hBtn}>
+                <Ionicons name="trash-outline" size={20} color={colors.textSecondary} />
+              </PressableScale>
+            </>
+          )}
         </View>
       </View>
 
@@ -188,7 +255,7 @@ export default function Notifications() {
           <>
             <Text style={styles.groupTitle}>保存した通知</Text>
             {saved.map((n) => (
-              <Row key={n.id} n={n} onPress={() => open(n)} onSave={() => toggleSaved(n.id)} onDelete={() => setConfirmOne(n)} onBlockedDelete={() => setToast('未読の通知は消せません。開いて確認すると消せます')} />
+              <Row key={n.id} n={n} onPress={() => open(n)} onSave={() => toggleSaved(n.id)} onDelete={() => setConfirmOne(n)} onBlockedDelete={() => setToast('未読の通知は消せません。開いて確認すると消せます')} selecting={selecting} selected={picked.has(n.id)} onToggleSelect={() => togglePick(n.id)} />
             ))}
           </>
         )}
@@ -197,7 +264,7 @@ export default function Notifications() {
           <>
             <Text style={styles.groupTitle}>今日</Text>
             {today.map((n) => (
-              <Row key={n.id} n={n} onPress={() => open(n)} onSave={() => toggleSaved(n.id)} onDelete={() => setConfirmOne(n)} onBlockedDelete={() => setToast('未読の通知は消せません。開いて確認すると消せます')} />
+              <Row key={n.id} n={n} onPress={() => open(n)} onSave={() => toggleSaved(n.id)} onDelete={() => setConfirmOne(n)} onBlockedDelete={() => setToast('未読の通知は消せません。開いて確認すると消せます')} selecting={selecting} selected={picked.has(n.id)} onToggleSelect={() => togglePick(n.id)} />
             ))}
           </>
         )}
@@ -205,11 +272,49 @@ export default function Notifications() {
           <>
             <Text style={styles.groupTitle}>これまで</Text>
             {earlier.map((n) => (
-              <Row key={n.id} n={n} onPress={() => open(n)} onSave={() => toggleSaved(n.id)} onDelete={() => setConfirmOne(n)} onBlockedDelete={() => setToast('未読の通知は消せません。開いて確認すると消せます')} />
+              <Row key={n.id} n={n} onPress={() => open(n)} onSave={() => toggleSaved(n.id)} onDelete={() => setConfirmOne(n)} onBlockedDelete={() => setToast('未読の通知は消せません。開いて確認すると消せます')} selecting={selecting} selected={picked.has(n.id)} onToggleSelect={() => togglePick(n.id)} />
             ))}
           </>
         )}
       </ScrollView>
+
+      {/* 選んだものを消すバー。件数を出して、何件消えるか押す前に分かるようにする */}
+      {selecting && (
+        <View style={[styles.pickBar, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+          <PressableScale
+            onPress={() =>
+              setPicked((prev) =>
+                prev.size === deletable.length ? new Set() : new Set(deletable.map((n) => n.id))
+              )
+            }
+            activeScale={0.97}
+            style={styles.pickAll}
+          >
+            <Text style={styles.pickAllText}>
+              {picked.size === deletable.length ? '選択をはずす' : 'すべて選ぶ'}
+            </Text>
+          </PressableScale>
+          <PressableScale
+            onPress={() => picked.size > 0 && setConfirmPicked(true)}
+            activeScale={picked.size > 0 ? 0.97 : 1}
+            style={[styles.pickDelete, picked.size === 0 && styles.pickDeleteOff]}
+          >
+            <Ionicons name="trash-outline" size={17} color={colors.white} />
+            <Text style={styles.pickDeleteText}>{picked.size}件を消す</Text>
+          </PressableScale>
+        </View>
+      )}
+
+      <BottomSheetModal visible={confirmPicked} onClose={() => setConfirmPicked(false)}>
+        <Text style={styles.clearTitle}>選んだ{picked.size}件を消しますか？</Text>
+        <Text style={styles.clearBody}>消した通知は元に戻せません。</Text>
+        <PressableScale onPress={removePicked} activeScale={0.97} style={styles.clearBtn}>
+          <Text style={styles.clearBtnText}>消す</Text>
+        </PressableScale>
+        <PressableScale onPress={() => setConfirmPicked(false)} activeScale={0.98} style={styles.clearCancel}>
+          <Text style={styles.clearCancelText}>やめる</Text>
+        </PressableScale>
+      </BottomSheetModal>
 
       <Toast message={toast} onHide={() => setToast(null)} />
     </View>
@@ -238,6 +343,31 @@ const styles = StyleSheet.create({
   clearBtnText: { flexShrink: 1, textAlign: 'center', fontFamily: fonts.bold, fontSize: 16, color: colors.white, },
   clearCancel: { alignItems: 'center', paddingVertical: spacing.lg },
   clearCancelText: { fontFamily: fonts.bold, fontSize: 15, color: colors.textSecondary },
+  // 選んで消す（2026-09-16 要望）
+  check: {
+    width: 22, height: 22, borderRadius: 999, borderWidth: 2, borderColor: colors.border,
+    justifyContent: 'center', alignItems: 'center', marginRight: spacing.sm,
+  },
+  checkOn: { backgroundColor: colors.green, borderColor: colors.green },
+  checkOff: { borderColor: colors.divider, backgroundColor: colors.cardMuted },
+  rowDimmed: { opacity: 0.5 },
+  hTextBtn: { height: 40, justifyContent: 'center', paddingHorizontal: spacing.sm },
+  hTextBtnLabel: { fontFamily: fonts.bold, fontSize: 14, color: colors.green },
+  pickBar: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.md,
+    paddingHorizontal: 20, paddingTop: spacing.md,
+    backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.divider,
+    ...shadows.sheet,
+  },
+  pickAll: { height: 44, justifyContent: 'center', paddingHorizontal: spacing.md },
+  pickAllText: { fontFamily: fonts.bold, fontSize: 14, color: colors.textSecondary },
+  pickDelete: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    minHeight: 46, borderRadius: radius.pill, backgroundColor: colors.heart,
+    paddingVertical: 6, paddingHorizontal: 14,
+  },
+  pickDeleteOff: { backgroundColor: colors.textPlaceholder },
+  pickDeleteText: { flexShrink: 1, textAlign: 'center', fontFamily: fonts.bold, fontSize: 15, color: colors.white },
   rowBtnOff: { opacity: 0.5 },
   rowActions: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   rowBtn: { padding: 6 },

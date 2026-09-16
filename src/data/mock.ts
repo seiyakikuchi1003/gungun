@@ -12,6 +12,8 @@ export type MockUser = {
   ratingAvg?: number | null;
   ratingCount: number;
   itemCount: number;
+  /** プレミアム会員か。モックでは基本 false */
+  isPremium?: boolean;
 };
 
 // ユーザーアバター。data URI 文字列で埋め込み（プレビュー/実機で確実に表示）。

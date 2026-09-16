@@ -126,6 +126,16 @@ export default function WaterScreen() {
         </View>
 
         <Text style={[styles.label, { marginTop: spacing.xl, color: colors.waterBlue }]}>あなたが交換に出す商品</Text>
+        {/* 追加ボタンは左に固定し、写真だけを横に流す。タネを植えるときと同じ構造にする。
+            以前は写真の後ろに置いていたため、写真を足すたびにボタンが右へ逃げていた
+            （2026-09-16 指摘。出品側は 2026-08-13 に同じ指摘で直している） */}
+        <View style={styles.photoRowWrap}>
+        {photos.length < maxPhotos && (
+          <PressableScale onPress={() => setPhotoSheet(true)} activeScale={0.96} style={styles.addPhoto}>
+            <Ionicons name="camera" size={26} color={colors.waterBlue} />
+            <Text style={styles.addPhotoText}>＋写真を追加</Text>
+          </PressableScale>
+        )}
         <ScrollView
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photoRow}>
@@ -147,13 +157,14 @@ export default function WaterScreen() {
               </PressableScale>
             </View>
           ))}
-          {photos.length < maxPhotos && (
-          <PressableScale onPress={() => setPhotoSheet(true)} activeScale={0.96} style={styles.addPhoto}>
-            <Ionicons name="camera" size={26} color={colors.waterBlue} />
-            <Text style={styles.addPhotoText}>写真を追加</Text>
-          </PressableScale>
-          )}
         </ScrollView>
+        </View>
+        {/* 残り枚数の出し方も、タネを植えるときと同じにする（2026-09-16 指摘） */}
+        <Text style={styles.photoHint}>
+          {photos.length > 0
+            ? `あと${maxPhotos - photos.length}枚追加できます・1枚目がサムネイルになります`
+            : `最大${maxPhotos}枚・1枚目がサムネイルになります`}
+        </Text>
 
         {/* 商品名 */}
         <View style={styles.field}>
@@ -294,6 +305,9 @@ const styles = StyleSheet.create({
   parentOwner: { fontFamily: fonts.medium, fontSize: 12, color: colors.textSecondary },
   parentSub: { fontFamily: fonts.medium, fontSize: 11.5, color: colors.textSecondary },
   photoRow: { gap: spacing.md, paddingVertical: spacing.xs },
+  // タネを植えるときと同じ並べ方（追加ボタンを左に固定して、写真だけを流す）
+  photoRowWrap: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' },
+  photoHint: { fontFamily: fonts.regular, fontSize: 12, color: colors.textSecondary, marginTop: spacing.sm },
   photo: { width: 92, height: 92 },
   photoImg: { width: 92, height: 92 },
   cropHint: {

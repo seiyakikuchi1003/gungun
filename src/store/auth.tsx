@@ -18,6 +18,8 @@ export type Profile = {
   bio: string | null;
   fertilizer: number;
   isPremium: boolean;
+  /** プレミアムの有効期限（ISO文字列）。未加入なら null */
+  premiumUntil: string | null;
   /** 連続してログインボーナスを受け取っている日数（2026-08-21 追加） */
   loginStreak: number;
 };
@@ -100,6 +102,9 @@ function toProfile(row: any): Profile {
     bio: row.bio ?? null,
     fertilizer: row.fertilizer ?? 0,
     isPremium: Boolean(row.is_premium),
+    // いつまで有効かを画面に出せるようにする（2026-09-16 指摘。
+    // 「自分がプレミアムなのかどうかも分からない」への対応）
+    premiumUntil: row.premium_until ?? null,
     loginStreak: Number(row.login_streak ?? 0),
   };
 }

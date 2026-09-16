@@ -9,6 +9,7 @@ import { Thumb } from '@/components/ui/Thumb';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
+import { KeyboardDoneBar, KEYBOARD_DONE_ID } from '@/components/ui/KeyboardDoneBar';
 import { FormError } from '@/components/ui/FormError';
 import { NotFound } from '@/components/ui/NotFound';
 import { Stepper } from '@/components/feature/Stepper';
@@ -375,6 +376,10 @@ export default function ExchangeDetail() {
                 placeholder={`例：${carrierOf(carrier)?.sample ?? ''}`}
                 placeholderTextColor={colors.textPlaceholder}
                 keyboardType="number-pad"
+                // 数字キーボードには改行キーが無いので、閉じる手段がこれしかない。
+                // 付いていなかったため、閉じようとして画面の上の方を押すと
+                // シートごと閉じてしまっていた（2026-09-16 指摘）
+                inputAccessoryViewID={KEYBOARD_DONE_ID}
                 style={[styles.trackInput, { outlineStyle: 'none' } as object]}
               />
               {/* 桁数が違うまま追跡サイトへ送ると、開いた先でエラーになる。
@@ -486,6 +491,8 @@ export default function ExchangeDetail() {
               placeholder={`例：${carrierOf(carrier)?.sample ?? ''}`}
               placeholderTextColor={colors.textPlaceholder}
               keyboardType="number-pad"
+              // 訂正のときも「完了」で閉じられるようにする（2026-09-16 指摘）
+              inputAccessoryViewID={KEYBOARD_DONE_ID}
               style={[styles.trackInput, { outlineStyle: 'none' } as object, { marginTop: spacing.sm }]}
             />
             {tracking.trim() !== '' &&
@@ -535,6 +542,9 @@ export default function ExchangeDetail() {
           <Text style={styles.cancelText}>あとで</Text>
         </PressableScale>
       </BottomSheetModal>
+
+      {/* 数字キーボードを閉じるための「完了」バー（iOS のみ描画される） */}
+      <KeyboardDoneBar />
     </View>
   );
 }

@@ -59,7 +59,8 @@ export type NotificationType =
   | 'item_comment'    // 自分の出品へのコメント（2026-08-12 に掲示板から分離）
   | 'ring_completed'  // 玉突きの輪が一周した（お祝い）
   | 'rate_request'    // 受け取ったので、相手の評価をお願いする（2026-09-09）
-  | 'item_like';      // 自分の出品にいいねが付いた（2026-09-09）
+  | 'item_like'       // 自分の出品にいいねが付いた（2026-09-09）
+  | 'board_like';     // 自分の掲示板の投稿にいいねが付いた（2026-09-16）
 export type Notif = {
   id: string;
   type: NotificationType;
@@ -105,6 +106,7 @@ export const NOTIF_ICON: Record<NotificationType, string> = {
   ring_completed: 'trophy',
   rate_request: 'star',
   item_like: 'heart',
+  board_like: 'heart',
 };
 
 /** 取引（玉突きの1ペア）。dir=receive:受け取る（緑） / send:送る（オレンジ） */

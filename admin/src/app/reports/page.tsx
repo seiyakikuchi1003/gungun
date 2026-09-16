@@ -24,11 +24,25 @@ const TARGET_LABEL: Record<string, string> = {
   user: 'ユーザー',
 };
 
-async function statusAction(formData: FormData) {
+/**
+ * 通報のステータスを変える。
+ *
+ * ★ 押したボタンの name / value には頼らないこと（2026-09-16 修正）。
+ *   以前は <button name="status" value="resolved"> の値を formData から読んでいたが、
+ *   本番（Cloudflare Pages / next-on-pages）では押したボタンの値が送られてこず、
+ *   String(null) = "null" が DB に渡って
+ *   `invalid input value for enum report_status: "null"` で失敗していた。
+ *   手元（next dev）では再現しないため気づきにくい。
+ *   id と status はサーバー側で bind して渡し、フォームから運ばない。
+ */
+async function statusAction(
+  id: string,
+  status: 'open' | 'resolved' | 'dismissed',
+  formData: FormData
+) {
   'use server';
-  const id = String(formData.get('id'));
-  const status = String(formData.get('status')) as 'open' | 'resolved' | 'dismissed';
-  const res = await setReportStatus(id, status, String(formData.get('note') ?? ''));
+  const note = formData.get('note');
+  const res = await setReportStatus(id, status, typeof note === 'string' ? note : '');
   redirectWithResult('/reports', res, '通報を更新しました');
 }
 
@@ -176,23 +190,21 @@ export default async function ReportsPage({
               </dl>
 
               {r.status === 'open' ? (
-                <form action={statusAction} className="flex flex-wrap items-center gap-2">
-                  <input type="hidden" name="id" value={r.id} />
+                <form className="flex flex-wrap items-center gap-2">
                   <input name="note" placeholder="対応メモ（任意・記録に残ります）" className="input flex-1 min-w-[200px] h-9" />
-                  <button name="status" value="resolved" className="btn-primary h-9">
+                  <button formAction={statusAction.bind(null, r.id, 'resolved')} className="btn-primary h-9">
                     対応済みにする
                   </button>
-                  <button name="status" value="dismissed" className="btn-ghost h-9">
+                  <button formAction={statusAction.bind(null, r.id, 'dismissed')} className="btn-ghost h-9">
                     問題なし
                   </button>
                 </form>
               ) : (
-                <form action={statusAction} className="flex items-center gap-2">
-                  <input type="hidden" name="id" value={r.id} />
+                <form className="flex items-center gap-2">
                   <span className={`text-xs font-bold ${r.status === 'resolved' ? 'text-green-deep' : 'text-muted'}`}>
                     {r.status === 'resolved' ? '対応済み' : '問題なしとして処理'} ／ {jst(r.handled_at)}
                   </span>
-                  <button name="status" value="open" className="btn-ghost h-8 px-3 ml-auto">
+                  <button formAction={statusAction.bind(null, r.id, 'open')} className="btn-ghost h-8 px-3 ml-auto">
                     未対応に戻す
                   </button>
                 </form>

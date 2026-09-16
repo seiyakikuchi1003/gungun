@@ -32,6 +32,8 @@ export type PublicProfile = {
   ratingCount: number;
   /** 出品数（タネ＋水やりで出した商品） */
   itemCount: number;
+  /** プレミアム会員か（2026-09-16 指摘：人から見て分からない、への対応） */
+  isPremium: boolean;
 };
 
 /**
@@ -44,7 +46,7 @@ export async function fetchProfilesByIds(ids: string[]): Promise<PublicProfile[]
   // 評価・出品数は profile_stats にある。以前はここを引いておらず、
   // 画面側が「評価0・出品0」を出したり星を 4.5 で決め打ちしていた（2026-08-05 修正）
   const [{ data, error }, { data: stats }] = await Promise.all([
-    sb.from('profiles').select('id, nickname, avatar_url, bio').in('id', ids),
+    sb.from('profiles').select('id, nickname, avatar_url, bio, is_premium').in('id', ids),
     sb.from('profile_stats').select('id, rating_avg, rating_count, seed_count, water_count').in('id', ids),
   ]);
   if (error) throw error;
@@ -59,6 +61,7 @@ export async function fetchProfilesByIds(ids: string[]): Promise<PublicProfile[]
       ratingAvg: s?.rating_avg == null ? null : Number(s.rating_avg),
       ratingCount: Number(s?.rating_count ?? 0),
       itemCount: Number(s?.seed_count ?? 0) + Number(s?.water_count ?? 0),
+      isPremium: Boolean(r.is_premium),
     };
   });
 }

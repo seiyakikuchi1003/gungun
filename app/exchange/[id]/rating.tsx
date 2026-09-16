@@ -14,6 +14,7 @@ import { useExchange } from '@/hooks/useExchanges';
 import { FormError } from '@/components/ui/FormError';
 import { KeyboardDoneBar, KEYBOARD_DONE_ID } from '@/components/ui/KeyboardDoneBar';
 import { NotFound } from '@/components/ui/NotFound';
+import { AlreadyDone } from '@/components/ui/AlreadyDone';
 import { lh } from '@/lib/fontScale';
 
 const GOOD = ['対応が丁寧', 'スムーズ', '説明通り', '発送が早い', '梱包が丁寧'];
@@ -29,6 +30,20 @@ export default function RatingScreen() {
   const [error, setError] = useState<string | null>(null);
 
   if (!trade) return <NotFound message="この取引は見つかりませんでした" fallback="/exchange" />;
+  // すでに評価しているなら、評価の画面そのものを出さない（2026-09-16 指摘）。
+  //
+  // これまでは「評価してください」の通知から入ると、評価済みでも入力画面が開き、
+  // 送信を押して初めて「この取引はすでに評価済みです」と言われていた。
+  // 終わっている工程は、開いた時点でそう分かるようにする。
+  if (trade.iRated) {
+    return (
+      <AlreadyDone
+        title="この取引はすでに評価済みです"
+        body={`${trade.partnerName}さんへの評価は送信済みです。ありがとうございました🌱`}
+        exchangeId={id ?? ''}
+      />
+    );
+  }
   const u = { nickname: trade.partnerName, avatar: trade.partnerAvatar };
   const isSend = trade.dir === 'send';
 

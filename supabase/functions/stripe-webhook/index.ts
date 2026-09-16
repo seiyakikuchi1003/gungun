@@ -92,6 +92,36 @@ Deno.serve(async (req) => {
     return { ok: true, granted: data === true };
   };
 
+  /**
+   * 請求書IDから、その元になったサブスクの metadata を引く。
+   *
+   * サブスクの支払いは「サブスク → 請求書 → PaymentIntent」と枝分かれし、
+   * metadata はいちばん根元のサブスクにしか付いていない。
+   */
+  const metaFromInvoice = async (
+    invoiceId: string,
+    key: string
+  ): Promise<Record<string, string>> => {
+    try {
+      const r = await fetch(`https://api.stripe.com/v1/invoices/${invoiceId}`, {
+        headers: { Authorization: 'Bearer ' + key },
+      });
+      if (!r.ok) return {};
+      const inv = await r.json();
+      const fromInvoice = inv.subscription_details?.metadata ?? {};
+      if (fromInvoice.user_id) return fromInvoice;
+      if (!inv.subscription) return {};
+      const s = await fetch(`https://api.stripe.com/v1/subscriptions/${inv.subscription}`, {
+        headers: { Authorization: 'Bearer ' + key },
+      });
+      if (!s.ok) return {};
+      return (await s.json()).metadata ?? {};
+    } catch (e) {
+      console.error('請求書からサブスクを辿れませんでした', e);
+      return {};
+    }
+  };
+
   let result: { ok: boolean; why?: string; granted?: boolean } = { ok: true, granted: false };
 
   if (event.type === 'checkout.session.completed') {
@@ -105,9 +135,21 @@ Deno.serve(async (req) => {
     }
   } else if (event.type === 'payment_intent.succeeded') {
     // アプリ内の支払いシート（Payment Sheet）で払われたぶん。
-    // metadata は PaymentIntent を作るときに入れてある
+    // 肥料は PaymentIntent を自分で作るので metadata が入っている。
+    //
+    // ★ プレミアム（サブスク）はここに metadata が無い（2026-09-16 修正）。
+    //   サブスクの請求書が作る PaymentIntent は Stripe 側が用意するもので、
+    //   こちらがサブスクに付けた metadata は引き継がれない。
+    //   そのため誰の支払いか分からず、何も付与せずに 200 を返していた
+    //   ＝「決済できたのにプレミアムにならない」。
+    //   invoice.paid でも拾えるが、その購読は Stripe の管理画面側の設定に
+    //   左右されるので、ここだけで完結できるように請求書→サブスクを辿る。
     const pi = event.data.object;
-    if (pi.metadata?.user_id) result = await grant(pi.metadata, `pi_${pi.id}`, pi);
+    let meta: Record<string, string> = pi.metadata ?? {};
+    if (!meta.user_id && pi.invoice && stripeKey) {
+      meta = await metaFromInvoice(pi.invoice, stripeKey);
+    }
+    if (meta.user_id) result = await grant(meta, `pi_${pi.id}`, pi);
   } else if (event.type === 'invoice.paid') {
     // プレミアムの2回目以降。metadata はサブスクから引く
     const inv = event.data.object;

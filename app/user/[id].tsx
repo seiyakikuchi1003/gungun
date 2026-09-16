@@ -20,6 +20,7 @@ import { isSupabaseEnabled } from '@/lib/supabase';
  * App Store 公開後にアプリのURLが決まったら、リンク付きで戻す。
  */
 import { fetchStats, type ProfileStats } from '@/lib/api/profile';
+import { ReportSheet } from '@/components/feature/ReportSheet';
 
 /**
  * 他のユーザーのプロフィール。
@@ -44,6 +45,7 @@ export default function UserProfile() {
 
   // 評価は profile_stats（実データ）から。以前は星 4.5 固定だった
   const [stats, setStats] = useState<ProfileStats | null>(null);
+  const [report, setReport] = useState(false);
   useEffect(() => {
     if (!isSupabaseEnabled || !me.live) return;
     let alive = true;
@@ -67,6 +69,8 @@ export default function UserProfile() {
         <View style={[styles.profile, shadows.soft]}>
           <Avatar uri={u.avatar} name={u.nickname} size={72} />
           <Text style={styles.name}>{u.nickname}さん</Text>
+          {/* プレミアムであることが人から見て分かるようにする（2026-09-16 指摘） */}
+          {u.isPremium && <Badge label="★ プレミアム会員" tone="premium" />}
           <PressableScale
             onPress={() => router.push(`/ratings/${userId}` as never)}
             activeScale={0.97}
@@ -82,20 +86,33 @@ export default function UserProfile() {
           </PressableScale>
 
           {!isMe && (
-            <PressableScale
-              onPress={() => (blocked ? unblock(userId) : block(userId))}
-              activeScale={0.96}
-              style={[styles.blockBtn, blocked && styles.blockBtnOn]}
-            >
-              <Ionicons
-                name={blocked ? 'lock-open-outline' : 'ban-outline'}
-                size={16}
-                color={blocked ? colors.textSecondary : colors.heart}
-              />
-              <Text style={[styles.blockText, blocked && styles.blockTextOn]}>
-                {blocked ? 'ブロックを解除' : 'このユーザーをブロック'}
-              </Text>
-            </PressableScale>
+            <>
+              <PressableScale
+                onPress={() => (blocked ? unblock(userId) : block(userId))}
+                activeScale={0.96}
+                style={[styles.blockBtn, blocked && styles.blockBtnOn]}
+              >
+                <Ionicons
+                  name={blocked ? 'lock-open-outline' : 'ban-outline'}
+                  size={16}
+                  color={blocked ? colors.textSecondary : colors.heart}
+                />
+                <Text style={[styles.blockText, blocked && styles.blockTextOn]}>
+                  {blocked ? 'ブロックを解除' : 'このユーザーをブロック'}
+                </Text>
+              </PressableScale>
+              {/* ユーザーそのものの通報。これまでは商品や投稿しか通報できず、
+                  人に対してはブロックしかなかった（2026-09-16 指摘）。
+                  ブロックは自分から見えなくするだけで、運営には何も伝わらない。 */}
+              <PressableScale
+                onPress={() => setReport(true)}
+                activeScale={0.96}
+                style={styles.reportBtn}
+              >
+                <Ionicons name="flag-outline" size={15} color={colors.textSecondary} />
+                <Text style={styles.reportText}>このユーザーを通報する</Text>
+              </PressableScale>
+            </>
           )}
         </View>
 
@@ -121,6 +138,14 @@ export default function UserProfile() {
         ))}
         {listed.length === 0 && <Text style={styles.empty}>出品中の商品はありません</Text>}
       </ScrollView>
+
+      <ReportSheet
+        visible={report}
+        onClose={() => setReport(false)}
+        targetLabel={`${u.nickname}さん`}
+        targetType="user"
+        targetId={userId}
+      />
     </View>
   );
 }
@@ -137,6 +162,8 @@ const styles = StyleSheet.create({
   // alignSelf を付けないと親の alignItems:'center' で潰れるので、幅は自分で決める
   blockBtn: { alignSelf: 'stretch', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 42, borderRadius: radius.pill, borderWidth: 1.5, borderColor: colors.heart, marginTop: spacing.md, paddingVertical: 6, paddingHorizontal: 14 },
   blockBtnOn: { borderColor: colors.border },
+  reportBtn: { alignSelf: 'stretch', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 38, marginTop: spacing.sm, paddingVertical: 6, paddingHorizontal: 14 },
+  reportText: { flexShrink: 1, textAlign: 'center', fontFamily: fonts.bold, fontSize: 12.5, color: colors.textSecondary },
   blockText: { flexShrink: 1, textAlign: 'center', fontFamily: fonts.bold, fontSize: 13.5, color: colors.heart, },
   blockTextOn: { color: colors.textSecondary },
   sectionTitle: { fontFamily: fonts.bold, fontSize: 16, color: colors.textPrimary, marginBottom: spacing.md },

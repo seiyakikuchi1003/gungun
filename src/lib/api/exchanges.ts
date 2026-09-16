@@ -133,11 +133,43 @@ export async function receive(exchangeId: string): Promise<void> {
 
 // ── メッセージ ─────────────────────────────────────────────
 
+/**
+ * 同じ相手との会話を1本にまとめるために、束ねる取引IDを求める。
+ *
+ * 2人の輪では「自分が送る取引」と「自分が受け取る取引」の2本が立つ。
+ * メッセージは exchange_id にぶら下がるので、そのままだと同じ相手と
+ * 話しているのに送る側・受け取る側で別の会話になってしまう（2026-09-16 指摘）。
+ *
+ * 同じ収穫（＝同じ輪）の中で、相手が同じ取引をまとめて1本の会話として扱う。
+ * 別の輪での取引は、別の取引の話なので混ぜない。
+ */
+async function threadExchangeIds(exchangeId: string): Promise<string[]> {
+  const sb = requireSupabase();
+  const { data: base, error } = await sb
+    .from('exchanges')
+    .select('id, harvest_id, from_user_id, to_user_id')
+    .eq('id', exchangeId)
+    .maybeSingle();
+  if (error || !base) return [exchangeId];
+
+  const { data: siblings } = await sb
+    .from('exchanges')
+    .select('id, from_user_id, to_user_id')
+    .eq('harvest_id', (base as any).harvest_id);
+
+  const pair = [(base as any).from_user_id, (base as any).to_user_id].sort().join('|');
+  const ids = (siblings ?? [])
+    .filter((e: any) => [e.from_user_id, e.to_user_id].sort().join('|') === pair)
+    .map((e: any) => e.id as string);
+  return ids.length ? ids : [exchangeId];
+}
+
 export async function fetchMessages(exchangeId: string, me: string): Promise<ExchangeMessage[]> {
+  const ids = await threadExchangeIds(exchangeId);
   const { data, error } = await requireSupabase()
     .from('messages')
     .select('id, sender_id, body, created_at')
-    .eq('exchange_id', exchangeId)
+    .in('exchange_id', ids)
     .order('created_at', { ascending: true });
   if (error) throw error;
   return (data ?? []).map((r: any) => ({

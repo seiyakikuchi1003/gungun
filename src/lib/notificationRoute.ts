@@ -12,7 +12,7 @@ import type { NotificationType } from '@/data/mockSocial';
  *   harvested                    → ★収穫ID（商品IDではない）
  *   shipped / received / message → 取引ID
  *   rate_request                 → 取引ID（評価画面へ）
- *   board_comment                → 投稿ID
+ *   board_comment / board_like   → 投稿ID
  *   item_comment / item_like     → 商品ID
  *   ring_completed               → 収穫ID（お祝い画面）
  *
@@ -43,6 +43,8 @@ export function notificationRoute(type: NotificationType | string, relatedId?: s
       // 受け取り済みで、あとは評価だけ。一覧から直接その画面へ入れるようにする
       return id ? `/exchange/${id}/rating` : '/exchange';
     case 'board_comment':
+    case 'board_like':
+      // どちらも relatedId は投稿ID。いいねは 2026-09-16 の指摘で追加
       return id ? `/board/${id}` : '/(tabs)/board';
     case 'ring_completed':
       // 輪が一周した。全体がどう繋がったかをお祝い画面で見せる

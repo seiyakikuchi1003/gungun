@@ -10,6 +10,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { Thumb } from '@/components/ui/Thumb';
 import { HeartButton } from '@/components/ui/HeartButton';
 import { RatingSummary } from '@/components/ui/RatingSummary';
+import { Badge } from '@/components/ui/Badge';
 import { Sprout } from '@/components/art/Sprout';
 import { ItemActionSheet } from '@/components/feature/ItemActionSheet';
 import { ReportSheet } from '@/components/feature/ReportSheet';
@@ -59,6 +60,14 @@ export default function ItemDetailScreen() {
   const [ctext, setCtext] = useState('');
   const [toast, setToast] = useState<string | null>(null);
   const { comments, add: addComment, remove: removeComment } = useItemComments(id ?? '');
+  // 写真をタップして拡大する（テスト仕様 E-1）。
+  // これまでカルーセルの写真には押す処理が無く、拡大できなかった（2026-09-15 指摘）
+  //
+  // ★ この useState は「商品が無いときの早期リターン」より前に置くこと（2026-09-16）。
+  //   後ろに置くと、出品を削除して item が消えた瞬間に早期リターンが走り、
+  //   前回の描画よりフックの数が減って React が落ちる
+  //   （＝削除するとアプリが落ちてホームに戻る、の原因）。
+  const [zoom, setZoom] = useState<number | null>(null);
 
   // 閲覧履歴に残す（DB 側で同じ商品は1行・直近100件に抑えている）。
   // 失敗しても画面には影響させない。
@@ -76,9 +85,6 @@ export default function ItemDetailScreen() {
   const imgs = itemImageSources(item);
   const connected = childrenOf(item.id); // この商品に水やりした商品（＝子ノード）
   const treeThumbs = treeItems(item.rootId).filter((i) => i.id !== item.id);
-  // 写真をタップして拡大する（テスト仕様 E-1）。
-  // これまでカルーセルの写真には押す処理が無く、拡大できなかった（2026-09-15 指摘）
-  const [zoom, setZoom] = useState<number | null>(null);
   const rawGate = canWater(item.id);
   // ブロックした相手の商品には水やりさせない（G-9）。
   // 一覧からは消えるが、通知やURLから商品画面には入れてしまうため、ここでも閉じる。
@@ -141,7 +147,11 @@ export default function ItemDetailScreen() {
           <PressableScale activeScale={0.98} onPress={() => router.push(`/user/${owner.id}`)} style={[styles.sellerCard, shadows.soft]}>
             <Avatar uri={owner.avatar} name={owner.nickname} size={48} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.sellerName}>{owner.nickname}さん</Text>
+              <View style={styles.sellerNameRow}>
+                <Text style={styles.sellerName}>{owner.nickname}さん</Text>
+                {/* 出品者がプレミアムかどうかが分かるようにする（2026-09-16 指摘） */}
+                {owner.isPremium && <Badge label="★ プレミアム" tone="premium" />}
+              </View>
               <View style={styles.sellerRating}>
                 <RatingSummary
                   avg={owner.ratingAvg ?? null}
@@ -308,14 +318,29 @@ export default function ItemDetailScreen() {
             contentOffset={{ x: (zoom ?? 0) * width, y: 0 }}
           >
             {imgs.map((src, i) => (
-              <View key={i} style={{ width, height: '100%', justifyContent: 'center' }}>
+              // 1枚ごとに縦スクロールを1つ挟み、その拡大機能をそのまま使う（2026-09-16 要望）。
+              // iOS の ScrollView は maximumZoomScale を付けるとピンチでの拡大縮小と
+              // 拡大中の指送りを OS 側が面倒を見てくれる。写真アプリと同じ操作感になる。
+              // 自前のジェスチャーで組むと、横めくりのスワイプと取り合いになって
+              // どちらも半端に効く形になりやすい。
+              <ScrollView
+                key={i}
+                style={{ width, height: '100%' }}
+                contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
+                maximumZoomScale={4}
+                minimumZoomScale={1}
+                bouncesZoom
+                centerContent
+                showsVerticalScrollIndicator={false}
+                showsHorizontalScrollIndicator={false}
+              >
                 <Image
                   source={src as never}
                   style={{ width, height: '100%' }}
                   contentFit="contain"
                   transition={150}
                 />
-              </View>
+              </ScrollView>
             ))}
           </ScrollView>
           <PressableScale
@@ -366,6 +391,7 @@ const styles = StyleSheet.create({
   condText: { fontFamily: fonts.medium, fontSize: 11.5, color: colors.textSecondary },
   favBox: { paddingLeft: spacing.md, paddingTop: 2 },
   sellerCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.lg },
+  sellerNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
   sellerName: { fontFamily: fonts.bold, fontSize: 16, color: colors.textPrimary },
   sellerRating: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: 4 },
   sellerStat: { fontFamily: fonts.regular, fontSize: 12, color: colors.textSecondary },

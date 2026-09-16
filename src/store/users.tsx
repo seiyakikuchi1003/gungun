@@ -60,6 +60,7 @@ export function UsersProvider({ children }: { children: React.ReactNode }) {
             ratingAvg: p.ratingAvg,
             ratingCount: p.ratingCount,
             itemCount: p.itemCount,
+            isPremium: p.isPremium,
           };
         }
         // 見つからなかった＝退会済み。毎回引き直さないようここで確定させる

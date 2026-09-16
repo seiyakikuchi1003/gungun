@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { errorMessage } from '@/lib/errorMessage';
 import { View, Text, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { router } from 'expo-router';
@@ -33,7 +33,7 @@ export default function Address() {
           pref: a.prefecture, city: a.city, street: a.street, building: a.building,
         });
         // 読み込んだ値でいきなり上書きしないよう、この郵便番号は引き済みにする
-        setLookedUp(a.postalCode.replace(/[^0-9]/g, ''));
+        lookedUp.current = a.postalCode.replace(/[^0-9]/g, '');
       })
       .catch(() => {});
     return () => { alive = false; };
@@ -46,14 +46,20 @@ export default function Address() {
   //   すでに住所が入っている人が郵便番号を直しても古い住所のままだった
   //   （2026-08-21 指摘）。引けたら上書きする。
   //   ただし読み込み直後に上書きしないよう、最初の値は済み扱いにしておく。
-  const [lookedUp, setLookedUp] = useState('');
+  //
+  // ★ ここは state ではなく ref で持つこと（2026-09-16 指摘）。
+  //   state にすると、引き始めに setLookedUp した時点でこの useEffect が
+  //   もう一度走り、片付け処理（alive = false）が走って
+  //   **まだ返ってきていない問い合わせの結果が捨てられる**。
+  //   そのため「住所を調べています…」のまま何も入らなかった。
+  const lookedUp = useRef('');
   // 引けたか・引けなかったかを画面に出す。以前は失敗しても何も出さなかったため、
   // 入力した人からは「打ったのに何も起きない」としか見えなかった（2026-09-14）
   const [zipState, setZipState] = useState<'idle' | 'looking' | 'done' | 'notfound' | 'failed'>('idle');
   useEffect(() => {
     const zip = f.postal.replace(/[^0-9]/g, '');
-    if (zip.length !== 7 || zip === lookedUp) return;
-    setLookedUp(zip);
+    if (zip.length !== 7 || zip === lookedUp.current) return;
+    lookedUp.current = zip;
     setZipState('looking');
     let alive = true;
     (async () => {
@@ -76,7 +82,7 @@ export default function Address() {
       }
     })();
     return () => { alive = false; };
-  }, [f.postal, lookedUp]);
+  }, [f.postal]);
 
   const zipHint = {
     idle: '',

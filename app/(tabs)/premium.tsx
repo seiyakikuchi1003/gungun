@@ -25,6 +25,13 @@ function makeFeatures(bonus: number): { icon: keyof typeof Ionicons.glyphMap; ti
   ];
 }
 
+/** 有効期限の見せ方。時刻までは要らないので日付だけにする */
+function formatUntil(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+}
+
 export default function Premium() {
   const insets = useSafeAreaInsets();
   const [confirm, setConfirm] = useState(false);
@@ -100,6 +107,13 @@ export default function Premium() {
             </Text>
             {!joined && <Ionicons name="chevron-forward" size={17} color={colors.orangeDeep} />}
           </PressableScale>
+          {/* 「登録済み」だけだと、いつまで有効なのかが分からない（2026-09-16 指摘）。
+              次の更新日を出して、加入していることが具体的に分かるようにする */}
+          {joined && !!profile?.premiumUntil && (
+            <Text style={styles.untilText}>
+              {formatUntil(profile.premiumUntil)}まで有効（自動で更新されます）
+            </Text>
+          )}
           {/* 加入中は解約・支払い方法の変更に行けるようにする（導線が無かった：2026-08-05 指摘） */}
           {joined && (
             <PressableScale
@@ -218,6 +232,7 @@ const styles = StyleSheet.create({
   heroCta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, alignSelf: 'stretch', minHeight: 52, borderRadius: radius.pill, backgroundColor: colors.white, marginTop: spacing.lg, paddingVertical: 8, paddingHorizontal: 14 },
   heroCtaDone: { backgroundColor: 'rgba(255,255,255,0.28)' },
   heroCtaText: { flexShrink: 1, textAlign: 'center', fontFamily: fonts.black, fontSize: 16, color: colors.orangeDeep, },
+  untilText: { fontFamily: fonts.bold, fontSize: 12, color: colors.white, textAlign: 'center', marginTop: spacing.sm, opacity: 0.95 },
   heroCtaTextDone: { color: colors.white },
   manageBtn: { marginTop: spacing.md, paddingVertical: 8, paddingHorizontal: 14, borderRadius: radius.pill, borderWidth: 1, borderColor: 'rgba(255,255,255,0.7)' },
   manageText: { fontFamily: fonts.bold, fontSize: 13, color: colors.white },
