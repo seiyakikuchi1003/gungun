@@ -7,8 +7,22 @@ import { Icon } from '@/components/Icon';
 import { Nickname, Pager, Pill, SearchBox, Tabs } from '@/components/ui';
 import { countOf, isConnected, rows } from '@/lib/supabase';
 import { setContentHidden } from '@/lib/actions';
-import { redirectWithResult } from '@/lib/result';
+import { redirectWithResult, safePath } from '@/lib/result';
 import { jst } from '@/lib/format';
+
+/*
+ * ★ サーバーアクションは必ずコンポーネントの外（モジュールの直下）に置くこと（2026-09-17）。
+ *   コンポーネントの中で定義して画面の変数（id や戻り先）を使うと、Next.js はその値を
+ *   暗号化してブラウザに渡すが、Cloudflare Pages（next-on-pages）では復号に失敗し、
+ *   押した瞬間に「atob() called with invalid base64-encoded data」で落ちる。
+ *   手元の next dev では再現しない。必要な値は .bind() の引数で渡す。
+ */
+
+async function hideAction(here: string, id: string, hidden: boolean) {
+  'use server';
+  const res = await setContentHidden('board_posts', id, hidden);
+  redirectWithResult(safePath(here, '/board'), res, hidden ? '投稿を非表示にしました。投稿者にお知らせを送りました' : '投稿を再表示しました');
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -52,12 +66,6 @@ export default async function BoardPage({
   }
 
   const here = `/board?${new URLSearchParams({ ...(q ? { q } : {}), ...(f !== 'all' ? { f } : {}), ...(page > 1 ? { page: String(page) } : {}) })}`;
-
-  async function hideAction(id: string, hidden: boolean) {
-    'use server';
-    const res = await setContentHidden('board_posts', id, hidden);
-    redirectWithResult(here, res, hidden ? '投稿を非表示にしました。投稿者にお知らせを送りました' : '投稿を再表示しました');
-  }
 
   // 通報されたことのある投稿のID
   const { data: reported } = await rows<any>((db) =>
@@ -156,7 +164,7 @@ export default async function BoardPage({
                   <span className="inline-flex items-center gap-1"><Icon name="chat" className="w-3.5 h-3.5" />コメント {commentCount[p.id] ?? 0}</span>
                   <span className="inline-flex items-center gap-1"><Icon name="heart" className="w-3.5 h-3.5" />いいね {likeCount[p.id] ?? 0}</span>
                   <Link href={`/board/${p.id}`} className="font-bold text-green ml-auto">開く</Link>
-                  <form action={hideAction.bind(null, p.id, !hidden)}>
+                  <form action={hideAction.bind(null, here, p.id, !hidden)}>
                     <button className={`inline-flex items-center gap-1 font-bold ${hidden ? 'text-green' : 'text-danger'}`}>
                       <Icon name={hidden ? 'eye' : 'eye-off'} className="w-3.5 h-3.5" />
                       {hidden ? '再表示する' : '非表示にする'}

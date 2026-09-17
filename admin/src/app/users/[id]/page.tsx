@@ -13,6 +13,41 @@ import { redirectWithResult } from '@/lib/result';
 import { jst, num } from '@/lib/format';
 import { ACTION_LABEL } from '@/lib/labels';
 
+/*
+ * ★ サーバーアクションは必ずコンポーネントの外（モジュールの直下）に置くこと（2026-09-17）。
+ *   コンポーネントの中で定義して画面の変数（id や戻り先）を使うと、Next.js はその値を
+ *   暗号化してブラウザに渡すが、Cloudflare Pages（next-on-pages）では復号に失敗し、
+ *   押した瞬間に「atob() called with invalid base64-encoded data」で落ちる。
+ *   手元の next dev では再現しない。必要な値は .bind() の引数で渡す。
+ */
+
+async function premiumAction(id: string, on: boolean, formData: FormData) {
+  'use server';
+  const until = String(formData.get('until') ?? '').trim();
+  const noLimit = formData.get('nolimit') === 'on';
+  const res = await setPremium(id, on, on && !noLimit ? until || null : null);
+  redirectWithResult(`/users/${id}`, res, on ? 'プレミアムにしました' : 'プレミアムを外しました');
+}
+
+async function fertilizerAction(id: string, sign: 1 | -1, formData: FormData) {
+  'use server';
+  const amount = Math.abs(Number(formData.get('amount'))) * sign;
+  const res = await grantFertilizer(id, amount);
+  redirectWithResult(`/users/${id}`, res, sign > 0 ? `肥料を ${Math.abs(amount)} 増やしました` : `肥料を ${Math.abs(amount)} 減らしました`);
+}
+
+async function suspendAction(id: string, to: boolean, formData: FormData) {
+  'use server';
+  const res = await setSuspended(id, to, String(formData.get('reason') ?? ''));
+  redirectWithResult(`/users/${id}`, res, to ? '利用を停止しました。本人にお知らせを送りました' : '利用停止を解除しました');
+}
+
+async function warnAction(id: string, formData: FormData) {
+  'use server';
+  const res = await warnUser(id, String(formData.get('message') ?? ''));
+  redirectWithResult(`/users/${id}`, res, '警告を送りました（本人の通知に届きます）');
+}
+
 export const dynamic = 'force-dynamic';
 
 /**
@@ -58,33 +93,6 @@ export default async function UserDetailPage({
 
   const { data: user } = await admin().from('admin_user_cards').select('*').eq('id', id).maybeSingle();
   if (!user) notFound();
-
-  const back = `/users/${id}`;
-
-  // ── 操作（どれも結果をこの画面に返す） ──
-  async function premiumAction(on: boolean, formData: FormData) {
-    'use server';
-    const until = String(formData.get('until') ?? '').trim();
-    const noLimit = formData.get('nolimit') === 'on';
-    const res = await setPremium(id, on, on && !noLimit ? until || null : null);
-    redirectWithResult(back, res, on ? 'プレミアムにしました' : 'プレミアムを外しました');
-  }
-  async function fertilizerAction(sign: 1 | -1, formData: FormData) {
-    'use server';
-    const amount = Math.abs(Number(formData.get('amount'))) * sign;
-    const res = await grantFertilizer(id, amount);
-    redirectWithResult(back, res, sign > 0 ? `肥料を ${Math.abs(amount)} 増やしました` : `肥料を ${Math.abs(amount)} 減らしました`);
-  }
-  async function suspendAction(to: boolean, formData: FormData) {
-    'use server';
-    const res = await setSuspended(id, to, String(formData.get('reason') ?? ''));
-    redirectWithResult(back, res, to ? '利用を停止しました。本人にお知らせを送りました' : '利用停止を解除しました');
-  }
-  async function warnAction(formData: FormData) {
-    'use server';
-    const res = await warnUser(id, String(formData.get('message') ?? ''));
-    redirectWithResult(back, res, '警告を送りました（本人の通知に届きます）');
-  }
 
   const [
     { data: items },
@@ -258,7 +266,7 @@ export default async function UserDetailPage({
                     <span className="font-bold">期限なし</span>
                   )}
                 </p>
-                <form action={premiumAction.bind(null, true)} className="flex flex-col gap-2 mb-3">
+                <form action={premiumAction.bind(null, user.id, true)} className="flex flex-col gap-2 mb-3">
                   <label className="text-xs font-bold text-muted">有効期限を変える</label>
                   <div className="flex gap-2">
                     <input type="date" name="until" defaultValue={defaultUntil} className="input" />
@@ -268,7 +276,7 @@ export default async function UserDetailPage({
                     <input type="checkbox" name="nolimit" className="accent-green" /> 期限なしにする
                   </label>
                 </form>
-                <form action={premiumAction.bind(null, false)}>
+                <form action={premiumAction.bind(null, user.id, false)}>
                   <ConfirmButton
                     message={`${user.nickname || 'このユーザー'} のプレミアムを外します。よろしいですか？`}
                     className="btn-ghost w-full text-danger"
@@ -278,7 +286,7 @@ export default async function UserDetailPage({
                 </form>
               </>
             ) : (
-              <form action={premiumAction.bind(null, true)} className="flex flex-col gap-2">
+              <form action={premiumAction.bind(null, user.id, true)} className="flex flex-col gap-2">
                 <label className="text-xs font-bold text-muted">有効期限</label>
                 <input type="date" name="until" defaultValue={defaultUntil} className="input" />
                 <label className="flex items-center gap-2 text-xs text-muted">
@@ -296,8 +304,8 @@ export default async function UserDetailPage({
             <form className="flex flex-col gap-2">
               <input name="amount" type="number" min={1} defaultValue={100} className="input" aria-label="増減する量" />
               <div className="grid grid-cols-2 gap-2">
-                <button formAction={fertilizerAction.bind(null, 1)} className="btn-primary">増やす</button>
-                <button formAction={fertilizerAction.bind(null, -1)} className="btn-ghost">減らす</button>
+                <button formAction={fertilizerAction.bind(null, user.id, 1)} className="btn-primary">増やす</button>
+                <button formAction={fertilizerAction.bind(null, user.id, -1)} className="btn-ghost">減らす</button>
               </div>
             </form>
             {ledger.length > 0 && (
@@ -319,7 +327,7 @@ export default async function UserDetailPage({
           </Section>
 
           <Section title="警告を送る" note="投稿や出品はそのまま。本人の通知に「運営からの警告」として届きます">
-            <form action={warnAction} className="flex flex-col gap-2">
+            <form action={warnAction.bind(null, user.id)} className="flex flex-col gap-2">
               <textarea
                 name="message"
                 rows={3}
@@ -340,7 +348,7 @@ export default async function UserDetailPage({
                   <div className="text-xs font-bold text-danger mb-1">停止の理由（本人に表示中）</div>
                   {user.suspended_reason || <span className="text-muted">理由なし</span>}
                 </div>
-                <form action={suspendAction.bind(null, false)}>
+                <form action={suspendAction.bind(null, user.id, false)}>
                   <ConfirmButton
                     message={`${user.nickname || 'このユーザー'} の利用停止を解除します。よろしいですか？`}
                     className="btn-ghost w-full"
@@ -350,7 +358,7 @@ export default async function UserDetailPage({
                 </form>
               </>
             ) : (
-              <form action={suspendAction.bind(null, true)} className="flex flex-col gap-2">
+              <form action={suspendAction.bind(null, user.id, true)} className="flex flex-col gap-2">
                 <textarea name="reason" rows={2} className="textarea" placeholder="停止の理由（本人に表示されます）" />
                 <ul className="text-[11.5px] text-muted leading-relaxed list-disc pl-4">
                   <li>アプリを開くと「利用を停止しています」の画面になり、何もできません</li>

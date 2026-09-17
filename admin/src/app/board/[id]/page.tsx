@@ -12,6 +12,26 @@ import { redirectWithResult } from '@/lib/result';
 import { jst } from '@/lib/format';
 import { ACTION_LABEL } from '@/lib/labels';
 
+/*
+ * ★ サーバーアクションは必ずコンポーネントの外（モジュールの直下）に置くこと（2026-09-17）。
+ *   コンポーネントの中で定義して画面の変数（id や戻り先）を使うと、Next.js はその値を
+ *   暗号化してブラウザに渡すが、Cloudflare Pages（next-on-pages）では復号に失敗し、
+ *   押した瞬間に「atob() called with invalid base64-encoded data」で落ちる。
+ *   手元の next dev では再現しない。必要な値は .bind() の引数で渡す。
+ */
+
+async function hidePost(postId: string, hidden: boolean, formData: FormData) {
+  'use server';
+  const res = await setContentHidden('board_posts', postId, hidden, String(formData.get('reason') ?? ''));
+  redirectWithResult(`/board/${postId}`, res, hidden ? '投稿を非表示にしました。投稿者にお知らせを送りました' : '投稿を再表示しました');
+}
+
+async function hideComment(postId: string, commentId: string, hidden: boolean) {
+  'use server';
+  const res = await setContentHidden('board_comments', commentId, hidden);
+  redirectWithResult(`/board/${postId}`, res, hidden ? 'コメントを非表示にしました。書いた人にお知らせを送りました' : 'コメントを再表示しました');
+}
+
 export const dynamic = 'force-dynamic';
 
 /**
@@ -46,19 +66,6 @@ export default async function BoardPostPage({
     .eq('id', id)
     .maybeSingle();
   if (!post) notFound();
-
-  const back = `/board/${id}`;
-
-  async function hidePost(hidden: boolean, formData: FormData) {
-    'use server';
-    const res = await setContentHidden('board_posts', id, hidden, String(formData.get('reason') ?? ''));
-    redirectWithResult(back, res, hidden ? '投稿を非表示にしました。投稿者にお知らせを送りました' : '投稿を再表示しました');
-  }
-  async function hideComment(commentId: string, hidden: boolean) {
-    'use server';
-    const res = await setContentHidden('board_comments', commentId, hidden);
-    redirectWithResult(back, res, hidden ? 'コメントを非表示にしました。書いた人にお知らせを送りました' : 'コメントを再表示しました');
-  }
 
   const [{ data: comments }, likes, { data: reports }] = await Promise.all([
     rows<any>((db) =>
@@ -146,7 +153,7 @@ export default async function BoardPostPage({
                         {c.body}
                       </p>
                     </div>
-                    <form action={hideComment.bind(null, c.id, !ch)} className="shrink-0">
+                    <form action={hideComment.bind(null, post.id, c.id, !ch)} className="shrink-0">
                       <button className={`text-xs font-bold inline-flex items-center gap-1 ${ch ? 'text-green' : 'text-danger'}`}>
                         <Icon name={ch ? 'eye' : 'eye-off'} className="w-3.5 h-3.5" />
                         {ch ? '再表示' : '非表示'}
@@ -163,7 +170,7 @@ export default async function BoardPostPage({
         <div className="flex flex-col gap-6 lg:sticky lg:top-6">
           <Section title={hidden ? '再表示する' : '非表示にする'}>
             {hidden ? (
-              <form action={hidePost.bind(null, false)} className="flex flex-col gap-2">
+              <form action={hidePost.bind(null, post.id, false)} className="flex flex-col gap-2">
                 <p className="text-sm text-muted">利用者から再び見えるようになります。</p>
                 <button className="btn-primary">
                   <Icon name="eye" className="w-4 h-4" />
@@ -171,7 +178,7 @@ export default async function BoardPostPage({
                 </button>
               </form>
             ) : (
-              <form action={hidePost.bind(null, true)} className="flex flex-col gap-2">
+              <form action={hidePost.bind(null, post.id, true)} className="flex flex-col gap-2">
                 <textarea name="reason" rows={2} className="textarea" placeholder="理由（任意・投稿者へのお知らせに入ります）" />
                 <p className="text-[11.5px] text-muted leading-relaxed">
                   投稿とコメントは利用者から見えなくなります。本文は消さずに残るので、あとから再表示できます。

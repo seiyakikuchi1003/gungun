@@ -8,9 +8,35 @@ import { Icon } from '@/components/Icon';
 import { Nickname, Pager, Pill, Tabs } from '@/components/ui';
 import { countOf, isConnected, rows } from '@/lib/supabase';
 import { handleReport, reopenReport, type ReportAction } from '@/lib/actions';
-import { redirectWithResult } from '@/lib/result';
+import { redirectWithResult, safePath } from '@/lib/result';
 import { jst } from '@/lib/format';
 import { ACTION_LABEL, TARGET_LABEL } from '@/lib/labels';
+
+/*
+ * ★ サーバーアクションは必ずコンポーネントの外（モジュールの直下）に置くこと（2026-09-17）。
+ *   コンポーネントの中で定義して画面の変数（id や戻り先）を使うと、Next.js はその値を
+ *   暗号化してブラウザに渡すが、Cloudflare Pages（next-on-pages）では復号に失敗し、
+ *   押した瞬間に「atob() called with invalid base64-encoded data」で落ちる。
+ *   手元の next dev では再現しない。必要な値は .bind() の引数で渡す。
+ */
+
+async function actAction(here: string, reportId: string, action: ReportAction, formData: FormData) {
+  'use server';
+  const res = await handleReport(reportId, action, String(formData.get('note') ?? ''));
+  const msg: Record<ReportAction, string> = {
+    hide_content: '非表示にしました。投稿者にお知らせを送りました',
+    warn_user: '警告を送りました',
+    suspend_user: '利用を停止しました。投稿者にお知らせを送りました',
+    none: '問題なしとして閉じました',
+  };
+  redirectWithResult(safePath(here, '/reports'), res, msg[action]);
+}
+
+async function reopenAction(here: string, reportId: string) {
+  'use server';
+  const res = await reopenReport(reportId);
+  redirectWithResult(safePath(here, '/reports'), res, '未対応に戻しました（行った非表示・停止は、それぞれの画面で戻してください）');
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -92,23 +118,6 @@ export default async function ReportsPage({
   }
 
   const here = `/reports${s !== 'open' ? `?s=${s}` : ''}`;
-
-  async function actAction(reportId: string, action: ReportAction, formData: FormData) {
-    'use server';
-    const res = await handleReport(reportId, action, String(formData.get('note') ?? ''));
-    const msg: Record<ReportAction, string> = {
-      hide_content: '非表示にしました。投稿者にお知らせを送りました',
-      warn_user: '警告を送りました',
-      suspend_user: '利用を停止しました。投稿者にお知らせを送りました',
-      none: '問題なしとして閉じました',
-    };
-    redirectWithResult(here, res, msg[action]);
-  }
-  async function reopenAction(reportId: string) {
-    'use server';
-    const res = await reopenReport(reportId);
-    redirectWithResult(here, res, '未対応に戻しました（行った非表示・停止は、それぞれの画面で戻してください）');
-  }
 
   const filterQuery = (q: any) => (s === 'all' ? q : q.eq('status', s));
   const [{ data: reportList, error: dbError }, total, cOpen, cResolved, cDismissed, cAll] = await Promise.all([
@@ -302,7 +311,7 @@ export default async function ReportsPage({
                       c.confirm ? (
                         <ConfirmButton
                           key={c.action}
-                          formAction={actAction.bind(null, r.id, c.action)}
+                          formAction={actAction.bind(null, here, r.id, c.action)}
                           message={c.confirm}
                           className={c.cls}
                           title={c.what}
@@ -310,7 +319,7 @@ export default async function ReportsPage({
                           {c.label}
                         </ConfirmButton>
                       ) : (
-                        <button key={c.action} formAction={actAction.bind(null, r.id, c.action)} className={c.cls} title={c.what}>
+                        <button key={c.action} formAction={actAction.bind(null, here, r.id, c.action)} className={c.cls} title={c.what}>
                           {c.label}
                         </button>
                       )
@@ -321,7 +330,7 @@ export default async function ReportsPage({
                 <div className="border-t border-line bg-white px-5 py-3 flex items-center gap-3 flex-wrap text-sm">
                   <span className="text-xs text-muted">{jst(r.handled_at)} に対応</span>
                   {r.handled_note && <span className="text-xs">メモ：{r.handled_note}</span>}
-                  <form action={reopenAction.bind(null, r.id)} className="ml-auto">
+                  <form action={reopenAction.bind(null, here, r.id)} className="ml-auto">
                     <button className="btn-ghost h-8 px-3">未対応に戻す</button>
                   </form>
                 </div>

@@ -8,8 +8,28 @@ import { Icon } from '@/components/Icon';
 import { Nickname, Pager, Pill, SearchBox, Tabs } from '@/components/ui';
 import { countOf, isConnected, rows } from '@/lib/supabase';
 import { restoreItem, softDeleteItem } from '@/lib/actions';
-import { redirectWithResult } from '@/lib/result';
+import { redirectWithResult, safePath } from '@/lib/result';
 import { jst } from '@/lib/format';
+
+/*
+ * ★ サーバーアクションは必ずコンポーネントの外（モジュールの直下）に置くこと（2026-09-17）。
+ *   コンポーネントの中で定義して画面の変数（id や戻り先）を使うと、Next.js はその値を
+ *   暗号化してブラウザに渡すが、Cloudflare Pages（next-on-pages）では復号に失敗し、
+ *   押した瞬間に「atob() called with invalid base64-encoded data」で落ちる。
+ *   手元の next dev では再現しない。必要な値は .bind() の引数で渡す。
+ */
+
+async function hideAction(here: string, id: string, formData: FormData) {
+  'use server';
+  const res = await softDeleteItem(id, String(formData.get('reason') ?? ''));
+  redirectWithResult(safePath(here, '/items'), res, '非表示にしました。出品者にお知らせを送りました');
+}
+
+async function restoreAction(here: string, id: string) {
+  'use server';
+  const res = await restoreItem(id);
+  redirectWithResult(safePath(here, '/items'), res, '表示に戻しました');
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -74,17 +94,6 @@ export default async function ItemsPage({
     return `/items${s ? `?${s}` : ''}`;
   };
   const here = href({ page: page > 1 ? String(page) : undefined });
-
-  async function hideAction(id: string, formData: FormData) {
-    'use server';
-    const res = await softDeleteItem(id, String(formData.get('reason') ?? ''));
-    redirectWithResult(here, res, '非表示にしました。出品者にお知らせを送りました');
-  }
-  async function restoreAction(id: string) {
-    'use server';
-    const res = await restoreItem(id);
-    redirectWithResult(here, res, '表示に戻しました');
-  }
 
   // 非表示のものも見たいので items を直接引く（item_cards は非表示を除外するビュー）
   const apply = (query: any, filter: Filter) => {
@@ -217,11 +226,11 @@ export default async function ItemsPage({
                   <td className="td text-muted text-xs whitespace-nowrap">{jst(it.created_at)}</td>
                   <td className="td text-right">
                     {it.status === 'deleted' ? (
-                      <form action={restoreAction.bind(null, it.id)}>
+                      <form action={restoreAction.bind(null, here, it.id)}>
                         <button className="btn-ghost h-8 px-3 whitespace-nowrap">表示に戻す</button>
                       </form>
                     ) : (
-                      <form action={hideAction.bind(null, it.id)}>
+                      <form action={hideAction.bind(null, here, it.id)}>
                         <ConfirmButton
                           message={`「${it.name}」をアプリに表示しないようにします。出品者にお知らせが届きます。よろしいですか？（あとから戻せます）`}
                           className="btn-ghost h-8 px-3 whitespace-nowrap text-danger border-danger/30 hover:bg-danger/5"
