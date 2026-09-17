@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput } from 'react-native';
+import { View, StyleSheet, ScrollView } from 'react-native';
+import { Text, TextInput, MAX_FONT_SCALE } from '@/components/ui/ScaledText';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -63,8 +64,8 @@ export default function RatingScreen() {
     return (
       <View style={[styles.root, styles.doneWrap]}>
         <Animated.View entering={ZoomIn.springify().damping(11)}><Mikan size={120} /></Animated.View>
-        <Animated.Text entering={FadeIn.delay(150)} style={styles.doneTitle}>評価を送信しました！</Animated.Text>
-        <Animated.Text entering={FadeIn.delay(250)} style={styles.doneSub}>取引完了です。ありがとうございました🌱</Animated.Text>
+        <Animated.Text maxFontSizeMultiplier={MAX_FONT_SCALE} entering={FadeIn.delay(150)} style={styles.doneTitle}>評価を送信しました！</Animated.Text>
+        <Animated.Text maxFontSizeMultiplier={MAX_FONT_SCALE} entering={FadeIn.delay(250)} style={styles.doneSub}>取引完了です。ありがとうございました🌱</Animated.Text>
         <View style={styles.doneCta}>
           {/* 輪の全体を見せるお祝い画面へ。まだ全員そろっていなければ進み具合として読める */}
           {trade.harvestId && (

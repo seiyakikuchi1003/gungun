@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, TextInput, ScrollView, StyleSheet, Keyboard, useWindowDimensions } from 'react-native';
+import { View, ScrollView, StyleSheet, Keyboard, useWindowDimensions } from 'react-native';
+import { Text, TextInput } from '@/components/ui/ScaledText';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, fonts, spacing, radius } from '@/theme';
 import { BottomSheetModal } from './BottomSheetModal';

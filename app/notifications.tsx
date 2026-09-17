@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { BottomSheetModal } from '@/components/ui/BottomSheetModal';
-import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
+import { Text } from '@/components/ui/ScaledText';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -36,6 +37,7 @@ const TONE: Record<NotificationType, string> = {
   rate_request: colors.green,
   item_like: colors.heart,
   board_like: colors.premium,
+  admin_notice: colors.textPrimary,
 };
 
 /** 知らない種別が来ても既定の色・アイコンで出す（DB が先行しても画面を壊さない） */
@@ -178,7 +180,11 @@ export default function Notifications() {
   // タップしたら既読にして、その通知が指す画面へ飛ぶ
   const open = (n: Notif) => {
     if (!n.read) markRead(n.id);
-    router.push(notificationRoute(n.type, n.relatedId) as never);
+    const to = notificationRoute(n.type, n.relatedId);
+    // 運営からのお知らせのように飛び先が無いものは、既読にするだけで留まる。
+    // 同じ通知一覧をもう一枚積むと、戻るで同じ画面が続いてしまう
+    if (to === '/notifications') return;
+    router.push(to as never);
   };
 
   return (

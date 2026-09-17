@@ -53,6 +53,10 @@ const KNOWN: Record<string, { label: string; hint: string; kind: Kind; unit?: st
     label: 'お問い合わせ先', kind: 'text',
     hint: 'アプリの「お問い合わせ」から送られる宛先',
   },
+  mail_from: {
+    label: 'メールの送信元', kind: 'text',
+    hint: 'メール配信で使う差出人。例：ぐんぐん <info@example.com>。Resend で認証済みのドメインのアドレスにしてください',
+  },
   charge_plans: {
     label: '肥料の販売プラン', kind: 'json',
     hint: 'アプリのチャージ画面に並ぶ内容。id / fertilizer / price / badge',
@@ -80,7 +84,7 @@ const ORDER = [
   'water_cost', 'daily_login_bonus', 'daily_login_bonus_premium', 'first_seed_free',
   'seed_price_yen', 'max_images_per_item',
   'premium_price_yen', 'charge_plans',
-  'contact_email', 'terms_of_service', 'privacy_policy',
+  'contact_email', 'mail_from', 'terms_of_service', 'privacy_policy',
   'premium_product', 'functions_base_url',
 ];
 
@@ -103,7 +107,7 @@ const GROUPS: { title: string; note: string; keys: string[] }[] = [
   {
     title: '文章・連絡先',
     note: 'アプリ内に表示される文章です',
-    keys: ['contact_email', 'terms_of_service', 'privacy_policy'],
+    keys: ['contact_email', 'mail_from', 'terms_of_service', 'privacy_policy'],
   },
   {
     title: '開発向け',
@@ -115,7 +119,7 @@ const GROUPS: { title: string; note: string; keys: string[] }[] = [
 async function saveAction(formData: FormData) {
   'use server';
   const key = String(formData.get('key'));
-  const res = await saveSetting(key, String(formData.get('value') ?? ''));
+  const res = await saveSetting(key, String(formData.get('value') ?? ''), String(formData.get('kind') ?? ''));
   const label = KNOWN[key]?.label ?? key;
   redirectWithResult('/settings', res, `「${label}」を保存しました`);
 }
@@ -147,6 +151,7 @@ function Field({ row }: { row: any }) {
 
       <form action={saveAction} className={long ? 'flex flex-col gap-2' : 'flex items-center gap-2 flex-wrap'}>
         <input type="hidden" name="key" value={row.key} />
+        <input type="hidden" name="kind" value={kind} />
 
         {kind === 'bool' ? (
           <select name="value" defaultValue={current} className="input h-9 w-40">
@@ -214,7 +219,9 @@ export default async function SettingsPage({
       ) : (
         <div className="flex flex-col gap-5 max-w-3xl">
           {GROUPS.map((g) => {
-            const list = g.keys.map((k) => byKey.get(k)).filter(Boolean);
+            // まだ DB に無い項目（例：あとから足した「メールの送信元」）も、空欄で出して入力できるようにする。
+            // 保存は upsert なので、そのまま作られる
+            const list = g.keys.map((k) => byKey.get(k) ?? { key: k, value: '', updated_at: null });
             if (!list.length) return null;
             return (
               <section key={g.title} className="card p-5">

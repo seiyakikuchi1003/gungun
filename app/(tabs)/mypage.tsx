@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { errorMessage } from '@/lib/errorMessage';
 import { openBillingPortal } from '@/lib/api/purchases';
-import { View, Text, StyleSheet, ScrollView, Linking } from 'react-native';
+import { View, StyleSheet, ScrollView, Linking } from 'react-native';
+import { Text } from '@/components/ui/ScaledText';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';

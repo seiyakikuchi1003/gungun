@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { SwipePages } from '@/components/ui/SwipePages';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl, useWindowDimensions, TextInput } from 'react-native';
+import { View, StyleSheet, ScrollView, ActivityIndicator, RefreshControl, useWindowDimensions } from 'react-native';
+import { Text, TextInput } from '@/components/ui/ScaledText';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';

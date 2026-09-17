@@ -1,5 +1,6 @@
 import React from 'react';
-import { Text, StyleSheet, ActivityIndicator, View, ViewStyle, StyleProp } from 'react-native';
+import { StyleSheet, ActivityIndicator, View, ViewStyle, StyleProp } from 'react-native';
+import { Text } from '@/components/ui/ScaledText';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, radius, spacing, fonts, shadows } from '@/theme';
 import { PressableScale } from './PressableScale';

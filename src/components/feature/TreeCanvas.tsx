@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { Text } from '@/components/ui/ScaledText';
 import Svg, { Path, Ellipse, Circle, G, Defs, LinearGradient, RadialGradient, Stop } from 'react-native-svg';
 import { colors, fonts, radius, shadows } from '@/theme';
 import { Thumb } from '@/components/ui/Thumb';
@@ -216,12 +217,9 @@ export function TreeCanvas({ width, children, treeSize, highlightId, onPressNode
               {isNew && (
                 <View style={styles.newBadge}><Text style={styles.newText}>NEW</Text></View>
               )}
-              {/* 何段目の水やりか。連鎖して伸びていることが見て分かるように */}
-              {item.depth > 1 && (
-                <View style={styles.depthBadge}>
-                  <Text style={styles.depthText} maxFontSizeMultiplier={1.2}>{item.depth}段</Text>
-                </View>
-              )}
+              {/* 「2段」「3段」のバッジは外した（2026-09-17 指摘）。
+                  9/15 に画面の見出しの「2段目」「3段目」を消したが、チップの左下にも
+                  同じ意味のバッジが残っていた。作り手の言葉で、読む人には意味が無い */}
             </PressableScale>
             <Text style={styles.nodeName} numberOfLines={1}>{item.name}</Text>
           </View>
@@ -286,8 +284,6 @@ const styles = StyleSheet.create({
   countZero: { backgroundColor: colors.textPlaceholder },
   countText: { fontFamily: fonts.black, fontSize: 11, color: colors.white },
   // 何段目の水やりか（2段目以降だけ出す）。右上の水やり数バッジとぶつからないよう左下に置く
-  depthBadge: { position: 'absolute', bottom: -4, left: -4, paddingHorizontal: 5, height: 16, borderRadius: 8, backgroundColor: colors.green, justifyContent: 'center', borderWidth: 1.5, borderColor: colors.white },
-  depthText: { fontFamily: fonts.bold, fontSize: 9, color: colors.white },
   // 「その他を見る」。実と区別しつつ、押せることが分かる見た目にする
   moreBubble: { width: NODE, height: NODE, borderRadius: NODE / 2, backgroundColor: colors.bgWarm, borderWidth: 2, borderColor: colors.border, justifyContent: 'center', alignItems: 'center' },
   moreNum: { fontFamily: fonts.black, fontSize: 17, color: colors.textSecondary },

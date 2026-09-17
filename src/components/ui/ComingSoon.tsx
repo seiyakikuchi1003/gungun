@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { Text } from '@/components/ui/ScaledText';
 import { Screen } from './Screen';
 import { Mikan } from '@/components/art/Mikan';
 import { colors, fonts, spacing } from '@/theme';

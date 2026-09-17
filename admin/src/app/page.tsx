@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Shell, NotConnected } from '@/components/Shell';
 import { countOf, isConnected, rows } from '@/lib/supabase';
 import { jst, num } from '@/lib/format';
+import { StatCard } from '@/components/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,7 +16,7 @@ export const dynamic = 'force-dynamic';
  * 数字はその下。用語も運営に伝わる言い方に直した（「種（ツリーの起点）」など内部語をやめる）。
  */
 
-type Todo = { label: string; count: number; href: string; cta: string };
+type Todo = { label: string; count: number; href: string; cta: string; note: string };
 
 export default async function DashboardPage() {
   if (!isConnected) {
@@ -26,32 +27,38 @@ export default async function DashboardPage() {
     );
   }
 
-  const [users, premium, seeds, growing, harvests, openReports, posts, suspended, trading] = await Promise.all([
+  const since24h = new Date(Date.now() - 86400000).toISOString();
+  const [users, premium, seeds, growing, harvests, openReports, posts, suspended, trading, newUsers, newPosts, stuckShipping] = await Promise.all([
     countOf('profiles'),
     countOf('profiles', (q) => q.eq('is_premium', true)),
     countOf('items', (q) => q.is('parent_id', null)),
     countOf('items', (q) => q.eq('status', 'growing')),
     countOf('harvests'),
     countOf('reports', (q) => q.eq('status', 'open')),
-    countOf('board_posts'),
+    countOf('board_posts', (q) => q.is('hidden_at', null)),
     countOf('profiles', (q) => q.eq('is_suspended', true)),
     countOf('items', (q) => q.eq('status', 'trading')),
+    countOf('profiles', (q) => q.gte('created_at', since24h)),
+    countOf('board_posts', (q) => q.gte('created_at', since24h)),
+    // 収穫から7日たっても発送されていない取引。トラブルの芽なので運営が気づけるように
+    countOf('exchanges', (q) => q.eq('status', 'pending').lte('created_at', new Date(Date.now() - 7 * 86400000).toISOString())),
   ]);
 
   // 放っておくと困るものだけを出す。0件のものは出さない
   const todos: Todo[] = [
-    { label: '未対応の通報', count: openReports, href: '/reports', cta: '確認する' },
+    { label: '未対応の通報', count: openReports, href: '/reports', cta: '対応する', note: '利用者からの報告です。内容を見て対応してください。' },
+    { label: '7日以上発送されていない取引', count: stuckShipping, href: '/items?f=trading', cta: '確認する', note: '相手が待っている可能性があります。必要なら出品者に連絡してください。' },
   ].filter((t) => t.count > 0);
 
   const stats = [
-    { label: 'ユーザー', value: users, href: '/users', note: '登録している人の数' },
-    { label: 'プレミアム会員', value: premium, href: '/users?f=premium', note: '月額に加入している人', tone: 'mikan' as const },
-    { label: '利用停止中', value: suspended, href: '/users?f=suspended', note: '運営が停止した人', tone: suspended > 0 ? ('danger' as const) : undefined },
-    { label: '出品中の商品', value: growing, href: '/items?f=growing', note: 'いま水やりを待っている', tone: 'green' as const },
-    { label: '取引中の商品', value: trading, href: '/items?f=trading', note: '交換が決まって配送中' },
-    { label: 'タネの数', value: seeds, href: '/items?f=seed', note: '交換の輪の起点になった出品' },
-    { label: '成立した交換', value: harvests, note: 'これまでに成立した収穫の数' },
-    { label: '掲示板の投稿', value: posts, note: '利用者どうしのやり取り' },
+    { label: 'ユーザー', value: users, href: '/users', note: `この24時間で +${newUsers}人`, icon: 'users' as const },
+    { label: 'プレミアム会員', value: premium, href: '/users?f=premium', note: '月額に加入している人', tone: 'mikan' as const, icon: 'star' as const },
+    { label: '出品中の商品', value: growing, href: '/items?f=growing', note: 'いま水やりを待っている', tone: 'green' as const, icon: 'box' as const },
+    { label: '取引中の商品', value: trading, href: '/items?f=trading', note: '交換が決まって配送中', icon: 'send' as const },
+    { label: 'タネの数', value: seeds, href: '/items?f=seed', note: '交換の輪の起点になった出品', icon: 'leaf' as const },
+    { label: '成立した交換', value: harvests, note: 'これまでに成立した収穫の数', icon: 'check' as const },
+    { label: '掲示板の投稿', value: posts, href: '/board', note: `この24時間で +${newPosts}件`, icon: 'chat' as const },
+    { label: '利用停止中', value: suspended, href: '/users?f=suspended', note: '運営が停止した人', tone: suspended > 0 ? ('danger' as const) : undefined, icon: 'ban' as const },
   ];
 
   const [{ data: recentItems }, { data: recentUsers }] = await Promise.all([
@@ -99,7 +106,7 @@ export default async function DashboardPage() {
                 <div className="text-sm font-black">
                   {t.label}が <span className="text-danger">{num(t.count)}件</span> あります
                 </div>
-                <p className="text-xs text-muted mt-0.5">利用者からの報告です。内容を見て対応してください。</p>
+                <p className="text-xs text-muted mt-0.5">{t.note}</p>
               </div>
               <span className="btn-primary h-9 px-4 ml-auto shrink-0 inline-flex items-center">{t.cta}</span>
             </Link>
@@ -109,35 +116,24 @@ export default async function DashboardPage() {
         <div className="card p-4 mb-7 flex items-center gap-3 border-l-4 border-l-green">
           <div>
             <div className="text-sm font-black text-green-deep">対応が必要なことはありません</div>
-            <p className="text-xs text-muted mt-0.5">未対応の通報はゼロです。</p>
+            <p className="text-xs text-muted mt-0.5">未対応の通報も、止まっている取引もありません。</p>
           </div>
         </div>
       )}
 
       <h2 className="text-sm font-black mb-2">今のようす</h2>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-        {stats.map((s) => {
-          const body = (
-            <div className="card p-4 h-full">
-              <div className="text-xs font-bold text-muted">{s.label}</div>
-              <div
-                className={`text-2xl font-black my-0.5 ${
-                  s.tone === 'danger' ? 'text-danger' : s.tone === 'mikan' ? 'text-mikan' : s.tone === 'green' ? 'text-green' : ''
-                }`}
-              >
-                {num(s.value)}
-              </div>
-              <div className="text-[11px] text-muted leading-tight">{s.note}</div>
-            </div>
-          );
-          return s.href ? (
-            <Link key={s.label} href={s.href} className="block hover:brightness-[0.99] transition">
-              {body}
-            </Link>
-          ) : (
-            <div key={s.label}>{body}</div>
-          );
-        })}
+        {stats.map((st) => (
+          <StatCard
+            key={st.label}
+            label={st.label}
+            value={num(st.value)}
+            note={st.note}
+            href={st.href}
+            tone={st.tone}
+            icon={st.icon}
+          />
+        ))}
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">

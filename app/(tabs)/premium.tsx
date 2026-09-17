@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { router } from 'expo-router';
 import { errorMessage } from '@/lib/errorMessage';
-import { View, Text, StyleSheet, ScrollView, AppState } from 'react-native';
+import { View, StyleSheet, ScrollView, AppState } from 'react-native';
+import { Text } from '@/components/ui/ScaledText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';

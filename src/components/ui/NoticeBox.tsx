@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { Text } from '@/components/ui/ScaledText';
 import { colors, radius, spacing, fonts } from '@/theme';
 import { Sprout } from '@/components/art/Sprout';
 

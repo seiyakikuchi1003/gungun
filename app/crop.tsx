@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
-import { View, Text, StyleSheet, Image, Image as RNImage, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, Image, Image as RNImage, ActivityIndicator } from 'react-native';
+import { Text } from '@/components/ui/ScaledText';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';

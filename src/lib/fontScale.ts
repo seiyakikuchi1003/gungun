@@ -1,4 +1,5 @@
 import { PixelRatio } from 'react-native';
+import { MAX_FONT_SCALE } from '@/components/ui/ScaledText';
 
 /**
  * 行の高さを端末の文字サイズに追従させる（2026-08-21 指摘）。
@@ -17,5 +18,7 @@ import { PixelRatio } from 'react-native';
  *   実用上はこれで足りる。
  */
 export function lh(n: number): number {
-  return Math.round(n * PixelRatio.getFontScale());
+  // 文字の大きさは MAX_FONT_SCALE で止まる（2026-09-17）。行の高さも同じ所で止めないと、
+  // 文字は止まったのに行間だけ広がり続ける
+  return Math.round(n * Math.min(PixelRatio.getFontScale(), MAX_FONT_SCALE));
 }

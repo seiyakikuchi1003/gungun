@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { Text, TextInput } from '@/components/ui/ScaledText';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -19,7 +20,7 @@ import { CARRIERS, carrier as carrierOf, carrierLabel, checkNumber, prettyNumber
 import { useAutoRefresh } from '@/hooks/useAutoRefresh';
 import { currentStep, nextAction } from '@/lib/exchangeStatus';
 import { success } from '@/lib/haptics';
-import { Linking, TextInput } from 'react-native';
+import { Linking } from 'react-native';
 import { lh } from '@/lib/fontScale';
 
 /**

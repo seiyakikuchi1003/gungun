@@ -44,6 +44,9 @@ const TITLE: Record<string, string> = {
   received: '受け取りが完了しました',
   message: 'メッセージが届きました',
   board_comment: 'コメントが届きました',
+  board_like: 'いいねが届きました',
+  // 運営からの非表示・警告・利用停止のお知らせ（2026-09-17）
+  admin_notice: '運営からのお知らせ',
 };
 
 function chunk<T>(arr: T[], size: number): T[][] {

@@ -1,14 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { matchesName } from '@/lib/searchText';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  ScrollView,
-  useWindowDimensions,
-  RefreshControl,
-} from 'react-native';
+import { View, StyleSheet, ScrollView, useWindowDimensions, RefreshControl } from 'react-native';
+import { Text, TextInput } from '@/components/ui/ScaledText';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';

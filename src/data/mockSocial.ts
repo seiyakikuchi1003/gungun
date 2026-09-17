@@ -60,7 +60,8 @@ export type NotificationType =
   | 'ring_completed'  // 玉突きの輪が一周した（お祝い）
   | 'rate_request'    // 受け取ったので、相手の評価をお願いする（2026-09-09）
   | 'item_like'       // 自分の出品にいいねが付いた（2026-09-09）
-  | 'board_like';     // 自分の掲示板の投稿にいいねが付いた（2026-09-16）
+  | 'board_like'      // 自分の掲示板の投稿にいいねが付いた（2026-09-16）
+  | 'admin_notice';   // 運営からのお知らせ（非表示・警告・利用停止。2026-09-17）
 export type Notif = {
   id: string;
   type: NotificationType;
@@ -107,6 +108,7 @@ export const NOTIF_ICON: Record<NotificationType, string> = {
   rate_request: 'star',
   item_like: 'heart',
   board_like: 'heart',
+  admin_notice: 'megaphone',
 };
 
 /** 取引（玉突きの1ペア）。dir=receive:受け取る（緑） / send:送る（オレンジ） */

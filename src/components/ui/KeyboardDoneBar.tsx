@@ -1,5 +1,6 @@
 import React from 'react';
-import { InputAccessoryView, Keyboard, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { InputAccessoryView, Keyboard, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Text } from '@/components/ui/ScaledText';
 import { colors, fonts, spacing } from '@/theme';
 
 /**

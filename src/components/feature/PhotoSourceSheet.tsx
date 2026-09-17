@@ -1,6 +1,7 @@
 import React, { useCallback, useRef } from 'react';
 import { errorMessage } from '@/lib/errorMessage';
-import { View, Text, StyleSheet, Alert, Platform } from 'react-native';
+import { View, StyleSheet, Alert, Platform } from 'react-native';
+import { Text } from '@/components/ui/ScaledText';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, spacing, fonts, radius } from '@/theme';
 import { BottomSheetModal } from '@/components/ui/BottomSheetModal';

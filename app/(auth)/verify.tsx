@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TextInput } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { Text, TextInput } from '@/components/ui/ScaledText';
 import { router, useLocalSearchParams } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, spacing, fonts, radius, shadows } from '@/theme';
@@ -29,7 +30,7 @@ export default function Verify() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [left, setLeft] = useState(RESEND_SEC);
-  const refs = useRef<(TextInput | null)[]>([]);
+  const refs = useRef<(React.ElementRef<typeof TextInput> | null)[]>([]);
   const filled = code.every((c) => c !== '');
 
   // 再送信できるようになるまでのカウントダウン

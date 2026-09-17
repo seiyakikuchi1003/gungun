@@ -3,55 +3,85 @@ export const runtime = "edge";
 import Link from 'next/link';
 import { Shell, NotConnected } from '@/components/Shell';
 import { Banner } from '@/components/Banner';
-import { isConnected, rows } from '@/lib/supabase';
-import { setReportStatus } from '@/lib/actions';
+import { ConfirmButton } from '@/components/ConfirmButton';
+import { Icon } from '@/components/Icon';
+import { Nickname, Pager, Pill, Tabs } from '@/components/ui';
+import { countOf, isConnected, rows } from '@/lib/supabase';
+import { handleReport, reopenReport, type ReportAction } from '@/lib/actions';
 import { redirectWithResult } from '@/lib/result';
-import { jst, shortId } from '@/lib/format';
+import { jst } from '@/lib/format';
+import { ACTION_LABEL, TARGET_LABEL } from '@/lib/labels';
 
 export const dynamic = 'force-dynamic';
 
-const TABS = [
-  { key: 'open', label: '未対応' },
-  { key: 'resolved', label: '対応済み' },
-  { key: 'dismissed', label: '却下' },
-  { key: 'all', label: 'すべて' },
-];
-
-const TARGET_LABEL: Record<string, string> = {
-  item: '商品',
-  board_post: '掲示板の投稿',
-  board_comment: '掲示板のコメント',
-  user: 'ユーザー',
-};
-
 /**
- * 通報のステータスを変える。
+ * 通報（2026-09-17 作り直し）。
  *
- * ★ 押したボタンの name / value には頼らないこと（2026-09-16 修正）。
- *   以前は <button name="status" value="resolved"> の値を formData から読んでいたが、
- *   本番（Cloudflare Pages / next-on-pages）では押したボタンの値が送られてこず、
- *   String(null) = "null" が DB に渡って
- *   `invalid input value for enum report_status: "null"` で失敗していた。
- *   手元（next dev）では再現しないため気づきにくい。
- *   id と status はサーバー側で bind して渡し、フォームから運ばない。
+ * 指摘：「対応済み」が何を指すのか、対応されたユーザーがその後どうなるのか分からない。
+ * 一般的なアプリと同じ仕様にしてほしい。
+ *
+ * これまでは通報の状態を書き換えるだけで、相手には何も起きていなかった。
+ * 対応の中身を選ぶ形にし、選んだとおりに実際に効かせる：
+ *
+ *   非表示にする … 通報された商品・投稿・コメントを、他の人から見えなくする
+ *   警告を送る   … 投稿はそのままで、本人に「運営からの警告」を届ける
+ *   利用を停止   … 本人はアプリを開いても何もできなくなる
+ *   問題なし     … 何もせず閉じる
+ *
+ * どれを選んでも、本人には何をされたかが「運営からのお知らせ」で届く（問題なしを除く）。
  */
-async function statusAction(
-  id: string,
-  status: 'open' | 'resolved' | 'dismissed',
-  formData: FormData
-) {
-  'use server';
-  const note = formData.get('note');
-  const res = await setReportStatus(id, status, typeof note === 'string' ? note : '');
-  redirectWithResult('/reports', res, '通報を更新しました');
-}
+
+const PAGE_SIZE = 20;
+
+type Filter = 'open' | 'resolved' | 'dismissed' | 'all';
+
+/** 対応の選択肢。押す前に「相手にどう届くか」が読めるように説明を添える */
+const CHOICES: {
+  action: ReportAction;
+  label: string;
+  what: string;
+  cls: string;
+  confirm?: string;
+  forUser?: boolean;
+  needsReason?: boolean;
+}[] = [
+  {
+    action: 'hide_content',
+    label: '非表示にする',
+    what: '通報された内容を他の人から見えなくします。投稿者に「運営が非表示にしました」と届きます。',
+    cls: 'btn-primary',
+    forUser: false,
+  },
+  {
+    action: 'warn_user',
+    label: '警告を送る',
+    what: '内容はそのまま。投稿者に「運営からの警告」が届きます。メモ欄の文章が本文になります。',
+    cls: 'btn bg-mikan text-white hover:brightness-95',
+  },
+  {
+    action: 'suspend_user',
+    label: '利用を停止する',
+    what: '投稿者はアプリを開いても何もできなくなります。メモ欄の文章が停止理由として本人に表示されます。',
+    cls: 'btn bg-danger text-white hover:brightness-95',
+    confirm: '投稿者の利用を停止します。本人はアプリを使えなくなります。よろしいですか？',
+    needsReason: true,
+  },
+  {
+    action: 'none',
+    label: '問題なし',
+    what: '何もせずに閉じます。投稿者には何も届きません。',
+    cls: 'btn-ghost',
+  },
+];
 
 export default async function ReportsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ s?: string; error?: string; ok?: string }>;
+  searchParams: Promise<{ s?: string; page?: string; error?: string; ok?: string }>;
 }) {
-  const { s = 'open', error, ok } = await searchParams;
+  const sp = await searchParams;
+  const s = (['open', 'resolved', 'dismissed', 'all'].includes(sp.s ?? '') ? sp.s : 'open') as Filter;
+  const page = Math.max(1, Number(sp.page) || 1);
 
   if (!isConnected) {
     return (
@@ -61,173 +91,256 @@ export default async function ReportsPage({
     );
   }
 
-  const { data: reportList, error: dbError } = await rows<any>((db) => {
-    let query = db.from('reports').select('*').order('created_at', { ascending: false }).limit(100);
-    if (s !== 'all') query = query.eq('status', s);
-    return query;
-  });
+  const here = `/reports${s !== 'open' ? `?s=${s}` : ''}`;
 
-  // 通報対象の名前を引く（UUID だけでは運営が判断できないため）
-  //
+  async function actAction(reportId: string, action: ReportAction, formData: FormData) {
+    'use server';
+    const res = await handleReport(reportId, action, String(formData.get('note') ?? ''));
+    const msg: Record<ReportAction, string> = {
+      hide_content: '非表示にしました。投稿者にお知らせを送りました',
+      warn_user: '警告を送りました',
+      suspend_user: '利用を停止しました。投稿者にお知らせを送りました',
+      none: '問題なしとして閉じました',
+    };
+    redirectWithResult(here, res, msg[action]);
+  }
+  async function reopenAction(reportId: string) {
+    'use server';
+    const res = await reopenReport(reportId);
+    redirectWithResult(here, res, '未対応に戻しました（行った非表示・停止は、それぞれの画面で戻してください）');
+  }
+
+  const filterQuery = (q: any) => (s === 'all' ? q : q.eq('status', s));
+  const [{ data: reportList, error: dbError }, total, cOpen, cResolved, cDismissed, cAll] = await Promise.all([
+    rows<any>((db) =>
+      filterQuery(db.from('reports').select('*'))
+        .order('created_at', { ascending: s === 'open' })
+        .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1)
+    ),
+    countOf('reports', filterQuery),
+    countOf('reports', (q) => q.eq('status', 'open')),
+    countOf('reports', (q) => q.eq('status', 'resolved')),
+    countOf('reports', (q) => q.eq('status', 'dismissed')),
+    countOf('reports'),
+  ]);
+
+  // 通報対象の中身を引く（UUID だけでは運営が判断できないため）
   // ★ null を混ぜないこと。退会済みの通報者は reporter_id が null になり、
-  //   それを .in() にそのまま渡すとクエリ全体が失敗して、
-  //   すべての通報者名が UUID 表示に戻ってしまう（2026-08-17 に発生）
+  //   .in() にそのまま渡すとクエリ全体が失敗する（2026-08-17 に発生）
   const NONE = ['00000000-0000-0000-0000-000000000000'];
   const clean = (ids: (string | null)[]) => {
     const ok = [...new Set(ids.filter((v): v is string => !!v))];
     return ok.length ? ok : NONE;
   };
-  const idsOf = (type: string) =>
-    clean(reportList.filter((r) => r.target_type === type).map((r) => r.target_id));
-  const reporterIds = clean(reportList.map((r) => r.reporter_id));
+  const idsOf = (type: string) => clean(reportList.filter((r) => r.target_type === type).map((r) => r.target_id));
 
-  const [items, posts, comments, targetUsers, reporterList] = await Promise.all([
-    rows<any>((db) => db.from('items').select('id, name, user_id, status').in('id', idsOf('item'))),
-    rows<any>((db) => db.from('board_posts').select('id, body, user_id').in('id', idsOf('board_post'))),
-    rows<any>((db) => db.from('board_comments').select('id, body, user_id').in('id', idsOf('board_comment'))),
-    rows<any>((db) => db.from('profiles').select('id, nickname').in('id', idsOf('user'))),
-    rows<any>((db) => db.from('profiles').select('id, nickname').in('id', reporterIds)),
+  const [items, posts, comments, targetUsers] = await Promise.all([
+    rows<any>((db) => db.from('items').select('id, name, description, user_id, status').in('id', idsOf('item'))),
+    rows<any>((db) => db.from('board_posts').select('id, body, user_id, hidden_at').in('id', idsOf('board_post'))),
+    rows<any>((db) => db.from('board_comments').select('id, body, user_id, post_id, hidden_at').in('id', idsOf('board_comment'))),
+    rows<any>((db) => db.from('profiles').select('id, nickname, is_suspended').in('id', idsOf('user'))),
   ]);
+  const ownerIds = clean([
+    ...items.data.map((x) => x.user_id),
+    ...posts.data.map((x) => x.user_id),
+    ...comments.data.map((x) => x.user_id),
+    ...reportList.map((r) => r.reporter_id),
+  ]);
+  const { data: people } = await rows<any>((db) => db.from('profiles').select('id, nickname, is_suspended').in('id', ownerIds));
 
-  /** 通報対象の中身。運営が読んで判断できるだけの情報を持たせる */
-  type Target = { title: string; body?: string; ownerId?: string; note?: string };
-  const targets = new Map<string, Target>();
-  items.data.forEach((i) =>
-    targets.set(i.id, {
-      title: i.name,
-      ownerId: i.user_id,
-      note: i.status === 'deleted' ? '削除済み' : undefined,
-    })
-  );
-  posts.data.forEach((p) => targets.set(p.id, { title: '掲示板の投稿', body: p.body, ownerId: p.user_id }));
-  comments.data.forEach((c) => targets.set(c.id, { title: 'コメント', body: c.body, ownerId: c.user_id }));
-  targetUsers.data.forEach((u) => targets.set(u.id, { title: u.nickname }));
+  const byId = <T extends { id: string }>(arr: T[]) => new Map(arr.map((x) => [x.id, x]));
+  const itemMap = byId(items.data);
+  const postMap = byId(posts.data);
+  const commentMap = byId(comments.data);
+  const userMap = byId([...targetUsers.data, ...people]);
 
-  const reporters = new Map<string, string>();
-  reporterList.data.forEach((u) => reporters.set(u.id, u.nickname));
+  /** 通報1件ぶんの「何が通報されたか」 */
+  const describe = (r: any) => {
+    const t = r.target_type as string;
+    if (t === 'item') {
+      const it = itemMap.get(r.target_id);
+      return {
+        body: it ? it.name : null,
+        sub: it?.description,
+        ownerId: it?.user_id ?? null,
+        hidden: it?.status === 'deleted',
+        link: null as string | null,
+      };
+    }
+    if (t === 'board_post') {
+      const p = postMap.get(r.target_id);
+      return { body: p?.body ?? null, sub: null, ownerId: p?.user_id ?? null, hidden: !!p?.hidden_at, link: p ? `/board/${p.id}` : null };
+    }
+    if (t === 'board_comment') {
+      const c = commentMap.get(r.target_id);
+      return { body: c?.body ?? null, sub: null, ownerId: c?.user_id ?? null, hidden: !!c?.hidden_at, link: c ? `/board/${c.post_id}` : null };
+    }
+    const u = userMap.get(r.target_id);
+    return { body: u ? (u.nickname || '名前未設定') : null, sub: null, ownerId: r.target_id, hidden: false, link: `/users/${r.target_id}` };
+  };
 
-  // 投稿者・出品者の名前も引く（誰の投稿への通報なのかが分からないと処理できない）
-  const ownerIds = clean([...targets.values()].map((t) => t.ownerId ?? null));
-  const owners = new Map<string, string>();
-  (await rows<any>((db) => db.from('profiles').select('id, nickname').in('id', ownerIds))).data.forEach((u) =>
-    owners.set(u.id, u.nickname)
-  );
-
-  // 同じ相手が繰り返し通報されているかは、対応の重さを決める材料になる
-  const repeat = new Map<string, number>();
-  reportList.forEach((r) => repeat.set(r.target_id, (repeat.get(r.target_id) ?? 0) + 1));
+  const tab = (key: Filter) => `/reports${key !== 'open' ? `?s=${key}` : ''}`;
 
   return (
     <Shell
       title="通報"
-      description="利用者から報告された出品・投稿・ユーザーです。内容を見て、対応済みか問題なしかを記録します。"
+      description="利用者から届いた通報です。内容を見て「非表示にする／警告を送る／利用を停止する／問題なし」のどれかを選んでください。"
       current="/reports"
     >
-      <Banner error={error ?? dbError} ok={ok} />
+      <Banner error={sp.error ?? dbError} ok={sp.ok} />
 
-      <div className="flex gap-1 mb-4">
-        {TABS.map((t) => (
-          <Link
-            key={t.key}
-            href={`/reports?s=${t.key}`}
-            className={`btn h-8 px-3 ${s === t.key ? 'bg-green text-white' : 'border border-line text-muted'}`}
-          >
-            {t.label}
-          </Link>
-        ))}
+      <div className="flex flex-wrap items-center gap-3 mb-5">
+        <Tabs
+          current={s}
+          items={[
+            { key: 'open', label: '未対応', href: tab('open'), count: cOpen },
+            { key: 'resolved', label: '対応済み', href: tab('resolved'), count: cResolved },
+            { key: 'dismissed', label: '問題なし', href: tab('dismissed'), count: cDismissed },
+            { key: 'all', label: 'すべて', href: tab('all'), count: cAll },
+          ]}
+        />
+        {s === 'open' && cOpen > 0 && <span className="text-xs text-muted">古い通報から順に並んでいます</span>}
       </div>
 
-      <div className="flex flex-col gap-3">
+      {/* 対応の意味を一度だけ説明しておく（毎回読まなくていいよう畳める） */}
+      <details className="card px-5 py-3.5 mb-5 text-sm group">
+        <summary className="font-bold cursor-pointer list-none flex items-center gap-2">
+          <Icon name="alert" className="w-4 h-4 text-muted" />
+          それぞれの対応をすると、相手はどうなる？
+          <span className="ml-auto text-xs text-muted group-open:hidden">開く</span>
+        </summary>
+        <ul className="mt-3 space-y-2">
+          {CHOICES.map((c) => (
+            <li key={c.action} className="flex gap-3">
+              <span className="w-28 shrink-0 font-bold">{c.label}</span>
+              <span className="text-muted">{c.what}</span>
+            </li>
+          ))}
+        </ul>
+      </details>
+
+      <div className="flex flex-col gap-4">
         {reportList.map((r) => {
-          const t = targets.get(r.target_id);
-          const owner = t?.ownerId ? owners.get(t.ownerId) : null;
-          const count = repeat.get(r.target_id) ?? 1;
+          const d = describe(r);
+          const owner = d.ownerId ? userMap.get(d.ownerId) : null;
+          const reporter = r.reporter_id ? userMap.get(r.reporter_id) : null;
+          const open = r.status === 'open';
           return (
-            <div key={r.id} className="card p-4">
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-3">
-                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-cream text-muted">
-                  {TARGET_LABEL[r.target_type] ?? r.target_type}
-                </span>
-                {count > 1 && (
-                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-mikan-soft text-mikan">
-                    同じ対象に {count} 件
-                  </span>
-                )}
-                {t?.note && (
-                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-cream text-muted">
-                    {t.note}
-                  </span>
-                )}
-                <span className="text-xs text-muted ml-auto">{jst(r.created_at)}</span>
-              </div>
-
-              {/* 通報された中身。ここが読めないと運営は判断できない */}
-              <div className="rounded-xl bg-cream/60 border border-line p-3 mb-3">
-                <div className="text-sm font-black mb-1">
-                  {t?.title ?? shortId(r.target_id)}
-                  {owner && <span className="ml-2 text-xs font-bold text-muted">{owner}さん</span>}
+            <article key={r.id} className={`card overflow-hidden ${open ? 'border-l-4 border-l-danger' : ''}`}>
+              <div className="p-5">
+                <div className="flex items-center gap-2 flex-wrap mb-3">
+                  <Pill tone="gray">{TARGET_LABEL[r.target_type] ?? r.target_type}</Pill>
+                  {open ? (
+                    <Pill tone="danger">未対応</Pill>
+                  ) : (
+                    <Pill tone={r.status === 'resolved' ? 'green' : 'gray'}>
+                      {ACTION_LABEL[r.action_taken] ?? (r.status === 'resolved' ? '対応済み' : '問題なし')}
+                    </Pill>
+                  )}
+                  {d.hidden && <Pill tone="danger">いま非表示</Pill>}
+                  {owner?.is_suspended && <Pill tone="danger">投稿者は停止中</Pill>}
+                  <span className="text-xs text-muted ml-auto">{jst(r.created_at)} に通報</span>
                 </div>
-                {t?.body ? (
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{t.body}</p>
-                ) : (
-                  <p className="text-xs text-muted">
-                    {t ? '本文のない対象です。' : 'この対象は削除されたか、見つかりませんでした。'}
-                  </p>
-                )}
+
+                {/* 通報された中身。判断に必要なのはまずこれ */}
+                <div className="rounded-lg bg-cream/70 border border-line px-4 py-3 mb-3">
+                  {d.body ? (
+                    <>
+                      <p className="text-sm whitespace-pre-wrap break-words line-clamp-6">{d.body}</p>
+                      {d.sub && <p className="text-xs text-muted mt-1 line-clamp-2">{d.sub}</p>}
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted">この内容は削除されたか、見つかりませんでした。</p>
+                  )}
+                  {d.link && (
+                    <Link href={d.link} className="inline-flex items-center gap-1 text-xs font-bold text-green mt-2">
+                      {r.target_type === 'user' ? 'この人の詳細を見る' : '前後の流れを見る'} <Icon name="chevron-right" className="w-3 h-3" />
+                    </Link>
+                  )}
+                </div>
+
+                <dl className="grid sm:grid-cols-3 gap-x-6 gap-y-2 text-sm">
+                  <div>
+                    <dt className="text-xs text-muted font-bold">通報の理由</dt>
+                    <dd className="font-bold mt-0.5">{r.reason || <span className="text-muted font-normal">記載なし</span>}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-muted font-bold">{r.target_type === 'user' ? '通報された人' : '投稿した人'}</dt>
+                    <dd className="mt-0.5">
+                      {d.ownerId ? (
+                        <Link href={`/users/${d.ownerId}`} className="font-bold hover:text-green">
+                          <Nickname name={owner?.nickname} />
+                        </Link>
+                      ) : (
+                        <span className="text-muted">不明</span>
+                      )}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-muted font-bold">通報した人</dt>
+                    <dd className="mt-0.5">
+                      {r.reporter_id ? (
+                        <Link href={`/users/${r.reporter_id}`} className="hover:text-green">
+                          <Nickname name={reporter?.nickname} />
+                        </Link>
+                      ) : (
+                        <span className="text-muted">退会したユーザー</span>
+                      )}
+                    </dd>
+                  </div>
+                </dl>
               </div>
 
-              <dl className="text-xs mb-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
-                <dt className="text-muted">通報理由</dt>
-                <dd className="font-bold">{r.reason || '（記載なし）'}</dd>
-                <dt className="text-muted">通報者</dt>
-                <dd>{r.reporter_id ? (reporters.get(r.reporter_id) ?? shortId(r.reporter_id)) : '退会したユーザー'}</dd>
-                {r.handled_note ? (
-                  <>
-                    <dt className="text-muted">対応メモ</dt>
-                    <dd>{r.handled_note}</dd>
-                  </>
-                ) : null}
-              </dl>
-
-              {r.status === 'open' ? (
-                <form className="flex flex-wrap items-center gap-2">
-                  <input name="note" placeholder="対応メモ（任意・記録に残ります）" className="input flex-1 min-w-[200px] h-9" />
-                  <button formAction={statusAction.bind(null, r.id, 'resolved')} className="btn-primary h-9">
-                    対応済みにする
-                  </button>
-                  <button formAction={statusAction.bind(null, r.id, 'dismissed')} className="btn-ghost h-9">
-                    問題なし
-                  </button>
+              {open ? (
+                <form className="border-t border-line bg-white px-5 py-4">
+                  <label className="text-xs font-bold text-muted block mb-1.5">
+                    メモ（警告の本文・停止の理由として本人に届きます。問題なしの場合は運営用の記録）
+                  </label>
+                  <textarea name="note" rows={2} className="textarea mb-3" placeholder="例：他の利用者を中傷する内容のため" />
+                  <div className="flex flex-wrap gap-2">
+                    {CHOICES.filter((c) => !(c.forUser === false && r.target_type === 'user')).map((c) =>
+                      c.confirm ? (
+                        <ConfirmButton
+                          key={c.action}
+                          formAction={actAction.bind(null, r.id, c.action)}
+                          message={c.confirm}
+                          className={c.cls}
+                          title={c.what}
+                        >
+                          {c.label}
+                        </ConfirmButton>
+                      ) : (
+                        <button key={c.action} formAction={actAction.bind(null, r.id, c.action)} className={c.cls} title={c.what}>
+                          {c.label}
+                        </button>
+                      )
+                    )}
+                  </div>
                 </form>
               ) : (
-                <form className="flex items-center gap-2">
-                  <span className={`text-xs font-bold ${r.status === 'resolved' ? 'text-green-deep' : 'text-muted'}`}>
-                    {r.status === 'resolved' ? '対応済み' : '問題なしとして処理'} ／ {jst(r.handled_at)}
-                  </span>
-                  <button formAction={statusAction.bind(null, r.id, 'open')} className="btn-ghost h-8 px-3 ml-auto">
-                    未対応に戻す
-                  </button>
-                </form>
+                <div className="border-t border-line bg-white px-5 py-3 flex items-center gap-3 flex-wrap text-sm">
+                  <span className="text-xs text-muted">{jst(r.handled_at)} に対応</span>
+                  {r.handled_note && <span className="text-xs">メモ：{r.handled_note}</span>}
+                  <form action={reopenAction.bind(null, r.id)} className="ml-auto">
+                    <button className="btn-ghost h-8 px-3">未対応に戻す</button>
+                  </form>
+                </div>
               )}
-            </div>
+            </article>
           );
         })}
 
         {reportList.length === 0 && (
-          /* 空のときこそ、この画面が何をするところなのかを説明しておく。
-             はじめて開いた人が「壊れているのかも」と思わないように */
-          <div className="card p-10 text-center">
-            <div className="text-sm font-black">
-              {s === 'open' ? '未対応の通報はありません' : '該当する通報はありません'}
+          <div className="card p-12 text-center">
+            <div className="w-12 h-12 rounded-full bg-green-soft text-green grid place-items-center mx-auto mb-3">
+              <Icon name="check" className="w-6 h-6" />
             </div>
-            <p className="text-xs text-muted mt-1.5 leading-relaxed">
-              {s === 'open'
-                ? '利用者がアプリから商品・投稿・ユーザーを報告すると、ここに届きます。内容を見て「対応済み」か「問題なし」を記録してください。'
-                : '上のボタンで表示する種類を切り替えられます。'}
-            </p>
+            <p className="font-bold">{s === 'open' ? '未対応の通報はありません' : 'ここに表示する通報はありません'}</p>
           </div>
         )}
       </div>
+
+      <Pager page={page} pageSize={PAGE_SIZE} total={total} hrefFor={(p) => `/reports?${new URLSearchParams({ ...(s !== 'open' ? { s } : {}), page: String(p) })}`} />
     </Shell>
   );
 }

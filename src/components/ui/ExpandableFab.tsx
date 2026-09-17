@@ -1,3 +1,4 @@
+import { MAX_FONT_SCALE } from '@/components/ui/ScaledText';
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -70,7 +71,7 @@ export function ExpandableFab({ scrollY, onPress, label, icon, labelWidth = 118,
           style={[styles.fab, shadows.button]}
         >
           <View style={styles.icon}>{icon}</View>
-          <Animated.Text numberOfLines={1} style={[styles.text, labelStyle]}>
+          <Animated.Text maxFontSizeMultiplier={MAX_FONT_SCALE} numberOfLines={1} style={[styles.text, labelStyle]}>
             {label}
           </Animated.Text>
         </LinearGradient>

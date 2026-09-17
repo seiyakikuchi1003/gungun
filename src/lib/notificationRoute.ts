@@ -54,6 +54,9 @@ export function notificationRoute(type: NotificationType | string, relatedId?: s
       // 以前は商品コメントも board_comment 型で入れていたため、
       // /board/<商品ID> に飛んで真っ白な画面になっていた（2026-08-12 修正）
       return id ? `/item/${id}` : '/(tabs)';
+    case 'admin_notice':
+      // 運営からのお知らせは本文がすべて。飛び先は無いので通知一覧にとどまる
+      return '/notifications';
     default:
       return '/(tabs)';
   }

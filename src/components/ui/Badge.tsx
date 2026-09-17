@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { Text } from '@/components/ui/ScaledText';
 import { colors, radius, fonts } from '@/theme';
 
 type Tone = 'green' | 'orange' | 'gray' | 'premium';

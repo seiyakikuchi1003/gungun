@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
 import { useMe } from '@/store/me';
-import { View, Text, StyleSheet, Modal, ScrollView, useWindowDimensions } from 'react-native';
+import { View, StyleSheet, Modal, ScrollView, useWindowDimensions } from 'react-native';
+import { Text } from '@/components/ui/ScaledText';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Animated, {
   FadeIn,

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 // アバターは RN の Image を使用（expo-image は number ソースの一部で web クラッシュするため）
-import { Image, View, Text, StyleSheet } from 'react-native';
+import { Image, View, StyleSheet } from 'react-native';
+import { Text } from '@/components/ui/ScaledText';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, fonts } from '@/theme';
 

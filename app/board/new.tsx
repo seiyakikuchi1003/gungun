@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
-import { View, Text, StyleSheet, TextInput, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
+import { Text, TextInput } from '@/components/ui/ScaledText';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useSubmitGuard } from '@/lib/submitGuard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

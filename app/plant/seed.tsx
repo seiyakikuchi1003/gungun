@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { playSfx } from '@/lib/sound';
 import { useMe } from '@/store/me';
-import { View, Text, StyleSheet, ScrollView, TextInput } from 'react-native';
+import { View, StyleSheet, ScrollView } from 'react-native';
+import { Text, TextInput } from '@/components/ui/ScaledText';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { fetchAddress } from '@/lib/api/profile';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

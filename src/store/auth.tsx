@@ -20,6 +20,10 @@ export type Profile = {
   isPremium: boolean;
   /** プレミアムの有効期限（ISO文字列）。未加入なら null */
   premiumUntil: string | null;
+  /** 運営が利用を停止しているか（2026-09-17）。停止中はアプリを使えない画面を出す */
+  isSuspended: boolean;
+  /** 停止の理由。運営が管理画面で入力したもの（本人に見せる） */
+  suspendedReason: string | null;
   /** 連続してログインボーナスを受け取っている日数（2026-08-21 追加） */
   loginStreak: number;
 };
@@ -105,6 +109,8 @@ function toProfile(row: any): Profile {
     // いつまで有効かを画面に出せるようにする（2026-09-16 指摘。
     // 「自分がプレミアムなのかどうかも分からない」への対応）
     premiumUntil: row.premium_until ?? null,
+    isSuspended: Boolean(row.is_suspended),
+    suspendedReason: row.suspended_reason ?? null,
     loginStreak: Number(row.login_streak ?? 0),
   };
 }
