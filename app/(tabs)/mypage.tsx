@@ -35,6 +35,7 @@ const MENU: { icon: keyof typeof Ionicons.glyphMap; label: string; route?: strin
   { icon: 'information-circle-outline', label: 'ぐんぐんについて', action: 'about' },
   { icon: 'document-text-outline', label: '利用規約', route: '/mypage/terms' },
   { icon: 'shield-checkmark-outline', label: 'プライバシーポリシー', route: '/mypage/privacy' },
+  { icon: 'receipt-outline', label: '特定商取引法に基づく表記', route: '/mypage/tokushoho' },
   { icon: 'mail-outline', label: 'お問い合わせ', action: 'contact' },
   { icon: 'exit-outline', label: 'ログアウト', action: 'logout' },
   { icon: 'trash-outline', label: '退会', action: 'withdraw', danger: true },

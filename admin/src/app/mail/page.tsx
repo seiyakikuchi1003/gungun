@@ -20,7 +20,7 @@ export const dynamic = 'force-dynamic';
  * これまで管理画面にメールを送る機能そのものが無かった。
  *
  * 宛先を選んで、件名と本文を書いて送る。送った記録は下に残る。
- * 実際の送信は Supabase の admin-mail（Resend 経由）が行う。
+ * 実際の送信は Supabase の admin-mail（SMTP2GO 経由）が行う。
  */
 
 async function sendAction(formData: FormData) {
@@ -106,7 +106,7 @@ export default async function MailPage({
               <p className="text-muted mt-1">{status.reason}</p>
               <ol className="list-decimal pl-5 mt-3 space-y-1 text-[13px]">
                 <li>
-                  メールの送信サービス（Resend）に、送信に使うドメイン（例：わらしべぐんぐん.com）を登録し、DNS の設定を済ませる
+                  メールの送信サービス（SMTP2GO）に、送信に使うドメイン（warashibe-gungun.com）を登録し、DNS の設定を済ませる
                   <span className="text-muted">（テスト項目 W-7「通知メール用の独自ドメインを設定する」）</span>
                 </li>
                 <li>
@@ -116,7 +116,7 @@ export default async function MailPage({
               </ol>
               {status.domains.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-1.5 items-center text-xs">
-                  <span className="text-muted">Resend に登録済みのドメイン：</span>
+                  <span className="text-muted">SMTP2GO に登録済みのドメイン：</span>
                   {status.domains.map((d) => (
                     <Pill key={d.name} tone={d.status === 'verified' ? 'green' : 'mikan'}>
                       {d.name}（{d.status === 'verified' ? '認証済み' : '未認証'}）

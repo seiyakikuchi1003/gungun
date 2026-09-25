@@ -21,6 +21,8 @@ export type AppSettings = {
   maxImagesPerItem: number;
   termsOfService: string;
   privacyPolicy: string;
+  /** 特定商取引法に基づく表記。規約と同じ書き方（■ 見出し）で管理画面から差し替える */
+  commerceDisclosure: string;
   /** 肥料の販売プラン（管理画面から変更できる） */
   chargePlans: ChargePlan[];
   /** お問い合わせ先。運営が変わっても差し替えられるよう設定に置く */
@@ -38,6 +40,7 @@ export const defaultSettings: AppSettings = {
   maxImagesPerItem: 10,
   termsOfService: '',
   privacyPolicy: '',
+  commerceDisclosure: '',
   chargePlans: fallback.chargePlans.map((p) => ({
     id: p.id,
     fertilizer: p.fertilizer,
@@ -90,6 +93,7 @@ export async function fetchSettings(): Promise<AppSettings> {
     maxImagesPerItem: num(map.get('max_images_per_item'), defaultSettings.maxImagesPerItem),
     termsOfService: text(map.get('terms_of_service'), defaultSettings.termsOfService),
     privacyPolicy: text(map.get('privacy_policy'), defaultSettings.privacyPolicy),
+    commerceDisclosure: text(map.get('commerce_disclosure'), defaultSettings.commerceDisclosure),
     chargePlans: plans(map.get('charge_plans')),
     contactEmail: text(map.get('contact_email'), defaultSettings.contactEmail),
   };

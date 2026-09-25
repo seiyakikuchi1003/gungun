@@ -3,8 +3,12 @@
 // 2026-09-17 の指摘：管理画面から利用者にメールが送れない。全員選択や
 // 複数選択もできず、一人ずつ探すしかない。
 //
-// 管理画面（Next.js のサーバー側）からだけ呼ぶ。Resend の API キーは
-// Supabase の秘密情報にあり、管理画面の環境変数には置いていないため、ここを経由する。
+// 管理画面（Next.js のサーバー側）からだけ呼ぶ。SMTP2GO の API キーは
+// Supabase の秘密情報（SMTP2GO_API_KEY）にあり、管理画面の環境変数には置いていないため、ここを経由する。
+//
+// 2026-09-25：Resend から SMTP2GO に切り替えた（9/17 めたん様MTGで決定。無料で月1,000通・
+// めたん様の Google Workspace ドメインで送れる）。ログイン用メールも同じ SMTP2GO を Supabase の
+// カスタムSMTPとして使う。
 //
 // 【デプロイ】
 //   supabase functions deploy admin-mail --no-verify-jwt
@@ -12,19 +16,50 @@
 //
 // 【呼び方】
 //   POST { action: 'status' }
-//     → 送信元の設定と、Resend に登録されたドメインの認証状況を返す（何も送らない）
+//     → 送信元の設定と、SMTP2GO に登録されたドメインの認証状況を返す（何も送らない）
 //   POST { action: 'send', subject, body, userIds: string[] }
 //     → 指定した利用者に送る。宛先のメールアドレスはここで引く（管理画面から運ばない）
 //
 // 【送信元】
 //   app_settings の mail_from（例：ぐんぐん <info@example.com>）。
-//   Resend は認証済みのドメインからしか送れない。独自ドメインの設定（W-7）が
+//   SMTP2GO は認証済みのドメイン（送信ドメイン）からしか送れない。DNS の設定が
 //   済むまでは送れないので、その場合は理由をそのまま返す。
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
-/** Resend の一括送信 API は1回100通まで */
-const BATCH = 100;
+const API = 'https://api.smtp2go.com/v3';
+/** 同時に投げる通数。無料プランの毎秒の上限を超えないよう控えめにする */
+const PARALLEL = 5;
+
+async function smtp2go(path: string, apiKey: string, body: Record<string, unknown>) {
+  const r = await fetch(`${API}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Smtp2go-Api-Key': apiKey, Accept: 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const d = await r.json().catch(() => ({}));
+  return { ok: r.ok && !d?.data?.error, status: r.status, data: d?.data ?? {} };
+}
+
+type DomainRow = { name: string; status: 'verified' | 'pending' };
+
+/**
+ * 送信ドメインの一覧。ドメイン名と「認証済みか」だけを拾う。
+ * 返ってくる形は実際のキーで一度確かめること（読めない形なら空で返し、送信は止めない）。
+ */
+// deno-lint-ignore no-explicit-any
+function readDomains(data: any): DomainRow[] {
+  // deno-lint-ignore no-explicit-any
+  const list: any[] = Array.isArray(data?.domains) ? data.domains : [];
+  return list.flatMap((x) => {
+    const d = x?.domain ?? x;
+    const name = String(d?.fulldomain ?? d?.domain ?? d?.name ?? '').toLowerCase();
+    if (!name) return [];
+    const flags = [d?.dkim_verified, d?.rpath_verified].filter((v) => v !== undefined);
+    const ok = flags.length ? flags.every(Boolean) : Boolean(d?.verified ?? x?.verified);
+    return [{ name, status: ok ? 'verified' : 'pending' } as DomainRow];
+  });
+}
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -52,7 +87,7 @@ function toHtml(body: string): string {
 
 Deno.serve(async (req) => {
   const url = Deno.env.get('SUPABASE_URL');
-  const resendKey = Deno.env.get('RESEND_API_KEY');
+  const apiKey = Deno.env.get('SMTP2GO_API_KEY');
   if (!url) return json({ error: 'サーバの設定が足りません' }, 500);
 
   // 管理画面以外からは呼ばせない。管理画面は service_role キーで呼んでくる。
@@ -80,23 +115,18 @@ Deno.serve(async (req) => {
 
   // ── 送信元の状態だけを見る ─────────────────────────────────
   if (payload.action === 'status') {
-    if (!resendKey) return json({ ready: false, from, reason: 'RESEND_API_KEY が設定されていません', domains: [] });
-    const r = await fetch('https://api.resend.com/domains', {
-      headers: { Authorization: `Bearer ${resendKey}` },
-    });
+    if (!apiKey) return json({ ready: false, from, reason: 'SMTP2GO_API_KEY が設定されていません', domains: [] });
+    const r = await smtp2go('/domain/view', apiKey, {});
     if (!r.ok) {
-      return json({ ready: false, from, reason: `Resend に接続できませんでした（${r.status}）`, domains: [] });
+      return json({ ready: false, from, reason: `SMTP2GO に接続できませんでした（${r.status}）`, domains: [] });
     }
-    const d = await r.json();
-    const domains = (d.data ?? []).map((x: { name: string; status: string }) => ({ name: x.name, status: x.status }));
+    const domains = readDomains(r.data);
     const fromDomain = from.match(/@([^>\s]+)/)?.[1]?.toLowerCase() ?? '';
-    const verified = domains.some(
-      (x: { name: string; status: string }) => x.name.toLowerCase() === fromDomain && x.status === 'verified'
-    );
+    const verified = domains.some((x) => x.name === fromDomain && x.status === 'verified');
     let reason = '';
     if (!from) reason = '送信元のアドレス（アプリ設定の「メールの送信元」）が未設定です';
-    else if (!domains.length) reason = 'Resend に送信用のドメインが登録されていません';
-    else if (!verified) reason = `送信元のドメイン（${fromDomain}）が Resend で認証されていません`;
+    else if (!domains.length) reason = 'SMTP2GO に送信用のドメインが登録されていません';
+    else if (!verified) reason = `送信元のドメイン（${fromDomain}）が SMTP2GO で認証されていません`;
     return json({ ready: !reason, from, reason, domains });
   }
 
@@ -109,7 +139,7 @@ Deno.serve(async (req) => {
   if (!subject) return json({ error: '件名を入力してください' }, 400);
   if (!body) return json({ error: '本文を入力してください' }, 400);
   if (!ids.length) return json({ error: '宛先が選ばれていません' }, 400);
-  if (!resendKey) return json({ error: 'RESEND_API_KEY が設定されていません' }, 500);
+  if (!apiKey) return json({ error: 'SMTP2GO_API_KEY が設定されていません' }, 500);
   if (!from) return json({ error: '送信元のアドレス（アプリ設定の「メールの送信元」）が未設定です' }, 400);
 
   // 宛先のアドレスはここで引く。管理画面からアドレスそのものは受け取らない
@@ -130,22 +160,19 @@ Deno.serve(async (req) => {
   let firstError = '';
 
   // 1通ずつ宛先を分けて送る（to に全員を並べると、他の人のアドレスが見えてしまう）
-  for (let i = 0; i < recipients.length; i += BATCH) {
-    const chunk = recipients.slice(i, i + BATCH).map((to) => ({ from, to, subject, html, text: body }));
-    const r = await fetch('https://api.resend.com/emails/batch', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify(chunk),
+  const sendOne = async (to: string) => {
+    const r = await smtp2go('/email/send', apiKey, {
+      sender: from, to: [to], subject, html_body: html, text_body: body,
     });
     if (r.ok) {
-      sent += chunk.length;
+      sent += 1;
     } else {
-      failed += chunk.length;
-      if (!firstError) {
-        const detail = await r.json().catch(() => ({}));
-        firstError = detail?.message ?? `Resend がエラーを返しました（${r.status}）`;
-      }
+      failed += 1;
+      if (!firstError) firstError = r.data?.error ?? `SMTP2GO がエラーを返しました（${r.status}）`;
     }
+  };
+  for (let i = 0; i < recipients.length; i += PARALLEL) {
+    await Promise.all(recipients.slice(i, i + PARALLEL).map(sendOne));
   }
 
   await db.from('admin_mail_log').insert({

@@ -194,6 +194,9 @@ export default function Fertilizer() {
             に同意します
           </Text>
         </PressableScale>
+        <Text style={styles.lawLink} onPress={() => router.navigate('/mypage/tokushoho')}>
+          特定商取引法に基づく表記
+        </Text>
 
         {error ? <FormError message={error} /> : null}
         <Button
@@ -226,6 +229,7 @@ const styles = StyleSheet.create({
   agreeBoxOn: { backgroundColor: colors.green, borderColor: colors.green },
   agreeText: { flex: 1, fontFamily: fonts.medium, fontSize: 12.5, lineHeight: lh(20), color: colors.textPrimary },
   link: { fontFamily: fonts.bold, color: colors.green, textDecorationLine: 'underline' },
+  lawLink: { fontFamily: fonts.regular, fontSize: 12, color: colors.textSecondary, textDecorationLine: 'underline', textAlign: 'center', marginTop: 12, marginBottom: 16 },
   confirmCancel: { alignItems: 'center', paddingVertical: spacing.lg },
   confirmCancelText: { fontFamily: fonts.bold, fontSize: 15, color: colors.textSecondary },
   root: { flex: 1, backgroundColor: colors.bg },

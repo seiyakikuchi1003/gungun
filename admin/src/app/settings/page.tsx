@@ -55,7 +55,7 @@ const KNOWN: Record<string, { label: string; hint: string; kind: Kind; unit?: st
   },
   mail_from: {
     label: 'メールの送信元', kind: 'text',
-    hint: 'メール配信で使う差出人。例：ぐんぐん <info@example.com>。Resend で認証済みのドメインのアドレスにしてください',
+    hint: 'メール配信で使う差出人。例：ぐんぐん <info@example.com>。SMTP2GO で認証済みのドメインのアドレスにしてください',
   },
   charge_plans: {
     label: '肥料の販売プラン', kind: 'json',
@@ -77,6 +77,10 @@ const KNOWN: Record<string, { label: string; hint: string; kind: Kind; unit?: st
     label: 'プライバシーポリシー 本文', kind: 'longtext',
     hint: '書き方は利用規約と同じ',
   },
+  commerce_disclosure: {
+    label: '特定商取引法に基づく表記', kind: 'longtext',
+    hint: 'マイページと購入画面から開く表記。「■ 販売事業者」のように項目ごとに見出しを立てます',
+  },
 };
 
 /** 運営がよく触るものから並べる。ここに無いキーは最後に回す */
@@ -84,7 +88,7 @@ const ORDER = [
   'water_cost', 'daily_login_bonus', 'daily_login_bonus_premium', 'first_seed_free',
   'seed_price_yen', 'max_images_per_item',
   'premium_price_yen', 'charge_plans',
-  'contact_email', 'mail_from', 'terms_of_service', 'privacy_policy',
+  'contact_email', 'mail_from', 'terms_of_service', 'privacy_policy', 'commerce_disclosure',
   'premium_product', 'functions_base_url',
 ];
 
@@ -107,7 +111,7 @@ const GROUPS: { title: string; note: string; keys: string[] }[] = [
   {
     title: '文章・連絡先',
     note: 'アプリ内に表示される文章です',
-    keys: ['contact_email', 'mail_from', 'terms_of_service', 'privacy_policy'],
+    keys: ['contact_email', 'mail_from', 'terms_of_service', 'privacy_policy', 'commerce_disclosure'],
   },
   {
     title: '開発向け',
