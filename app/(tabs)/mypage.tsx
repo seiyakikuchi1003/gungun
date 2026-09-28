@@ -339,7 +339,8 @@ export default function MyPage() {
                 setSheet(null);
                 setWithdrawStep(1);
                 const res = await deleteAccount();
-                if (res.error) { setDeleteError(res.error); return; }
+                // 失敗（進行中の取引があるなど）は、閉じたシートを開き直して理由を見せる
+                if (res.error) { setDeleteError(res.error); setWithdrawStep(2); setSheet('withdraw'); return; }
                 router.replace('/(auth)/login');
               }}
               activeScale={0.97}
