@@ -21,7 +21,7 @@ import { lh } from '@/lib/fontScale';
  *  3. ここに step=password で戻ってきて、新しいパスワードを決める
  */
 export default function Reset() {
-  const { sendResetCode, updatePassword, signOut } = useAuth();
+  const { updatePassword, signOut } = useAuth();
   const params = useLocalSearchParams<{ step?: string }>();
   const step = params.step === 'password' ? 'password' : 'email';
 
@@ -34,11 +34,9 @@ export default function Reset() {
     if (busy) return;
     if (!email.trim()) { setError('メールアドレスを入力してください'); return; }
     setError(null);
-    setBusy(true);
-    const res = await sendResetCode(email);
-    setBusy(false);
-    if (res.error) { setError(res.error); return; }
-    router.push({ pathname: '/(auth)/verify', params: { email: email.trim(), purpose: 'recovery' } });
+    // 送信は verify 画面が受け持つ。メールの送信完了まで3〜5秒かかり、
+    // ここで待つとボタンが固まって見える（2026-09-28 指摘）
+    router.push({ pathname: '/(auth)/verify', params: { email: email.trim(), purpose: 'recovery', send: '1' } });
   };
 
   const onUpdate = async () => {

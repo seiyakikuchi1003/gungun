@@ -19,10 +19,13 @@ const RESEND_SEC = 60;
  *
  * 新規登録（purpose=signup）とパスワード再設定（purpose=recovery）の
  * 両方で使う。確認が通ると signup はホームへ、recovery は新パスワード入力へ進む。
+ *
+ * recovery で send=1 が付いてきたときは、この画面に来てからコードを送る。
+ * 送信は3〜5秒かかるので、前の画面で待たせずに先に進めておく。
  */
 export default function Verify() {
-  const { verifyCode, resendCode } = useAuth();
-  const params = useLocalSearchParams<{ email?: string; purpose?: string }>();
+  const { verifyCode, resendCode, sendResetCode } = useAuth();
+  const params = useLocalSearchParams<{ email?: string; purpose?: string; send?: string }>();
   const email = params.email ?? '';
   const purpose = params.purpose === 'recovery' ? 'recovery' : 'signup';
 
@@ -32,6 +35,19 @@ export default function Verify() {
   const [left, setLeft] = useState(RESEND_SEC);
   const refs = useRef<(React.ElementRef<typeof TextInput> | null)[]>([]);
   const filled = code.every((c) => c !== '');
+  const [sending, setSending] = useState<'sending' | 'sent' | null>(null);
+  const sentOnce = useRef(false);
+
+  // パスワード再設定：この画面に来てからコードを送る（二重送信しないよう1回だけ）
+  useEffect(() => {
+    if (purpose !== 'recovery' || params.send !== '1' || sentOnce.current) return;
+    sentOnce.current = true;
+    setSending('sending');
+    sendResetCode(email).then((res) => {
+      if (res.error) { setSending(null); setError(res.error); return; }
+      setSending('sent');
+    });
+  }, [purpose, params.send, email, sendResetCode]);
 
   // 再送信できるようになるまでのカウントダウン
   useEffect(() => {
@@ -77,8 +93,11 @@ export default function Verify() {
   const onResend = async () => {
     if (left > 0 || busy) return;
     setError(null);
-    const res = await resendCode(email);
-    if (res.error) { setError(res.error); return; }
+    // 再設定から来たときは再設定のコードを送り直す（新規登録の確認メールではない）
+    if (purpose === 'recovery') setSending('sending');
+    const res = purpose === 'recovery' ? await sendResetCode(email) : await resendCode(email);
+    if (res.error) { setSending(null); setError(res.error); return; }
+    if (purpose === 'recovery') setSending('sent');
     setLeft(RESEND_SEC);
   };
 
@@ -93,6 +112,11 @@ export default function Verify() {
         <Text style={styles.sub}>
           {email || 'ご登録のメールアドレス'} に送信した{'\n'}6桁のコードを入力してください
         </Text>
+        {sending && (
+          <Text style={styles.sending}>
+            {sending === 'sending' ? 'メールを送っています…' : 'メールを送りました。届くまで少しかかることがあります'}
+          </Text>
+        )}
 
         <View style={styles.errorSlot}>
           <FormError message={error} />
@@ -145,6 +169,7 @@ const styles = StyleSheet.create({
   codeRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xl },
   box: { width: 48, height: 58, borderRadius: radius.md, backgroundColor: colors.card, textAlign: 'center', fontFamily: fonts.bold, fontSize: 24, color: colors.textPrimary, borderWidth: 2, borderColor: 'transparent' },
   boxFilled: { borderColor: colors.green },
+  sending: { fontFamily: fonts.regular, fontSize: 12, lineHeight: lh(18), color: colors.textSecondary, textAlign: 'center', marginTop: spacing.sm },
   resend: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.xl },
   resendText: { fontFamily: fonts.regular, fontSize: 13, color: colors.textSecondary },
   resendLink: { fontFamily: fonts.bold, fontSize: 13, color: colors.green },
