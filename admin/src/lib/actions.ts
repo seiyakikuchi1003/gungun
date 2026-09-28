@@ -311,7 +311,9 @@ async function callMailFunction(payload: unknown): Promise<any> {
     method: 'POST',
     headers: { Authorization: `Bearer ${key}`, apikey: key, 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
-    cache: 'no-store',
+    // cache は付けない：Cloudflare（workerd）の fetch は cache を未実装で、付けると
+    // 「The 'cache' field on 'RequestInitializerDict' is not implemented」で落ちる（2026-09-28）。
+    // POST なので Next のキャッシュにも乗らない
   });
   const body = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(body?.error ?? `送信の処理に失敗しました（${r.status}）`);
