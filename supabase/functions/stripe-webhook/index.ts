@@ -93,6 +93,28 @@ Deno.serve(async (req) => {
   };
 
   /**
+   * 請求書オブジェクトから、元のサブスクの metadata と ID を取り出す。
+   *
+   * ★ Stripe の API 2025-03（basil）以降、請求書の subscription / subscription_details は
+   *   parent.subscription_details の下へ移った（2026-09-28 確認：2026-06-24.dahlia）。
+   *   旧い場所しか見ていなかったため、プレミアムの支払いが誰のものか分からず、
+   *   何も付与せずに 200 を返していた＝「決済できたのにプレミアムにならない」。
+   *   新旧どちらの形でも読めるようにし、明細行の metadata も最後の手がかりにする。
+   */
+  // deno-lint-ignore no-explicit-any
+  const subscriptionOf = (inv: any): { meta: Record<string, string>; subId: string | null } => {
+    const details = inv?.parent?.subscription_details ?? inv?.subscription_details ?? null;
+    let meta: Record<string, string> = details?.metadata ?? {};
+    if (!meta.user_id) {
+      // deno-lint-ignore no-explicit-any
+      const line = (inv?.lines?.data ?? []).find((l: any) => l?.metadata?.user_id);
+      if (line) meta = line.metadata;
+    }
+    const subId = details?.subscription ?? inv?.subscription ?? null;
+    return { meta, subId: typeof subId === 'string' ? subId : subId?.id ?? null };
+  };
+
+  /**
    * 請求書IDから、その元になったサブスクの metadata を引く。
    *
    * サブスクの支払いは「サブスク → 請求書 → PaymentIntent」と枝分かれし、
@@ -108,10 +130,10 @@ Deno.serve(async (req) => {
       });
       if (!r.ok) return {};
       const inv = await r.json();
-      const fromInvoice = inv.subscription_details?.metadata ?? {};
+      const { meta: fromInvoice, subId } = subscriptionOf(inv);
       if (fromInvoice.user_id) return fromInvoice;
-      if (!inv.subscription) return {};
-      const s = await fetch(`https://api.stripe.com/v1/subscriptions/${inv.subscription}`, {
+      if (!subId) return {};
+      const s = await fetch(`https://api.stripe.com/v1/subscriptions/${subId}`, {
         headers: { Authorization: 'Bearer ' + key },
       });
       if (!s.ok) return {};
@@ -153,9 +175,10 @@ Deno.serve(async (req) => {
   } else if (event.type === 'invoice.paid') {
     // プレミアムの2回目以降。metadata はサブスクから引く
     const inv = event.data.object;
-    let meta: Record<string, string> = inv.subscription_details?.metadata ?? {};
-    if (!meta.user_id && inv.subscription && stripeKey) {
-      const r = await fetch(`https://api.stripe.com/v1/subscriptions/${inv.subscription}`, {
+    const found = subscriptionOf(inv);
+    let meta: Record<string, string> = found.meta;
+    if (!meta.user_id && found.subId && stripeKey) {
+      const r = await fetch(`https://api.stripe.com/v1/subscriptions/${found.subId}`, {
         headers: { Authorization: 'Bearer ' + stripeKey },
       });
       if (r.ok) meta = (await r.json()).metadata ?? {};

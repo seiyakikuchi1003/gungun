@@ -83,9 +83,16 @@ Deno.serve(async (req) => {
     // ── 顧客（同じ人に何度も顧客を作らない）────────────
     const { data: profile } = await db
       .from('profiles')
-      .select('stripe_customer_id, nickname')
+      .select('stripe_customer_id, nickname, is_premium, premium_until')
       .eq('id', user.id)
       .maybeSingle();
+
+    // すでにプレミアムの人には、もう一度申し込ませない（2026-09-28 指摘：何度でも買えていた）。
+    // 画面のボタンを止めるだけでは、読み込みの遅れや別の端末からすり抜ける。
+    if (kind === 'premium' && profile?.is_premium && profile?.premium_until
+        && new Date(profile.premium_until as string).getTime() > Date.now()) {
+      return json({ error: 'すでにプレミアムに登録済みです' }, 409);
+    }
 
     let customer = profile?.stripe_customer_id as string | null;
     if (!customer) {
@@ -96,6 +103,21 @@ Deno.serve(async (req) => {
       });
       customer = c.id;
       await db.from('profiles').update({ stripe_customer_id: customer }).eq('id', user.id);
+    }
+
+    // 付与が遅れている間の二重申し込みも止める：Stripe 側に有効なサブスクが残っていれば断る
+    if (kind === 'premium' && customer) {
+      const r = await fetch(
+        `https://api.stripe.com/v1/subscriptions?customer=${customer}&status=active&limit=10`,
+        { headers: { Authorization: 'Bearer ' + sk } }
+      );
+      if (r.ok) {
+        const list = await r.json();
+        // deno-lint-ignore no-explicit-any
+        if ((list.data ?? []).some((x: any) => x?.metadata?.kind === 'premium')) {
+          return json({ error: 'すでにプレミアムに登録済みです（反映まで少しお待ちください）' }, 409);
+        }
+      }
     }
 
     // 支払いシートが保存済みカードを出せるようにする鍵
